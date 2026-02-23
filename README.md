@@ -54,13 +54,9 @@ Florida-Frenzy/
 
 ### Setup
 
-1. **Clone and install dependencies:**
+1. **Clone and install all dependencies:**
    ```bash
-   # Frontend
-   cd client && npm install
-
-   # Backend
-   cd server && npm install
+   npm run install:all
    ```
 
 2. **Configure environment:**
@@ -85,15 +81,8 @@ Florida-Frenzy/
    ```
 
 4. **Run development servers:**
-
-   Terminal 1 (backend):
    ```bash
-   cd server && npm run dev
-   ```
-
-   Terminal 2 (frontend):
-   ```bash
-   cd client && npm run dev
+   npm run dev
    ```
 
 5. **Open in browser:** http://localhost:5173
@@ -112,4 +101,3 @@ Florida Frenzy is a turn-based roguelite card battler featuring:
 - All game logic should be deterministic and live in shared types/utils
 - Backend verifies all actions; frontend handles rendering
 - Combat resolution happens server-side for multiplayer support
-- Use `claw-work` branch for development; PR to `main` when ready
