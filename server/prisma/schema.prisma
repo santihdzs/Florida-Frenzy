@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  firebaseUid   String   @unique
+  email         String
+  displayName   String?
+  coins         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  runs          Run[]
+  unlocks       Unlock[]
+}
+
+model Run {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  score         Int
+  fightsWon     Int
+  maxHp         Int
+  finalDeck     String[] // Card IDs
+  endedAt       DateTime @default(now())
+}
+
+model Unlock {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // 'card', 'skin', 'archetype'
+  key       String
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, type, key])
+}
+
+model Leaderboard {
+  id        String   @id @default(uuid())
+  userId    String
+  username  String
+  score     Int
+  achievedAt DateTime @default(now())
+}
