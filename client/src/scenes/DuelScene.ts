@@ -24,16 +24,7 @@ export class DuelScene extends Phaser.Scene {
     // Background gradient
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f0f1a, 0x0f0f1a, 1);
-    bg.fillRect(0, 0, 900, 650);
-
-    // Title / Back button
-    const backBtn = this.add.text(30, 30, '< Menu', {
-      fontSize: '20px',
-      color: '#888888'
-    }).setInteractive({ useHandCursor: true })
-      .on('pointerover', () => backBtn.setColor('#00ff88'))
-      .on('pointerout', () => backBtn.setColor('#888888'))
-      .on('pointerdown', () => this.scene.start('MenuScene'));
+    bg.fillRect(0, 0, 1000, 600);
 
     // HP Bars at top
     this.createHpBars();
@@ -98,12 +89,13 @@ export class DuelScene extends Phaser.Scene {
 
     const centerX = this.cameras.main.width / 2;
     const cardWidth = 100;
-    const spacing = 20;
-    const startX = centerX - (5 * cardWidth + 4 * spacing) / 2;
+    const spacing = 25;
+    const totalWidth = 5 * cardWidth + 4 * spacing;
+    const startX = centerX - totalWidth / 2;
 
     this.playerDeck.forEach((card, index) => {
       const x = startX + index * (cardWidth + spacing);
-      const y = 560;
+      const y = 520;
 
       const container = this.createCardContainer(x, y, card, index);
       this.cardObjects.push(container);
@@ -164,7 +156,7 @@ export class DuelScene extends Phaser.Scene {
 
     // Show opponent's card
     const centerX = this.cameras.main.width / 2;
-    const opponentCardContainer = this.createCardContainer(centerX, 250, opponentCard, 0);
+    const opponentCardContainer = this.createCardContainer(centerX, 240, opponentCard, 0);
     opponentCardContainer.setScale(1.2);
 
     // Compare
