@@ -59,33 +59,20 @@ Florida-Frenzy/
    npm run install:all
    ```
 
-2. **Configure environment:**
-
-   Create `server/.env`:
-   ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/florida_frenzy"
-   FIREBASE_PROJECT_ID="your-project-id"
-   JWT_SECRET="your-secret"
-   ```
-
-   Create `client/.env`:
-   ```env
-   VITE_API_URL="http://localhost:3001"
-   VITE_FIREBASE_PROJECT_ID="your-project-id"
-   ```
-
-3. **Set up database:**
+2. **Run the game:**
    ```bash
-   cd server
-   npx prisma migrate dev --name init
-   ```
-
-4. **Run development servers:**
-   ```bash
+   # Single command (both frontend + backend)
    npm run dev
+
+   # Or run separately for debugging:
+   # Terminal 1 - Backend (http://localhost:3001)
+   cd server && npm run dev
+
+   # Terminal 2 - Frontend (http://localhost:5173)
+   cd client && npm run dev
    ```
 
-5. **Open in browser:** http://localhost:5173
+3. **Open in browser:** http://localhost:5173
 
 ## Game Overview
 
