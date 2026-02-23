@@ -6,7 +6,6 @@ export class DuelScene extends Phaser.Scene {
   private opponentHp = 100;
   private playerDeck: Card[] = [];
   private opponentDeck: Card[] = [];
-  private selectedCard: Card | null = null;
   private cardObjects: Phaser.GameObjects.Container[] = [];
   private messageText!: Phaser.GameObjects.Text;
   private playerHpBar!: Phaser.GameObjects.Graphics;
@@ -19,7 +18,6 @@ export class DuelScene extends Phaser.Scene {
 
   create() {
     const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
 
     // Background gradient
     const bg = this.add.graphics();
@@ -94,7 +92,7 @@ export class DuelScene extends Phaser.Scene {
     const startX = centerX - totalWidth / 2;
 
     this.playerDeck.forEach((card, index) => {
-      const x = startX + index * (cardWidth + spacing);
+      const x = startX + index * (cardWidth + spacing) + cardWidth / 2;
       const y = 520;
 
       const container = this.createCardContainer(x, y, card, index);
@@ -148,11 +146,9 @@ export class DuelScene extends Phaser.Scene {
   private playCard(card: Card, cardContainer: Phaser.GameObjects.Container) {
     if (this.isAnimating) return;
     this.isAnimating = true;
-    this.selectedCard = card;
 
     // Opponent randomly selects a card
-    const opponentCardIndex = Math.floor(Math.random() * this.opponentDeck.length);
-    const opponentCard = this.opponentDeck[opponentDeck.length - 1]; // Just use last for simplicity
+    const opponentCard = this.opponentDeck[Math.floor(Math.random() * this.opponentDeck.length)];
 
     // Show opponent's card
     const centerX = this.cameras.main.width / 2;
@@ -207,7 +203,6 @@ export class DuelScene extends Phaser.Scene {
       } else {
         // New round - regenerate opponent's deck
         this.opponentDeck = generateDeck();
-        this.selectedCard = null;
         this.messageText.setText('Choose a card!');
         this.messageText.setColor('#ffffff');
       }
@@ -217,11 +212,13 @@ export class DuelScene extends Phaser.Scene {
   private gameOver(playerWon: boolean) {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
 
     // Overlay
     const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 0.8);
-    overlay.fillRect(0, 0, 800, 600);
+    overlay.fillRect(0, 0, width, height);
 
     const resultText = playerWon ? 'You Win!' : 'You Lose!';
     const resultColor = playerWon ? '#00ff88' : '#ff4444';
