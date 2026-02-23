@@ -24,7 +24,7 @@ export class DuelScene extends Phaser.Scene {
     // Background gradient
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f0f1a, 0x0f0f1a, 1);
-    bg.fillRect(0, 0, 800, 600);
+    bg.fillRect(0, 0, 900, 650);
 
     // Title / Back button
     const backBtn = this.add.text(30, 30, '< Menu', {
@@ -66,15 +66,15 @@ export class DuelScene extends Phaser.Scene {
   private createHpBars() {
     const centerX = this.cameras.main.width / 2;
 
-    // Player HP (bottom)
-    this.add.text(50, 520, 'Player', { fontSize: '18px', color: '#00ff88' });
+    // Player HP (top left)
+    this.add.text(50, 30, 'Player', { fontSize: '18px', color: '#00ff88' });
     this.playerHpBar = this.add.graphics();
-    this.updateHpBar(this.playerHpBar, this.playerHp, 50, 540);
+    this.updateHpBar(this.playerHpBar, this.playerHp, 50, 50);
 
-    // Opponent HP (top)
-    this.add.text(50, 50, 'Opponent', { fontSize: '18px', color: '#ff4444' });
+    // Opponent HP (top right)
+    this.add.text(centerX + 200, 30, 'Opponent', { fontSize: '18px', color: '#ff4444' });
     this.opponentHpBar = this.add.graphics();
-    this.updateHpBar(this.opponentHpBar, this.opponentHp, 50, 70);
+    this.updateHpBar(this.opponentHpBar, this.opponentHp, centerX + 200, 50);
   }
 
   private updateHpBar(graphics: Phaser.GameObjects.Graphics, hp: number, x: number, y: number) {
@@ -103,7 +103,7 @@ export class DuelScene extends Phaser.Scene {
 
     this.playerDeck.forEach((card, index) => {
       const x = startX + index * (cardWidth + spacing);
-      const y = 500;
+      const y = 560;
 
       const container = this.createCardContainer(x, y, card, index);
       this.cardObjects.push(container);
@@ -164,7 +164,7 @@ export class DuelScene extends Phaser.Scene {
 
     // Show opponent's card
     const centerX = this.cameras.main.width / 2;
-    const opponentCardContainer = this.createCardContainer(centerX, 180, opponentCard, 0);
+    const opponentCardContainer = this.createCardContainer(centerX, 250, opponentCard, 0);
     opponentCardContainer.setScale(1.2);
 
     // Compare
