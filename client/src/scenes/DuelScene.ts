@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Card, generateDeck, compareCards, ELEMENT_COLORS, Element } from '../utils/cards';
+import { Card, generateDeck, compareCards, ELEMENT_COLORS } from '../utils/cards';
 
 export class DuelScene extends Phaser.Scene {
   private playerHp = 100;
@@ -40,17 +40,16 @@ export class DuelScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Player area (bottom)
-    this.add.text(centerX, 420, 'Your Cards', {
-      fontSize: '24px',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-
-    // Message text
-    this.messageText = this.add.text(centerX, 200, 'Choose a card!', {
+    // Message text (where "Your Cards" was)
+    this.messageText = this.add.text(centerX, 420, 'Choose a card!', {
       fontSize: '28px',
       color: '#ffffff'
     }).setOrigin(0.5);
+
+    // Placeholder for character pic in middle
+    const placeholder = this.add.graphics();
+    placeholder.lineStyle(2, 0x666666);
+    placeholder.strokeRect(centerX - 40, 180, 80, 80);
 
     // Generate decks
     this.playerDeck = generateDeck();
@@ -168,41 +167,36 @@ export class DuelScene extends Phaser.Scene {
     // Opponent randomly selects a card
     const opponentCard = this.opponentDeck[Math.floor(Math.random() * this.opponentDeck.length)];
 
-    // Show opponent's card
+    // Show opponent's card (right side) and player card (left side) at battle height
     const centerX = this.cameras.main.width / 2;
-    const opponentCardContainer = this.createCardContainer(centerX, 240, opponentCard, 0);
+    const battleY = 240;
+    
+    // Move player card to left side of battle area
+    cardContainer.setPosition(centerX - 120, battleY);
+    cardContainer.setScale(1.2);
+    
+    // Show opponent card on right side
+    const opponentCardContainer = this.createCardContainer(centerX + 120, battleY, opponentCard, 0);
     opponentCardContainer.setScale(1.2);
 
     // Compare
     const result = compareCards(card.element, card.power, opponentCard.element, opponentCard.power);
 
-    // Update message
-    const elementEmoji: Record<Element, string> = {
-      fire: '🔥',
-      water: '💧',
-      earth: '🌍',
-      storm: '⚡',
-      venom: '☠️'
-    };
-
-    const playerCardText = `${elementEmoji[card.element]} ${card.power}`;
-    const opponentCardText = `${elementEmoji[opponentCard.element]} ${opponentCard.power}`;
-
     let message = '';
     let messageColor = '#ffffff';
 
     if (result === 'win') {
-      message = `You win! ${playerCardText} beats ${opponentCardText}`;
+      message = 'You win!';
       messageColor = '#00ff88';
       this.opponentHp -= 25;
       this.updateHpBar(this.opponentHpBar, this.opponentHp, this.OPPONENT_HP_X, this.OPPONENT_HP_Y, this.opponentHpText);
     } else if (result === 'lose') {
-      message = `You lose! ${opponentCardText} beats ${playerCardText}`;
+      message = 'You lose!';
       messageColor = '#ff4444';
       this.playerHp -= 25;
       this.updateHpBar(this.playerHpBar, this.playerHp, this.PLAYER_HP_X, this.PLAYER_HP_Y, this.playerHpText);
     } else {
-      message = `Draw! Both played ${playerCardText}`;
+      message = 'Draw!';
       messageColor = '#ffaa00';
     }
 
@@ -212,6 +206,8 @@ export class DuelScene extends Phaser.Scene {
     // Check for game over
     this.time.delayedCall(2000, () => {
       opponentCardContainer.destroy();
+      // Move player card back to deck position
+      this.renderCards();
       this.isAnimating = false;
 
       if (this.playerHp <= 0) {
