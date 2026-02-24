@@ -302,6 +302,9 @@ export class DuelScene extends Phaser.Scene {
         this.opponentDeck = generateDeck();
         this.messageText.setText('Choose a card!');
         this.messageText.setColor('#ffffff');
+      }
+    });
+  }
 
   private showVictoryCutscene(card: Card, cardContainer: Phaser.GameObjects.Container) {
     const centerX = this.cameras.main.width / 2;
