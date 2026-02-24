@@ -51,7 +51,7 @@ export class DuelScene extends Phaser.Scene {
     // Placeholder for character pic in middle (with shadow)
     const shadow = this.add.graphics();
     shadow.fillStyle(0x000000, 0.3);
-    shadow.fillEllipse(centerX, 380, 120, 40); // Horizontal oval shadow
+    shadow.fillEllipse(centerX, 370, 120, 40); // Horizontal oval shadow
     
     const placeholder = this.add.graphics();
     placeholder.lineStyle(3, 0x666666);
