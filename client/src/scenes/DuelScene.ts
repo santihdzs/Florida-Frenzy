@@ -14,6 +14,8 @@ export class DuelScene extends Phaser.Scene {
   private opponentHpBar!: Phaser.GameObjects.Graphics;
   private playerHpText!: Phaser.GameObjects.Text;
   private opponentHpText!: Phaser.GameObjects.Text;
+  private totalXpText!: Phaser.GameObjects.Text;
+  private totalCoinsText!: Phaser.GameObjects.Text;
   private isAnimating = false;
   private readonly PLAYER_HP_X = 50;
   private readonly PLAYER_HP_Y = 80;
@@ -75,6 +77,15 @@ export class DuelScene extends Phaser.Scene {
     this.playerHpText = this.add.text(this.PLAYER_HP_X, this.PLAYER_HP_Y + 30, `${this.playerHp}/100 HP`, {
       fontSize: '16px',
       color: '#ffffff'
+    });
+    // Total XP and Coins under player HP
+    this.totalXpText = this.add.text(this.PLAYER_HP_X, this.PLAYER_HP_Y + 55, `XP: ${this.totalXp}`, {
+      fontSize: '14px',
+      color: '#66ccff'
+    });
+    this.totalCoinsText = this.add.text(this.PLAYER_HP_X, this.PLAYER_HP_Y + 75, `Coins: ${this.totalCoins}`, {
+      fontSize: '14px',
+      color: '#ffd700'
     });
 
     // Opponent HP (top right)
@@ -251,25 +262,25 @@ export class DuelScene extends Phaser.Scene {
     this.totalXp += 100;
     this.totalCoins += 50;
     
-    // Show cutscene overlay
+    // Show cutscene overlay (solid background)
     const overlay = this.add.graphics();
-    overlay.fillStyle(0x000000, 0.7);
+    overlay.fillStyle(0x000000, 1.0);
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
     
     // Victory text
-    this.add.text(centerX, centerY - 80, 'Opponent Defeated!', {
+    const victoryText = this.add.text(centerX, centerY - 80, 'Opponent Defeated!', {
       fontSize: '48px',
       color: '#00ff88',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     
     // XP and coins
-    this.add.text(centerX, centerY, '+100 XP', {
+    const xpText = this.add.text(centerX, centerY, '+100 XP', {
       fontSize: '32px',
       color: '#ffffff'
     }).setOrigin(0.5);
     
-    this.add.text(centerX, centerY + 50, '+50 Coins', {
+    const coinsText = this.add.text(centerX, centerY + 50, '+50 Coins', {
       fontSize: '32px',
       color: '#ffd700'
     }).setOrigin(0.5);
@@ -280,10 +291,17 @@ export class DuelScene extends Phaser.Scene {
       color: '#888888'
     }).setOrigin(0.5);
     
-    // After delay, reset and continue
-    this.time.delayedCall(2500, () => {
+    // After delay, reset and continue (longer: 3.5 seconds)
+    this.time.delayedCall(3500, () => {
       overlay.destroy();
+      victoryText.destroy();
+      xpText.destroy();
+      coinsText.destroy();
       continueText.destroy();
+      
+      // Update total XP/Coins display
+      this.totalXpText.setText(`XP: ${this.totalXp}`);
+      this.totalCoinsText.setText(`Coins: ${this.totalCoins}`);
       
       // Reset HP for next duel
       this.playerHp = 100;
