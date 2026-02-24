@@ -22,7 +22,7 @@ export class DuelScene extends Phaser.Scene {
   private playerDamageText!: Phaser.GameObjects.Text;
   private opponentDamageText!: Phaser.GameObjects.Text;
   private characterShadow!: Phaser.GameObjects.Graphics;
-  private characterPlaceholder!: Phaser.GameObjects.Graphics;
+  private characterPlaceholder!: Phaser.GameObjects.Image;
   private isAnimating = false;
   private readonly PLAYER_HP_X = 50;
   private readonly PLAYER_HP_Y = 80;
@@ -36,6 +36,8 @@ export class DuelScene extends Phaser.Scene {
   preload() {
     // Load background image
     this.load.image('background', '/background.jpg');
+    // Load enemy gator
+    this.load.image('enemy-gator', '/enemy-gator.png');
   }
 
   create() {
@@ -91,14 +93,12 @@ export class DuelScene extends Phaser.Scene {
       color: '#ffffff'
     }).setOrigin(0.5);
 
-    // Placeholder for character pic in middle (with shadow)
+    // Enemy gator in middle (with shadow)
     this.characterShadow = this.add.graphics();
     this.characterShadow.fillStyle(0x000000, 0.3);
     this.characterShadow.fillEllipse(centerX, 370, 120, 40);
     
-    this.characterPlaceholder = this.add.graphics();
-    this.characterPlaceholder.lineStyle(3, 0x666666);
-    this.characterPlaceholder.strokeRect(centerX - 50, 260, 100, 100);
+    this.characterPlaceholder = this.add.image(centerX, 310, 'enemy-gator');
 
     // Generate decks
     this.playerDeck = generateDeck();
