@@ -351,7 +351,7 @@ export class DuelScene extends Phaser.Scene {
           this.characterShadow.fillEllipse(centerX, 430, 230, 40);
           
           this.currentEnemyImage = this.getEnemyImageForHp();
-          this.characterPlaceholder = this.add.image(centerX, 300, this.currentEnemyImage).setScale(0.5);
+          this.characterPlaceholder = this.add.image(centerX, 320, this.currentEnemyImage).setScale(0.6);
         } else {
           // Update to correct image based on HP
           this.currentEnemyImage = this.getEnemyImageForHp();
