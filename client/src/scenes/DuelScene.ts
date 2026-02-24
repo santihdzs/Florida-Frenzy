@@ -302,6 +302,21 @@ export class DuelScene extends Phaser.Scene {
         this.opponentDeck = generateDeck();
         this.messageText.setText('Choose a card!');
         this.messageText.setColor('#ffffff');
+        
+        // Recreate character elements if needed
+        if (!this.characterShadow || !this.characterPlaceholder) {
+          const centerX = this.cameras.main.width / 2;
+          this.characterShadow = this.add.graphics();
+          this.characterShadow.fillStyle(0x000000, 0.3);
+          this.characterShadow.fillEllipse(centerX, 370, 120, 40);
+          
+          this.characterPlaceholder = this.add.graphics();
+          this.characterPlaceholder.lineStyle(3, 0x666666);
+          this.characterPlaceholder.strokeRect(centerX - 50, 260, 100, 100);
+        }
+        
+        this.isAnimating = false;
+        this.renderCards();
       }
     });
   }
