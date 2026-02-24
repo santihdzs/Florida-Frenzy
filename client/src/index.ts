@@ -9,6 +9,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: 600,
   backgroundColor: '#1a1a2e',
   scene: [MenuScene, DuelScene],
+  resolution: 2,
   physics: {
     default: 'arcade',
     arcade: { debug: false }
