@@ -4,6 +4,8 @@ import { Card, generateDeck, compareCards, ELEMENT_COLORS, Element } from '../ut
 export class DuelScene extends Phaser.Scene {
   private playerHp = 100;
   private opponentHp = 100;
+  private totalXp = 0;
+  private totalCoins = 0;
   private playerDeck: Card[] = [];
   private opponentDeck: Card[] = [];
   private cardObjects: Phaser.GameObjects.Container[] = [];
@@ -209,10 +211,9 @@ export class DuelScene extends Phaser.Scene {
     this.messageText.setText(message);
     this.messageText.setColor(messageColor);
 
-    // Check for game over
+    // Check for duel outcome
     this.time.delayedCall(2000, () => {
       opponentCardContainer.destroy();
-      this.isAnimating = false; // Must be false before renderCards for interactivity
       
       // Replace used card with a new one
       const cardIndex = this.playerDeck.indexOf(card);
@@ -224,19 +225,82 @@ export class DuelScene extends Phaser.Scene {
           power: Math.floor(Math.random() * 5) + 1
         };
       }
-      
-      this.renderCards();
 
       if (this.playerHp <= 0) {
+        // Player lost - show game over screen with stats
         this.gameOver(false);
       } else if (this.opponentHp <= 0) {
-        this.gameOver(true);
+        // Opponent defeated - show victory cutscene
+        this.showVictoryCutscene(card, cardContainer);
       } else {
-        // New round - regenerate opponent's deck
+        // Continue duel
         this.opponentDeck = generateDeck();
         this.messageText.setText('Choose a card!');
         this.messageText.setColor('#ffffff');
+        this.isAnimating = false;
+        this.renderCards();
       }
+    });
+  }
+
+  private showVictoryCutscene(card: Card, cardContainer: Phaser.GameObjects.Container) {
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+    
+    // Award XP and coins
+    this.totalXp += 100;
+    this.totalCoins += 50;
+    
+    // Show cutscene overlay
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.7);
+    overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
+    
+    // Victory text
+    this.add.text(centerX, centerY - 80, 'Opponent Defeated!', {
+      fontSize: '48px',
+      color: '#00ff88',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // XP and coins
+    this.add.text(centerX, centerY, '+100 XP', {
+      fontSize: '32px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    
+    this.add.text(centerX, centerY + 50, '+50 Coins', {
+      fontSize: '32px',
+      color: '#ffd700'
+    }).setOrigin(0.5);
+    
+    // Continue prompt
+    const continueText = this.add.text(centerX, centerY + 120, 'Duel continues...', {
+      fontSize: '24px',
+      color: '#888888'
+    }).setOrigin(0.5);
+    
+    // After delay, reset and continue
+    this.time.delayedCall(2500, () => {
+      overlay.destroy();
+      continueText.destroy();
+      
+      // Reset HP for next duel
+      this.playerHp = 100;
+      this.opponentHp = 100;
+      this.updateHpBar(this.playerHpBar, this.playerHp, this.PLAYER_HP_X, this.PLAYER_HP_Y, this.playerHpText);
+      this.updateHpBar(this.opponentHpBar, this.opponentHp, this.OPPONENT_HP_X, this.OPPONENT_HP_Y, this.opponentHpText);
+      
+      // Regenerate opponent deck
+      this.opponentDeck = generateDeck();
+      
+      // Reset message
+      this.messageText.setText('Choose a card!');
+      this.messageText.setColor('#ffffff');
+      this.isAnimating = false;
+      
+      // Move card back and render
+      this.renderCards();
     });
   }
 
@@ -251,16 +315,25 @@ export class DuelScene extends Phaser.Scene {
     overlay.fillStyle(0x000000, 0.8);
     overlay.fillRect(0, 0, width, height);
 
-    const resultText = playerWon ? 'You Win!' : 'You Lose!';
-    const resultColor = playerWon ? '#00ff88' : '#ff4444';
-
-    this.add.text(centerX, centerY - 50, resultText, {
+    // Always show "You Lose" since victories continue
+    this.add.text(centerX, centerY - 100, 'You Lose!', {
       fontSize: '64px',
-      color: resultColor,
+      color: '#ff4444',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    const restartBtn = this.add.text(centerX, centerY + 50, 'Play Again', {
+    // Show total stats
+    this.add.text(centerX, centerY - 20, `Total XP: ${this.totalXp}`, {
+      fontSize: '32px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    this.add.text(centerX, centerY + 30, `Total Coins: ${this.totalCoins}`, {
+      fontSize: '32px',
+      color: '#ffd700'
+    }).setOrigin(0.5);
+
+    const restartBtn = this.add.text(centerX, centerY + 100, 'Play Again', {
       fontSize: '32px',
       color: '#ffffff'
     }).setOrigin(0.5)
@@ -269,7 +342,7 @@ export class DuelScene extends Phaser.Scene {
       .on('pointerout', () => restartBtn.setColor('#ffffff'))
       .on('pointerdown', () => this.scene.restart());
 
-    const menuBtn = this.add.text(centerX, centerY + 110, 'Menu', {
+    const menuBtn = this.add.text(centerX, centerY + 160, 'Menu', {
       fontSize: '24px',
       color: '#888888'
     }).setOrigin(0.5)
