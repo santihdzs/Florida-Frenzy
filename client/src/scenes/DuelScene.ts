@@ -14,9 +14,9 @@ export class DuelScene extends Phaser.Scene {
   private opponentHpText!: Phaser.GameObjects.Text;
   private isAnimating = false;
   private readonly PLAYER_HP_X = 50;
-  private readonly PLAYER_HP_Y = 50;
+  private readonly PLAYER_HP_Y = 80;
   private readonly OPPONENT_HP_X = 950;
-  private readonly OPPONENT_HP_Y = 50;
+  private readonly OPPONENT_HP_Y = 80;
 
   constructor() {
     super({ key: 'DuelScene' });
@@ -36,15 +36,15 @@ export class DuelScene extends Phaser.Scene {
     this.createHpBars();
 
     // Battle area (center) - aligned with HP bars
-    this.add.text(centerX, 60, 'VS', {
+    this.add.text(centerX, 70, 'VS', {
       fontSize: '42px',
       color: '#ffaa00',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     // Message text
-    this.messageText = this.add.text(centerX, 520, 'Choose a card!', {
-      fontSize: '34px',
+    this.messageText = this.add.text(centerX, 525, 'Choose a card!', {
+      fontSize: '30px',
       color: '#ffffff'
     }).setOrigin(0.5);
 
@@ -67,7 +67,7 @@ export class DuelScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2;
 
     // Player HP (top left)
-    this.add.text(this.PLAYER_HP_X, 30, 'Player', { fontSize: '20px', color: '#00ff88' });
+    this.add.text(this.PLAYER_HP_X, (this.PLAYER_HP_Y - 30), 'Player', { fontSize: '20px', color: '#00ff88' });
     this.playerHpBar = this.add.graphics();
     this.updateHpBar(this.playerHpBar, this.playerHp, this.PLAYER_HP_X, this.PLAYER_HP_Y);
     this.playerHpText = this.add.text(this.PLAYER_HP_X, this.PLAYER_HP_Y + 30, `${this.playerHp}/100 HP`, {
@@ -76,7 +76,7 @@ export class DuelScene extends Phaser.Scene {
     });
 
     // Opponent HP (top right)
-    this.add.text(this.OPPONENT_HP_X, 30, 'Opponent', { fontSize: '20px', color: '#ff4444' });
+    this.add.text(this.OPPONENT_HP_X, (this.OPPONENT_HP_Y - 30), 'Opponent', { fontSize: '20px', color: '#ff4444' });
     this.opponentHpBar = this.add.graphics();
     this.updateHpBar(this.opponentHpBar, this.opponentHp, this.OPPONENT_HP_X, this.OPPONENT_HP_Y);
     this.opponentHpText = this.add.text(this.OPPONENT_HP_X, this.OPPONENT_HP_Y + 30, `${this.opponentHp}/100 HP`, {
@@ -109,7 +109,7 @@ export class DuelScene extends Phaser.Scene {
     this.cardObjects = [];
 
     const centerX = this.cameras.main.width / 2;
-    const cardWidth = 115;
+    const cardWidth = 110;
     const spacing = 30;
     const totalWidth = 5 * cardWidth + 4 * spacing;
     const startX = centerX - totalWidth / 2;
