@@ -46,10 +46,14 @@ export class DuelScene extends Phaser.Scene {
       color: '#ffffff'
     }).setOrigin(0.5);
 
-    // Placeholder for character pic in middle
+    // Placeholder for character pic in middle (with shadow)
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, 0.3);
+    shadow.fillEllipse(centerX, 260, 120, 40); // Horizontal oval shadow
+    
     const placeholder = this.add.graphics();
-    placeholder.lineStyle(2, 0x666666);
-    placeholder.strokeRect(centerX - 40, 180, 80, 80);
+    placeholder.lineStyle(3, 0x666666);
+    placeholder.strokeRect(centerX - 50, 200, 100, 100); // Larger square
 
     // Generate decks
     this.playerDeck = generateDeck();
@@ -206,9 +210,9 @@ export class DuelScene extends Phaser.Scene {
     // Check for game over
     this.time.delayedCall(2000, () => {
       opponentCardContainer.destroy();
+      this.isAnimating = false; // Must be false before renderCards for interactivity
       // Move player card back to deck position
       this.renderCards();
-      this.isAnimating = false;
 
       if (this.playerHp <= 0) {
         this.gameOver(false);
