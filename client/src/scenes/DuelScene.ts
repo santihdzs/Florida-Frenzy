@@ -10,7 +10,13 @@ export class DuelScene extends Phaser.Scene {
   private messageText!: Phaser.GameObjects.Text;
   private playerHpBar!: Phaser.GameObjects.Graphics;
   private opponentHpBar!: Phaser.GameObjects.Graphics;
+  private playerHpText!: Phaser.GameObjects.Text;
+  private opponentHpText!: Phaser.GameObjects.Text;
   private isAnimating = false;
+  private readonly PLAYER_HP_X = 50;
+  private readonly PLAYER_HP_Y = 50;
+  private readonly OPPONENT_HP_X = 550;
+  private readonly OPPONENT_HP_Y = 50;
 
   constructor() {
     super({ key: 'DuelScene' });
@@ -27,8 +33,8 @@ export class DuelScene extends Phaser.Scene {
     // HP Bars at top
     this.createHpBars();
 
-    // Battle area (center)
-    this.add.text(centerX, 120, 'VS', {
+    // Battle area (center) - aligned with HP bars
+    this.add.text(centerX, 60, 'VS', {
       fontSize: '36px',
       color: '#ffaa00',
       fontStyle: 'bold'
@@ -56,17 +62,25 @@ export class DuelScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2;
 
     // Player HP (top left)
-    this.add.text(50, 30, 'Player', { fontSize: '18px', color: '#00ff88' });
+    this.add.text(this.PLAYER_HP_X, 30, 'Player', { fontSize: '18px', color: '#00ff88' });
     this.playerHpBar = this.add.graphics();
-    this.updateHpBar(this.playerHpBar, this.playerHp, 50, 50);
+    this.updateHpBar(this.playerHpBar, this.playerHp, this.PLAYER_HP_X, this.PLAYER_HP_Y);
+    this.playerHpText = this.add.text(this.PLAYER_HP_X, this.PLAYER_HP_Y + 25, `${this.playerHp}/100 HP`, {
+      fontSize: '14px',
+      color: '#ffffff'
+    });
 
     // Opponent HP (top right)
-    this.add.text(centerX + 200, 30, 'Opponent', { fontSize: '18px', color: '#ff4444' });
+    this.add.text(this.OPPONENT_HP_X, 30, 'Opponent', { fontSize: '18px', color: '#ff4444' });
     this.opponentHpBar = this.add.graphics();
-    this.updateHpBar(this.opponentHpBar, this.opponentHp, centerX + 200, 50);
+    this.updateHpBar(this.opponentHpBar, this.opponentHp, this.OPPONENT_HP_X, this.OPPONENT_HP_Y);
+    this.opponentHpText = this.add.text(this.OPPONENT_HP_X, this.OPPONENT_HP_Y + 25, `${this.opponentHp}/100 HP`, {
+      fontSize: '14px',
+      color: '#ffffff'
+    });
   }
 
-  private updateHpBar(graphics: Phaser.GameObjects.Graphics, hp: number, x: number, y: number) {
+  private updateHpBar(graphics: Phaser.GameObjects.Graphics, hp: number, x: number, y: number, hpText?: Phaser.GameObjects.Text) {
     graphics.clear();
     // Background
     graphics.fillStyle(0x333333);
@@ -78,6 +92,10 @@ export class DuelScene extends Phaser.Scene {
     // Border
     graphics.lineStyle(2, 0xffffff);
     graphics.strokeRect(x, y, 200, 20);
+    // Update text
+    if (hpText) {
+      hpText.setText(`${hp}/100 HP`);
+    }
   }
 
   private renderCards() {
@@ -177,12 +195,12 @@ export class DuelScene extends Phaser.Scene {
       message = `You win! ${playerCardText} beats ${opponentCardText}`;
       messageColor = '#00ff88';
       this.opponentHp -= 25;
-      this.updateHpBar(this.opponentHpBar, this.opponentHp, 50, 70);
+      this.updateHpBar(this.opponentHpBar, this.opponentHp, this.OPPONENT_HP_X, this.OPPONENT_HP_Y, this.opponentHpText);
     } else if (result === 'lose') {
       message = `You lose! ${opponentCardText} beats ${playerCardText}`;
       messageColor = '#ff4444';
       this.playerHp -= 25;
-      this.updateHpBar(this.playerHpBar, this.playerHp, 50, 540);
+      this.updateHpBar(this.playerHpBar, this.playerHp, this.PLAYER_HP_X, this.PLAYER_HP_Y, this.playerHpText);
     } else {
       message = `Draw! Both played ${playerCardText}`;
       messageColor = '#ffaa00';
