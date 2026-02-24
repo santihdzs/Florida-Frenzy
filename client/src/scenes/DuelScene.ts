@@ -359,11 +359,13 @@ export class DuelScene extends Phaser.Scene {
           this.currentEnemyImage = this.getEnemyImageForHp();
           this.characterPlaceholder = this.add.image(centerX, 300, this.currentEnemyImage).setScale(0.5);
         } else {
-          // Update to correct image based on HP and reset position/scale
-          this.currentEnemyImage = this.getEnemyImageForHp();
-          this.characterPlaceholder.setTexture(this.currentEnemyImage);
-          this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 300);
-          this.characterPlaceholder.setScale(0.5);
+          // Update to correct image based on HP (keep attack position/scale if still hurting)
+          const newImage = this.getEnemyImageForHp();
+          if (newImage === 'enemy-default' || newImage === 'enemy-hurt-1') {
+            this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 300);
+            this.characterPlaceholder.setScale(0.5);
+          }
+          this.characterPlaceholder.setTexture(newImage);
           this.isAttacking = false;
         }
         
