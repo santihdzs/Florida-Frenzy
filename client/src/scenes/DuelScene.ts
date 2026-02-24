@@ -26,7 +26,7 @@ export class DuelScene extends Phaser.Scene {
   private isAnimating = false;
   private readonly PLAYER_HP_X = 50;
   private readonly PLAYER_HP_Y = 80;
-  private readonly OPPONENT_HP_X = 950;
+  private readonly OPPONENT_HP_X = 920;
   private readonly OPPONENT_HP_Y = 80;
 
   constructor() {
@@ -52,25 +52,20 @@ export class DuelScene extends Phaser.Scene {
     
     // Top panel - HP bars area
     const topPanel = this.add.graphics();
-    topPanel.fillStyle(0x000000, 0.5);
-    topPanel.fillRoundedRect(10, 10, 280, 120, 10);
-    topPanel.fillRoundedRect(width - 290, 10, 280, 120, 10);
+    topPanel.fillStyle(0x000000, 0.8);
+    topPanel.fillRoundedRect(30, 30, 280, 160, 10);
+    topPanel.fillRoundedRect(width - 300, 30, 280, 120, 10);
     
     // Center top panel - Round and battle message
     const centerTopPanel = this.add.graphics();
-    centerTopPanel.fillStyle(0x000000, 0.5);
-    centerTopPanel.fillRoundedRect(centerX - 150, 45, 300, 100, 10);
+    centerTopPanel.fillStyle(0x000000, 0.6);
+    centerTopPanel.fillRoundedRect(centerX - 125, 45, 250, 47, 10);
     
     // Bottom panel - Message above deck
     const bottomPanel = this.add.graphics();
-    bottomPanel.fillStyle(0x000000, 0.5);
-    bottomPanel.fillRoundedRect(centerX - 200, 490, 400, 60, 10);
+    bottomPanel.fillStyle(0x000000, 0.6);
+    bottomPanel.fillRoundedRect(centerX - 365, 490, 730, 255, 10);
     
-    // Middle panel - Character placeholder
-    const middlePanel = this.add.graphics();
-    middlePanel.fillStyle(0x000000, 0.5);
-    middlePanel.fillRoundedRect(centerX - 80, 240, 160, 160, 10);
-
     // HP Bars at top
     this.createHpBars();
 
