@@ -329,11 +329,9 @@ export class DuelScene extends Phaser.Scene {
           const centerX = this.cameras.main.width / 2;
           this.characterShadow = this.add.graphics();
           this.characterShadow.fillStyle(0x000000, 0.3);
-          this.characterShadow.fillEllipse(centerX, 370, 120, 40);
+          this.characterShadow.fillEllipse(centerX, 430, 230, 40);
           
-          this.characterPlaceholder = this.add.graphics();
-          this.characterPlaceholder.lineStyle(3, 0x666666);
-          this.characterPlaceholder.strokeRect(centerX - 50, 260, 100, 100);
+          this.characterPlaceholder = this.add.image(centerX, 300, 'enemy-gator').setScale(0.5);
         }
         
         this.isAnimating = false;
@@ -403,14 +401,13 @@ export class DuelScene extends Phaser.Scene {
         this.playerDamageText.setText('');
         this.opponentDamageText.setText('');
         
-        // Recreate character shadow and placeholder
+        // Recreate character shadow and gator image
+        const centerX = this.cameras.main.width / 2;
         this.characterShadow = this.add.graphics();
         this.characterShadow.fillStyle(0x000000, 0.3);
-        this.characterShadow.fillEllipse(this.cameras.main.width / 2, 370, 120, 40);
+        this.characterShadow.fillEllipse(centerX, 430, 230, 40);
         
-        this.characterPlaceholder = this.add.graphics();
-        this.characterPlaceholder.lineStyle(3, 0x666666);
-        this.characterPlaceholder.strokeRect(this.cameras.main.width / 2 - 50, 260, 100, 100);
+        this.characterPlaceholder = this.add.image(centerX, 300, 'enemy-gator').setScale(0.5);
         
         // Regenerate opponent deck
         this.opponentDeck = generateDeck();
