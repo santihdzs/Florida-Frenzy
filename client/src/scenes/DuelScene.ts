@@ -24,11 +24,13 @@ export class DuelScene extends Phaser.Scene {
 
   create() {
     const centerX = this.cameras.main.width / 2;
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
 
     // Background gradient
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f0f1a, 0x0f0f1a, 1);
-    bg.fillRect(0, 0, 1000, 600);
+    bg.fillRect(0, 0, width + 1, height + 1);
 
     // HP Bars at top
     this.createHpBars();
