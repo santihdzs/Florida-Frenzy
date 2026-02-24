@@ -49,7 +49,7 @@ export class DuelScene extends Phaser.Scene {
     // Placeholder for character pic in middle (with shadow)
     const shadow = this.add.graphics();
     shadow.fillStyle(0x000000, 0.3);
-    shadow.fillEllipse(centerX, 250, 120, 40); // Horizontal oval shadow
+    shadow.fillEllipse(centerX, 310, 120, 40); // Horizontal oval shadow
     
     const placeholder = this.add.graphics();
     placeholder.lineStyle(3, 0x666666);
@@ -173,14 +173,14 @@ export class DuelScene extends Phaser.Scene {
 
     // Show opponent's card (right side) and player card (left side) at battle height
     const centerX = this.cameras.main.width / 2;
-    const battleY = 240;
+    const battleY = 300;
     
     // Move player card to left side of battle area
-    cardContainer.setPosition(centerX - 250, battleY);
+    cardContainer.setPosition(centerX - 300, battleY);
     cardContainer.setScale(1.2);
     
     // Show opponent card on right side
-    const opponentCardContainer = this.createCardContainer(centerX + 250, battleY, opponentCard, 0);
+    const opponentCardContainer = this.createCardContainer(centerX + 300, battleY, opponentCard, 0);
     opponentCardContainer.setScale(1.2);
 
     // Compare
