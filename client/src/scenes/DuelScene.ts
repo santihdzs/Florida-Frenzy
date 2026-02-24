@@ -24,6 +24,7 @@ export class DuelScene extends Phaser.Scene {
   private characterShadow!: Phaser.GameObjects.Graphics;
   private characterPlaceholder!: Phaser.GameObjects.Image;
   private currentEnemyImage = 'enemy-default';
+  private isAttacking = false;
   private isAnimating = false;
   private readonly PLAYER_HP_X = 50;
   private readonly PLAYER_HP_Y = 80;
@@ -247,6 +248,9 @@ export class DuelScene extends Phaser.Scene {
     const attackImages = ['enemy-attack-1', 'enemy-attack-2'];
     this.currentEnemyImage = attackImages[Math.floor(Math.random() * attackImages.length)];
     this.characterPlaceholder.setTexture(this.currentEnemyImage);
+    this.isAttacking = true;
+    this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 320);
+    this.characterPlaceholder.setScale(0.6);
 
     // Update message when picking - swap to "Current deck"
     this.messageText.setText('Current deck');
@@ -351,11 +355,14 @@ export class DuelScene extends Phaser.Scene {
           this.characterShadow.fillEllipse(centerX, 430, 230, 40);
           
           this.currentEnemyImage = this.getEnemyImageForHp();
-          this.characterPlaceholder = this.add.image(centerX, 320, this.currentEnemyImage).setScale(0.6);
+          this.characterPlaceholder = this.add.image(centerX, 300, this.currentEnemyImage).setScale(0.5);
         } else {
-          // Update to correct image based on HP
+          // Update to correct image based on HP and reset position/scale
           this.currentEnemyImage = this.getEnemyImageForHp();
           this.characterPlaceholder.setTexture(this.currentEnemyImage);
+          this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 300);
+          this.characterPlaceholder.setScale(0.5);
+          this.isAttacking = false;
         }
         
         this.isAnimating = false;
@@ -433,6 +440,7 @@ export class DuelScene extends Phaser.Scene {
         
         // Reset to default (full HP after victory)
         this.currentEnemyImage = 'enemy-default';
+        this.isAttacking = false;
         this.characterPlaceholder = this.add.image(centerX, 300, this.currentEnemyImage).setScale(0.5);
         
         // Regenerate opponent deck
