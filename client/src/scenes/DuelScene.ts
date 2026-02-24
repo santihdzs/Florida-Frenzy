@@ -23,6 +23,7 @@ export class DuelScene extends Phaser.Scene {
   private opponentDamageText!: Phaser.GameObjects.Text;
   private characterShadow!: Phaser.GameObjects.Graphics;
   private characterPlaceholder!: Phaser.GameObjects.Image;
+  private currentEnemyImage = 'enemy-default';
   private isAnimating = false;
   private readonly PLAYER_HP_X = 50;
   private readonly PLAYER_HP_Y = 80;
@@ -35,9 +36,13 @@ export class DuelScene extends Phaser.Scene {
 
   preload() {
     // Load background image
-    this.load.image('background', '/background.jpg');
-    // Load enemy gator
-    this.load.image('enemy-gator', '/enemy-gator.png');
+    this.load.image('background', '/backgrounds/everglades.jpg');
+    // Load enemy character images
+    this.load.image('enemy-default', '/character/default/enemy-gator.png');
+    this.load.image('enemy-attack-1', '/character/default/attack-1.png');
+    this.load.image('enemy-attack-2', '/character/default/attack-2.png');
+    this.load.image('enemy-hurt-1', '/character/default/hurt-1.png');
+    this.load.image('enemy-hurt-2', '/character/default/hurt-2.png');
   }
 
   create() {
@@ -93,7 +98,7 @@ export class DuelScene extends Phaser.Scene {
     this.characterShadow.fillStyle(0x000000, 0.3);
     this.characterShadow.fillEllipse(centerX, 430, 230, 40);
     
-    this.characterPlaceholder = this.add.image(centerX, 300, 'enemy-gator').setScale(0.5);
+    this.characterPlaceholder = this.add.image(centerX, 300, this.currentEnemyImage).setScale(0.5);
 
     // Generate decks
     this.playerDeck = generateDeck();
@@ -181,6 +186,16 @@ export class DuelScene extends Phaser.Scene {
     });
   }
 
+  private getEnemyImageForHp(): string {
+    const hpPercent = this.opponentHp;
+    if (hpPercent <= 25) {
+      return 'enemy-hurt-2';
+    } else if (hpPercent <= 50) {
+      return 'enemy-hurt-1';
+    }
+    return 'enemy-default';
+  }
+
   private createCardContainer(x: number, y: number, card: Card, index: number): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
 
@@ -227,6 +242,11 @@ export class DuelScene extends Phaser.Scene {
   private playCard(card: Card, cardContainer: Phaser.GameObjects.Container) {
     if (this.isAnimating) return;
     this.isAnimating = true;
+
+    // Update enemy image to attack pose (randomly choose attack-1 or attack-2)
+    const attackImages = ['enemy-attack-1', 'enemy-attack-2'];
+    this.currentEnemyImage = attackImages[Math.floor(Math.random() * attackImages.length)];
+    this.characterPlaceholder.setTexture(this.currentEnemyImage);
 
     // Update message when picking - swap to "Current deck"
     this.messageText.setText('Current deck');
@@ -330,7 +350,12 @@ export class DuelScene extends Phaser.Scene {
           this.characterShadow.fillStyle(0x000000, 0.3);
           this.characterShadow.fillEllipse(centerX, 430, 230, 40);
           
-          this.characterPlaceholder = this.add.image(centerX, 300, 'enemy-gator').setScale(0.5);
+          this.currentEnemyImage = this.getEnemyImageForHp();
+          this.characterPlaceholder = this.add.image(centerX, 300, this.currentEnemyImage).setScale(0.5);
+        } else {
+          // Update to correct image based on HP
+          this.currentEnemyImage = this.getEnemyImageForHp();
+          this.characterPlaceholder.setTexture(this.currentEnemyImage);
         }
         
         this.isAnimating = false;
@@ -406,7 +431,9 @@ export class DuelScene extends Phaser.Scene {
         this.characterShadow.fillStyle(0x000000, 0.3);
         this.characterShadow.fillEllipse(centerX, 430, 230, 40);
         
-        this.characterPlaceholder = this.add.image(centerX, 300, 'enemy-gator').setScale(0.5);
+        // Reset to default (full HP after victory)
+        this.currentEnemyImage = 'enemy-default';
+        this.characterPlaceholder = this.add.image(centerX, 300, this.currentEnemyImage).setScale(0.5);
         
         // Regenerate opponent deck
         this.opponentDeck = generateDeck();
