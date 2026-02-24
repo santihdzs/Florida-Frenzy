@@ -15,7 +15,7 @@ export class DuelScene extends Phaser.Scene {
   private isAnimating = false;
   private readonly PLAYER_HP_X = 50;
   private readonly PLAYER_HP_Y = 50;
-  private readonly OPPONENT_HP_X = 750;
+  private readonly OPPONENT_HP_X = 950;
   private readonly OPPONENT_HP_Y = 50;
 
   constructor() {
@@ -37,25 +37,25 @@ export class DuelScene extends Phaser.Scene {
 
     // Battle area (center) - aligned with HP bars
     this.add.text(centerX, 60, 'VS', {
-      fontSize: '36px',
+      fontSize: '42px',
       color: '#ffaa00',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     // Message text
-    this.messageText = this.add.text(centerX, 420, 'Choose a card!', {
-      fontSize: '28px',
+    this.messageText = this.add.text(centerX, 520, 'Choose a card!', {
+      fontSize: '34px',
       color: '#ffffff'
     }).setOrigin(0.5);
 
     // Placeholder for character pic in middle (with shadow)
     const shadow = this.add.graphics();
     shadow.fillStyle(0x000000, 0.3);
-    shadow.fillEllipse(centerX, 310, 120, 40); // Horizontal oval shadow
+    shadow.fillEllipse(centerX, 380, 120, 40); // Horizontal oval shadow
     
     const placeholder = this.add.graphics();
     placeholder.lineStyle(3, 0x666666);
-    placeholder.strokeRect(centerX - 50, 200, 100, 100); // Larger square
+    placeholder.strokeRect(centerX - 50, 260, 100, 100); // Larger square
 
     // Generate decks
     this.playerDeck = generateDeck();
@@ -67,20 +67,20 @@ export class DuelScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2;
 
     // Player HP (top left)
-    this.add.text(this.PLAYER_HP_X, 30, 'Player', { fontSize: '18px', color: '#00ff88' });
+    this.add.text(this.PLAYER_HP_X, 30, 'Player', { fontSize: '20px', color: '#00ff88' });
     this.playerHpBar = this.add.graphics();
     this.updateHpBar(this.playerHpBar, this.playerHp, this.PLAYER_HP_X, this.PLAYER_HP_Y);
-    this.playerHpText = this.add.text(this.PLAYER_HP_X, this.PLAYER_HP_Y + 25, `${this.playerHp}/100 HP`, {
-      fontSize: '14px',
+    this.playerHpText = this.add.text(this.PLAYER_HP_X, this.PLAYER_HP_Y + 30, `${this.playerHp}/100 HP`, {
+      fontSize: '16px',
       color: '#ffffff'
     });
 
     // Opponent HP (top right)
-    this.add.text(this.OPPONENT_HP_X, 30, 'Opponent', { fontSize: '18px', color: '#ff4444' });
+    this.add.text(this.OPPONENT_HP_X, 30, 'Opponent', { fontSize: '20px', color: '#ff4444' });
     this.opponentHpBar = this.add.graphics();
     this.updateHpBar(this.opponentHpBar, this.opponentHp, this.OPPONENT_HP_X, this.OPPONENT_HP_Y);
-    this.opponentHpText = this.add.text(this.OPPONENT_HP_X, this.OPPONENT_HP_Y + 25, `${this.opponentHp}/100 HP`, {
-      fontSize: '14px',
+    this.opponentHpText = this.add.text(this.OPPONENT_HP_X, this.OPPONENT_HP_Y + 30, `${this.opponentHp}/100 HP`, {
+      fontSize: '16px',
       color: '#ffffff'
     });
   }
@@ -89,14 +89,14 @@ export class DuelScene extends Phaser.Scene {
     graphics.clear();
     // Background
     graphics.fillStyle(0x333333);
-    graphics.fillRect(x, y, 200, 20);
+    graphics.fillRect(x, y, 230, 24);
     // HP
     const hpColor = hp > 50 ? 0x00ff88 : hp > 25 ? 0xffaa00 : 0xff4444;
     graphics.fillStyle(hpColor);
-    graphics.fillRect(x, y, (hp / 100) * 200, 20);
+    graphics.fillRect(x, y, (hp / 100) * 230, 24);
     // Border
     graphics.lineStyle(2, 0xffffff);
-    graphics.strokeRect(x, y, 200, 20);
+    graphics.strokeRect(x, y, 230, 24);
     // Update text
     if (hpText) {
       hpText.setText(`${hp}/100 HP`);
@@ -109,14 +109,14 @@ export class DuelScene extends Phaser.Scene {
     this.cardObjects = [];
 
     const centerX = this.cameras.main.width / 2;
-    const cardWidth = 100;
-    const spacing = 25;
+    const cardWidth = 115;
+    const spacing = 30;
     const totalWidth = 5 * cardWidth + 4 * spacing;
     const startX = centerX - totalWidth / 2;
 
     this.playerDeck.forEach((card, index) => {
       const x = startX + index * (cardWidth + spacing) + cardWidth / 2;
-      const y = 520;
+      const y = 650;
 
       const container = this.createCardContainer(x, y, card, index);
       this.cardObjects.push(container);
@@ -130,26 +130,26 @@ export class DuelScene extends Phaser.Scene {
     const bg = this.add.graphics();
     const color = ELEMENT_COLORS[card.element];
     bg.fillStyle(color, 1);
-    bg.fillRoundedRect(-45, -65, 90, 130, 10);
+    bg.fillRoundedRect(-52, -72, 104, 145, 12);
     bg.lineStyle(3, 0xffffff);
-    bg.strokeRoundedRect(-45, -65, 90, 130, 10);
+    bg.strokeRoundedRect(-52, -72, 104, 145, 12);
 
     // Element text
-    const elementText = this.add.text(0, -30, card.element.toUpperCase(), {
-      fontSize: '14px',
+    const elementText = this.add.text(0, -35, card.element.toUpperCase(), {
+      fontSize: '16px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     // Power number
-    const powerText = this.add.text(0, 30, card.power.toString(), {
-      fontSize: '36px',
+    const powerText = this.add.text(0, 35, card.power.toString(), {
+      fontSize: '42px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     container.add([bg, elementText, powerText]);
-    container.setSize(90, 130);
+    container.setSize(104, 145);
 
     // Interaction
     if (!this.isAnimating) {
@@ -175,7 +175,7 @@ export class DuelScene extends Phaser.Scene {
 
     // Show opponent's card (right side) and player card (left side) at battle height
     const centerX = this.cameras.main.width / 2;
-    const battleY = 300;
+    const battleY = 380;
     
     // Move player card to left side of battle area
     cardContainer.setPosition(centerX - 300, battleY);
