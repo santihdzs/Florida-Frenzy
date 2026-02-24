@@ -102,7 +102,6 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private createHpBars() {
-    const centerX = this.cameras.main.width / 2;
 
     // Player HP (top left)
     this.add.text(this.PLAYER_HP_X, (this.PLAYER_HP_Y - 30), 'Player', { fontSize: '20px', color: '#00ff88' });
@@ -303,7 +302,7 @@ export class DuelScene extends Phaser.Scene {
         this.battleMessageText.setText('');
         this.playerDamageText.setText('');
         this.opponentDamageText.setText('');
-        this.gameOver(false);
+        this.gameOver();
       } else if (this.opponentHp <= 0) {
         // Opponent defeated - show victory cutscene
         this.roundsWon++;
@@ -422,7 +421,7 @@ export class DuelScene extends Phaser.Scene {
       });
   }
 
-  private gameOver(playerWon: boolean) {
+  private gameOver() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
     const width = this.cameras.main.width;

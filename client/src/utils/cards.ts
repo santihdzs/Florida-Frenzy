@@ -11,17 +11,6 @@ export const ELEMENT_COLORS: Record<Element, number> = {
   venom: 0x8844aa
 };
 
-export function getElementWeakness(element: Element): Element {
-  const weaknesses: Record<Element, Element> = {
-    fire: 'water',
-    water: 'earth',
-    earth: 'electric',
-    electric: 'venom',
-    venom: 'fire'
-  };
-  return weaknesses[element];
-}
-
 export function getElementStrength(element: Element): Element {
   const strengths: Record<Element, Element> = {
     fire: 'electric',
