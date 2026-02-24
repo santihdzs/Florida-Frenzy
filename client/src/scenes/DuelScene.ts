@@ -46,6 +46,29 @@ export class DuelScene extends Phaser.Scene {
     // Background image
     this.add.image(centerX, height / 2, 'background');
 
+    // Translucent panels for UI readability
+    
+    // Top panel - HP bars area
+    const topPanel = this.add.graphics();
+    topPanel.fillStyle(0x000000, 0.5);
+    topPanel.fillRoundedRect(10, 10, 280, 120, 10);
+    topPanel.fillRoundedRect(width - 290, 10, 280, 120, 10);
+    
+    // Center top panel - Round and battle message
+    const centerTopPanel = this.add.graphics();
+    centerTopPanel.fillStyle(0x000000, 0.5);
+    centerTopPanel.fillRoundedRect(centerX - 150, 45, 300, 100, 10);
+    
+    // Bottom panel - Message above deck
+    const bottomPanel = this.add.graphics();
+    bottomPanel.fillStyle(0x000000, 0.5);
+    bottomPanel.fillRoundedRect(centerX - 200, 490, 400, 60, 10);
+    
+    // Middle panel - Character placeholder
+    const middlePanel = this.add.graphics();
+    middlePanel.fillStyle(0x000000, 0.5);
+    middlePanel.fillRoundedRect(centerX - 80, 240, 160, 160, 10);
+
     // HP Bars at top
     this.createHpBars();
 
