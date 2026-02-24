@@ -190,8 +190,8 @@ export class DuelScene extends Phaser.Scene {
   private getEnemyImageForHp(): string {
     const hpPercent = this.opponentHp;
     if (hpPercent <= 25) {
-      this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 330);
-      this.characterPlaceholder.setScale(0.7);
+      this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 340);
+      this.characterPlaceholder.setScale(0.8);
       return 'enemy-hurt-2';
     } else if (hpPercent <= 50) {
       return 'enemy-hurt-1';
