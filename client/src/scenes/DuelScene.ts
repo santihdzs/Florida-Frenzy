@@ -190,6 +190,8 @@ export class DuelScene extends Phaser.Scene {
   private getEnemyImageForHp(): string {
     const hpPercent = this.opponentHp;
     if (hpPercent <= 25) {
+      this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 320);
+      this.characterPlaceholder.setScale(0.6);
       return 'enemy-hurt-2';
     } else if (hpPercent <= 50) {
       return 'enemy-hurt-1';
@@ -249,8 +251,8 @@ export class DuelScene extends Phaser.Scene {
     this.currentEnemyImage = attackImages[Math.floor(Math.random() * attackImages.length)];
     this.characterPlaceholder.setTexture(this.currentEnemyImage);
     this.isAttacking = true;
-    this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 320);
-    this.characterPlaceholder.setScale(0.6);
+    this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 330);
+    this.characterPlaceholder.setScale(0.7);
 
     // Update message when picking - swap to "Current deck"
     this.messageText.setText('Current deck');
