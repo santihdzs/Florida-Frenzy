@@ -175,12 +175,18 @@ export class DuelScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2;
     const battleY = 240;
     
-    // Move player card to left side of battle area
-    cardContainer.setPosition(centerX - 120, battleY);
+    // Move player card to left side of battle area (with shadow)
+    const playerShadow = this.add.graphics();
+    playerShadow.fillStyle(0x000000, 0.3);
+    playerShadow.fillEllipse(centerX - 160, 270, 100, 30);
+    cardContainer.setPosition(centerX - 160, battleY);
     cardContainer.setScale(1.2);
     
-    // Show opponent card on right side
-    const opponentCardContainer = this.createCardContainer(centerX + 120, battleY, opponentCard, 0);
+    // Show opponent card on right side (with shadow, slightly lower)
+    const opponentShadow = this.add.graphics();
+    opponentShadow.fillStyle(0x000000, 0.3);
+    opponentShadow.fillEllipse(centerX + 160, 285, 100, 30);
+    const opponentCardContainer = this.createCardContainer(centerX + 160, battleY, opponentCard, 0);
     opponentCardContainer.setScale(1.2);
 
     // Compare
@@ -210,6 +216,8 @@ export class DuelScene extends Phaser.Scene {
     // Check for game over
     this.time.delayedCall(2000, () => {
       opponentCardContainer.destroy();
+      playerShadow.destroy();
+      opponentShadow.destroy();
       this.isAnimating = false; // Must be false before renderCards for interactivity
       // Move player card back to deck position
       this.renderCards();
