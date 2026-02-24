@@ -91,9 +91,9 @@ export class DuelScene extends Phaser.Scene {
     // Enemy gator in middle (with shadow)
     this.characterShadow = this.add.graphics();
     this.characterShadow.fillStyle(0x000000, 0.3);
-    this.characterShadow.fillEllipse(centerX, 370, 120, 40);
+    this.characterShadow.fillEllipse(centerX, 430, 230, 40);
     
-    this.characterPlaceholder = this.add.image(centerX, 310, 'enemy-gator');
+    this.characterPlaceholder = this.add.image(centerX, 300, 'enemy-gator').setScale(0.5);
 
     // Generate decks
     this.playerDeck = generateDeck();
