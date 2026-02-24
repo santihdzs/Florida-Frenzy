@@ -15,7 +15,7 @@ export class DuelScene extends Phaser.Scene {
   private isAnimating = false;
   private readonly PLAYER_HP_X = 50;
   private readonly PLAYER_HP_Y = 50;
-  private readonly OPPONENT_HP_X = 550;
+  private readonly OPPONENT_HP_X = 750;
   private readonly OPPONENT_HP_Y = 50;
 
   constructor() {
