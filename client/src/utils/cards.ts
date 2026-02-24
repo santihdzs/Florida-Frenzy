@@ -1,13 +1,13 @@
 // Element types and their relationships
-export type Element = 'fire' | 'water' | 'earth' | 'storm' | 'venom';
+export type Element = 'fire' | 'water' | 'earth' | 'electric' | 'venom';
 
-// Fire > Storm, Storm > Water, Water > Fire, Earth > Venom, Venom > Earth
+// Fire > Electric, Electric > Water, Water > Fire, Earth > Venom, Venom > Earth
 // Same element = compare power value
 export const ELEMENT_COLORS: Record<Element, number> = {
   fire: 0xff4444,
   water: 0x4444ff,
   earth: 0x44aa44,
-  storm: 0xaaaa44,
+  electric: 0xaaaa44,
   venom: 0x8844aa
 };
 
@@ -15,8 +15,8 @@ export function getElementWeakness(element: Element): Element {
   const weaknesses: Record<Element, Element> = {
     fire: 'water',
     water: 'earth',
-    earth: 'storm',
-    storm: 'venom',
+    earth: 'electric',
+    electric: 'venom',
     venom: 'fire'
   };
   return weaknesses[element];
@@ -24,10 +24,10 @@ export function getElementWeakness(element: Element): Element {
 
 export function getElementStrength(element: Element): Element {
   const strengths: Record<Element, Element> = {
-    fire: 'storm',
+    fire: 'electric',
     water: 'fire',
     earth: 'venom',
-    storm: 'water',
+    electric: 'water',
     venom: 'earth'
   };
   return strengths[element];
@@ -70,7 +70,7 @@ export interface Card {
 
 // Generate 5 random cards for a duel
 export function generateDeck(): Card[] {
-  const elements: Element[] = ['fire', 'water', 'earth', 'storm', 'venom'];
+  const elements: Element[] = ['fire', 'water', 'earth', 'electric', 'venom'];
   const deck: Card[] = [];
   
   for (let i = 0; i < 5; i++) {

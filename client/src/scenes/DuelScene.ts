@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Card, generateDeck, compareCards, ELEMENT_COLORS } from '../utils/cards';
+import { Card, generateDeck, compareCards, ELEMENT_COLORS, Element } from '../utils/cards';
 
 export class DuelScene extends Phaser.Scene {
   private playerHp = 100;
@@ -211,7 +211,18 @@ export class DuelScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => {
       opponentCardContainer.destroy();
       this.isAnimating = false; // Must be false before renderCards for interactivity
-      // Move player card back to deck position
+      
+      // Replace used card with a new one
+      const cardIndex = this.playerDeck.indexOf(card);
+      if (cardIndex !== -1) {
+        const elements: Element[] = ['fire', 'water', 'earth', 'electric', 'venom'];
+        this.playerDeck[cardIndex] = {
+          id: `card-${Date.now()}`,
+          element: elements[Math.floor(Math.random() * elements.length)],
+          power: Math.floor(Math.random() * 5) + 1
+        };
+      }
+      
       this.renderCards();
 
       if (this.playerHp <= 0) {
