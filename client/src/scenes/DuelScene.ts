@@ -42,7 +42,7 @@ export class DuelScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Message text (where "Your Cards" was)
+    // Message text
     this.messageText = this.add.text(centerX, 420, 'Choose a card!', {
       fontSize: '28px',
       color: '#ffffff'
