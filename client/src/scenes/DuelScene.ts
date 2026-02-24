@@ -251,7 +251,7 @@ export class DuelScene extends Phaser.Scene {
     this.currentEnemyImage = attackImages[Math.floor(Math.random() * attackImages.length)];
     this.characterPlaceholder.setTexture(this.currentEnemyImage);
     this.isAttacking = true;
-    this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 320);
+    this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 310);
     this.characterPlaceholder.setScale(0.8);
 
     // Update message when picking - swap to "Current deck"
