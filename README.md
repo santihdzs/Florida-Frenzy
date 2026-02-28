@@ -1,6 +1,6 @@
 # Florida Frenzy
 
-A turn-based roguelite card battler built with a modern web stack.
+A turn-based roguelite card battler.
 
 ## Tech Stack
 
@@ -12,9 +12,9 @@ A turn-based roguelite card battler built with a modern web stack.
 ### Backend
 - **Node.js** — Runtime
 - **Fastify** — Web framework (TypeScript)
-- **Firebase Auth** — Google Sign-In authentication
+- **Firebase Auth** — Google Sign-In auth
 - **PostgreSQL** — Database
-- **Prisma** — ORM for database operations
+- **Prisma** — Object-Relational Mapping for DB operations
 
 ## Repository Structure
 
