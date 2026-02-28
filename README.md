@@ -5,9 +5,9 @@ A turn-based roguelite card battler.
 ## Tech Stack
 
 ### Frontend
-- **Phaser 3** — Game engine for rendering, animations, and client-side combat logic
-- **TypeScript** — Type-safe JavaScript
-- **Vite** — Fast build tool and dev server
+- **Phaser 3** — Game engine (rendering, animations, client-side combat logic)
+- **TypeScript** — (Type-safe JS)
+- **Vite** — Build tool and dev server
 
 ### Backend
 - **Node.js** — Runtime
