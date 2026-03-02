@@ -1,6 +1,14 @@
 import Phaser from 'phaser';
 import { Card, generateDeck, compareCards, ELEMENT_COLORS, Element } from '../utils/cards';
 
+// Import assets directly for Vite
+import backgroundImg from '../assets/backgrounds/everglades.jpg';
+import enemyDefault from '../assets/characters/default/enemy-gator.png';
+import enemyAttack1 from '../assets/characters/default/attack-1.png';
+import enemyAttack2 from '../assets/characters/default/attack-2.png';
+import enemyHurt1 from '../assets/characters/default/hurt-1.png';
+import enemyHurt2 from '../assets/characters/default/hurt-2.png';
+
 export class DuelScene extends Phaser.Scene {
   private playerHp = 100;
   private opponentHp = 100;
@@ -37,13 +45,13 @@ export class DuelScene extends Phaser.Scene {
 
   preload() {
     // Load background image
-    this.load.image('background', '/assets/backgrounds/everglades.jpg');
+    this.load.image('background', backgroundImg);
     // Load enemy character images
-    this.load.image('enemy-default', '/assets/characters/default/enemy-gator.png');
-    this.load.image('enemy-attack-1', '/assets/characters/default/attack-1.png');
-    this.load.image('enemy-attack-2', '/assets/characters/default/attack-2.png');
-    this.load.image('enemy-hurt-1', '/assets/characters/default/hurt-1.png');
-    this.load.image('enemy-hurt-2', '/assets/characters/default/hurt-2.png');
+    this.load.image('enemy-default', enemyDefault);
+    this.load.image('enemy-attack-1', enemyAttack1);
+    this.load.image('enemy-attack-2', enemyAttack2);
+    this.load.image('enemy-hurt-1', enemyHurt1);
+    this.load.image('enemy-hurt-2', enemyHurt2);
   }
 
   create() {

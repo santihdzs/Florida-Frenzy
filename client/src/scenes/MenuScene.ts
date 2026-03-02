@@ -1,13 +1,17 @@
 import Phaser from 'phaser';
 
+// Import assets directly for Vite
+import titleBackground from '../assets/title-background.png';
+import titleLogo from '../assets/logos/logo.png';
+
 export class MenuScene extends Phaser.Scene {
   constructor() {
     super({ key: 'MenuScene' });
   }
 
   preload() {
-    this.load.image('title-background', '/assets/title-background.png');
-    this.load.image('title-logo', '/assets/logos/logo.png');
+    this.load.image('title-background', titleBackground);
+    this.load.image('title-logo', titleLogo);
   }
 
   create() {
