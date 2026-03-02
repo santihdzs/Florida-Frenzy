@@ -16,6 +16,7 @@ export class DuelScene extends Phaser.Scene {
   private totalXp = 0;
   private totalCoins = 0;
   private roundsWon = 0;
+  private levelCount = 0;
   private playerDeck: Card[] = [];
   private opponentDeck: Card[] = [];
   private cardObjects: Phaser.GameObjects.Container[] = [];
@@ -42,6 +43,10 @@ export class DuelScene extends Phaser.Scene {
 
   constructor() {
     super({ key: 'DuelScene' });
+  }
+
+  init(data: { levelCount?: number }) {
+    this.levelCount = data.levelCount ?? 0;
   }
 
   preload() {
@@ -424,48 +429,8 @@ export class DuelScene extends Phaser.Scene {
       .on('pointerover', () => continueBtn.setColor('#00ff88'))
       .on('pointerout', () => continueBtn.setColor('#ffffff'))
       .on('pointerdown', () => {
-        // Clean up cutscene - destroy ALL elements
-        overlay.destroy();
-        victoryText.destroy();
-        xpText.destroy();
-        coinsText.destroy();
-        continueBtn.destroy();
-        
-        // Update total XP/Coins display
-        this.totalXpText.setText(`XP: ${this.totalXp}`);
-        this.totalCoinsText.setText(`Coins: ${this.totalCoins}`);
-        
-        // Reset HP for next duel
-        this.playerHp = 100;
-        this.opponentHp = 100;
-        this.updateHpBar(this.playerHpBar, this.playerHp, this.PLAYER_HP_X, this.PLAYER_HP_Y, this.playerHpText);
-        this.updateHpBar(this.opponentHpBar, this.opponentHp, this.OPPONENT_HP_X, this.OPPONENT_HP_Y, this.opponentHpText);
-        
-        // Clear damage texts
-        this.playerDamageText.setText('');
-        this.opponentDamageText.setText('');
-        
-        // Recreate character shadow and gator image
-        const centerX = this.cameras.main.width / 2;
-        this.characterShadow = this.add.graphics();
-        this.characterShadow.fillStyle(0x000000, 0.3);
-        this.characterShadow.fillEllipse(centerX, 430, 230, 40);
-        
-        // Reset to default (full HP after victory)
-        this.currentEnemyImage = 'enemy-default';
-        this.isAttacking = false;
-        this.characterPlaceholder = this.add.image(centerX, 300, this.currentEnemyImage).setScale(0.5);
-        
-        // Regenerate opponent deck
-        this.opponentDeck = generateDeck();
-        
-        // Reset message to "Current deck" (idle state)
-        this.messageText.setText('Current deck');
-        this.messageText.setColor('#ffffff');
-        this.isAnimating = false;
-        
-        // Move card back and render
-        this.renderCards();
+        // back to platformer loop
+        this.scene.start('PlatformerScene', { levelCount: this.levelCount });
       });
   }
 
