@@ -46,33 +46,32 @@
 
 ### **Summary**
 
-Floarida Frenzy es un TCG en 2D roguelite que fusiona la estrategía de poderes elementales con mecánicas inspiradas en el ya conocido juego de &quot;UNO&quot;. Los jugadores estaran en el rol de Guerreros reptiles (cocodrilos) en enfrentamientos contra diversos adversarios del pantano. 
-
+Florida Frenzy es un juego roguelite en 2D, que involucra mecánicas de un TCG y un 'platformer game'. Asumes el rol de alguno de los miembros del Krock Klan, y te enfrentas contra las amenazas del pantano de Florida. Colecciona cartas, gana experiencia, participa en duelos que incrementarán en dificultad conforme progreses en el juego.
 
 ### **Gameplay**
 
 Objetivo del juego y estructura:
-El objetivo principal es sobrevivir a una serie de &quot;runs&quot; (partidas reiniciables) en las cuales avanzaran a través de niveles en un mapa 2D.
+El objetivo principal es sobrevivir a una serie de &quot;runs&quot; (partidas reiniciables) en las cuales avanzaras a través de niveles en un mapa 2D.
 1. Exploración: esta es en movimiento lateral tipo platformer donde el jugador evade enemigos de menor nivel.
 2. Combate: al entrar en contacto con el enemigo se iniciara el combate, pasando a una batalla por turnos basada en cartas.
-3. Progreso: cuando se pierde un combate, se regresa al jugador al primer nivel, pero se mantendra el progreso "global" mediante swamp XP con el cual se mejorara tu clan credit y podras desbloquear variantes de cartas.  
+3. Progreso: cuando se pierde un combate, se regresa al jugador al primer nivel, pero se mantendra el progreso "global" mediante swamp XP con el cual se mejorara tu 'Clan Credit. El cual te dará acceso a desbloqueables.
 
 Obstaculos y enemigos :
-El jugador se enfrentará a diversas facciones del pantano, como lo son caimanes y ratas, así como a jefes de zona los cuales deben de ser derrotados para validar el exito de la run en curso.
+El jugador se enfrentará a diversas facciones del pantano (mapaches, ratas y osos), así como a jefes de zona, los cuales deben de ser derrotados para validar el exito de la run en curso.
 
 Tácticas y reglas de combate:
 La mecanica principal esta basada en el match de cartas (estilo uno):
 1. Reglas de coincidencia: solo puedes jugar una carta si coincide en elemento o Número con la &quot;Carta lider&quot; actual.
-2. Poderes elementales: son cinco agua, pantano, fuego, arena y hielo.
+2. Poderes elementales: agua, pantano, fuego, arena y hielo.
 3. Gestión de energía:
     1. Energía elemental: esta basada en el tipo de las cartas.
     2. Energia instinto: basada en el número de la carta, utilizada para poder recargar habilidades. 
 
 ### **Mindset**
 
-El objetivo es provocar una sensación de estrategía punki y caótica.
+El objetivo es mezclar un la jugabilidad "nostálgica" con los elementos 'punk' y caricaturescos de los personajes.
 1. Estilo: tono caricaturesco con personajes punks que usan metal y basura como armadura.
-2. Emoción: el jugador debe sentirse commo un superviviente astuto. La interfaz está centrada en datos e interacciones claras para fomentar el análisis táctico bajo presión.
+2. Emoción: el jugador toma el rol de alguno de los miembros de clan, y cada uno posee su propia personalidad. La interfaz está centrada en datos e interacciones claras para fomentar el análisis táctico bajo presión.
 
 ## _Technical_
 
