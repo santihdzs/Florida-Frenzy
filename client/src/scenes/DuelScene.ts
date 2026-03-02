@@ -37,13 +37,13 @@ export class DuelScene extends Phaser.Scene {
 
   preload() {
     // Load background image
-    this.load.image('background', '/backgrounds/everglades.jpg');
+    this.load.image('background', '/assets/backgrounds/everglades.jpg');
     // Load enemy character images
-    this.load.image('enemy-default', '/character/default/enemy-gator.png');
-    this.load.image('enemy-attack-1', '/character/default/attack-1.png');
-    this.load.image('enemy-attack-2', '/character/default/attack-2.png');
-    this.load.image('enemy-hurt-1', '/character/default/hurt-1.png');
-    this.load.image('enemy-hurt-2', '/character/default/hurt-2.png');
+    this.load.image('enemy-default', '/assets/characters/default/enemy-gator.png');
+    this.load.image('enemy-attack-1', '/assets/characters/default/attack-1.png');
+    this.load.image('enemy-attack-2', '/assets/characters/default/attack-2.png');
+    this.load.image('enemy-hurt-1', '/assets/characters/default/hurt-1.png');
+    this.load.image('enemy-hurt-2', '/assets/characters/default/hurt-2.png');
   }
 
   create() {

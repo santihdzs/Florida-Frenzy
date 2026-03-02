@@ -5,17 +5,20 @@ export class MenuScene extends Phaser.Scene {
     super({ key: 'MenuScene' });
   }
 
+  preload() {
+    this.load.image('title-background', '/assets/title-background.png');
+    this.load.image('title-logo', '/assets/logos/logo.png');
+  }
+
   create() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
-    // Title
-    this.add.text(centerX, 150, 'Florida Frenzy', {
-      fontSize: '56px',
-      color: '#00ff88',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
+    // Background
+    this.add.image(centerX, centerY, 'title-background');
+
+    // Title logo
+    this.add.image(centerX, 150, 'title-logo');
 
     // Menu buttons
     const buttons = [
