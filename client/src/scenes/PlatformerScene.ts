@@ -115,10 +115,9 @@ export class PlatformerScene extends Phaser.Scene {
     if (this.levelComplete) return;
     this.handleMovement();
 
-    // fell off the map -> respawn at start
+    // fell off the map -> game over
     if (this.player.y > VIEW_HEIGHT + 100) {
-      this.player.setPosition(100, GROUND_Y - PLAYER_SIZE - 10);
-      this.player.setVelocity(0, 0);
+      this.showGameOver();
     }
   }
 
@@ -330,5 +329,49 @@ export class PlatformerScene extends Phaser.Scene {
           this.scene.start('PlatformerScene', { levelCount: nextLevel });
         }
       });
+  }
+
+  // -- game over --
+
+  private showGameOver() {
+    this.levelComplete = true;
+    this.player.setVelocity(0, 0);
+    this.player.body.setAllowGravity(false);
+
+    const centerX = this.cameras.main.scrollX + this.cameras.main.width / 2;
+    const centerY = this.cameras.main.scrollY + this.cameras.main.height / 2;
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.85);
+    overlay.fillRect(centerX - 600, centerY - 375, 1200, 750);
+
+    this.add.text(centerX, centerY - 80, 'Game Over', {
+      fontSize: '48px',
+      color: '#ff4444',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.add.text(centerX, centerY - 20, `Reached Level ${this.levelCount + 1}`, {
+      fontSize: '24px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    const restartBtn = this.add.text(centerX, centerY + 60, 'Play Again', {
+      fontSize: '28px',
+      color: '#ffffff'
+    }).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => restartBtn.setColor('#00ff88'))
+      .on('pointerout', () => restartBtn.setColor('#ffffff'))
+      .on('pointerdown', () => this.scene.start('PlatformerScene', { levelCount: 0 }));
+
+    const menuBtn = this.add.text(centerX, centerY + 120, 'Menu', {
+      fontSize: '24px',
+      color: '#888888'
+    }).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => menuBtn.setColor('#ffffff'))
+      .on('pointerout', () => menuBtn.setColor('#888888'))
+      .on('pointerdown', () => this.scene.start('MenuScene'));
   }
 }
