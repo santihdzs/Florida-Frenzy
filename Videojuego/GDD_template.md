@@ -46,23 +46,23 @@
 
 ### **Summary**
 
-Floarida Frenzy es un TCG en 2D roguelite que fusiona la estrategía de poderes elementales con mecánicas inspiradas en el ya conocido juego de 'UNO'. Los jugadores estaran en el rol de Guerreros reptiles (cocodrilos) en enfrentamientos contra diversos adversarios del pantano. 
+Floarida Frenzy es un TCG en 2D roguelite que fusiona la estrategía de poderes elementales con mecánicas inspiradas en el ya conocido juego de &quot;UNO&quot;. Los jugadores estaran en el rol de Guerreros reptiles (cocodrilos) en enfrentamientos contra diversos adversarios del pantano. 
 
 
 ### **Gameplay**
 
 Objetivo del juego y estructura:
-El objetivo principal es sobrevivir a una serie de "runs" (partidas reiniciables) en las cuales avanzaran a través de niveles en un mapa 2D.
+El objetivo principal es sobrevivir a una serie de &quot;runs&quot; (partidas reiniciables) en las cuales avanzaran a través de niveles en un mapa 2D.
 1. Exploración: esta es en movimiento lateral tipo platformer donde el jugador evade enemigos de menor nivel.
-2. Combate: al entrar en contacto con enemigo se iniciara el combate, pasasndo a una batalla por turnos basada en cartas.
-3. Progreso: cuando se pierde un combate, se regresa al jugador al primer nivel, pero se mantendra el progreso "global" mediante swamp XP con el cual se mejorara tu clan credit y podras desbloquear variantes de cartas.
+2. Combate: al entrar en contacto con el enemigo se iniciara el combate, pasando a una batalla por turnos basada en cartas.
+3. Progreso: cuando se pierde un combate, se regresa al jugador al primer nivel, pero se mantendra el progreso "global" mediante swamp XP con el cual se mejorara tu clan credit y podras desbloquear variantes de cartas.  
 
 Obstaculos y enemigos :
 El jugador se enfrentará a diversas facciones del pantano, como lo son caimanes y ratas, así como a jefes de zona los cuales deben de ser derrotados para validar el exito de la run en curso.
 
 Tácticas y reglas de combate:
 La mecanica principal esta basada en el match de cartas (estilo uno):
-1. Regls de coincidencia: solo puedes jugar una carta si coincide en elemento o Número con la "Carta lider" actual.
+1. Reglas de coincidencia: solo puedes jugar una carta si coincide en elemento o Número con la &quot;Carta lider&quot; actual.
 2. Poderes elementales: son cinco agua, pantano, fuego, arena y hielo.
 3. Gestión de energía:
     1. Energía elemental: esta basada en el tipo de las cartas.
@@ -71,7 +71,7 @@ La mecanica principal esta basada en el match de cartas (estilo uno):
 ### **Mindset**
 
 El objetivo es provocar una sensación de estrategía punki y caótica.
-1. Estilo: tono caricaturesco con personas punks que usan metal y basura como armadura.
+1. Estilo: tono caricaturesco con personajes punks que usan metal y basura como armadura.
 2. Emoción: el jugador debe sentirse commo un superviviente astuto. La interfaz está centrada en datos e interacciones claras para fomentar el análisis táctico bajo presión.
 
 ## _Technical_
@@ -79,20 +79,26 @@ El objetivo es provocar una sensación de estrategía punki y caótica.
 ---
 
 ### **Screens**
-
+<!--Aun no es definitivo-->
 1. Title Screen
-    1. Options
-2. Level Select
-3. Game
-    1. Inventory
-    2. Assessment / Next Level
-4. End Credits
-
-_(example)_
+    1. Start
+    2. Multiplayer
+    3. Store
+    4. Settings
+2. Game
+    1. Charecter selection
+    2. level selection
+    3. platform mode
+    4. Battle mode
+    5. Assessment / Next Level / Game Over
+3. End Credit
 
 ### **Controls**
 
-How will the player interact with the game? Will they be able to choose    the controls? What kind of in-game events are they going to be able to trigger, and how? (e.g. pressing buttons, opening doors, etc.)
+How will the player interact with the game? Will they be able to choose the controls? What kind of in-game events are they going to be able to trigger, and how? (e.g. pressing buttons, opening doors, etc.)
+
+1. Modo plataforma: el jugador podra mover a su personaje por todo el mapa (plataformas), en el cual se podra mover con el teclado (a,w,s,d) o podra elegir entre flechas del teclado (arriba, abajo, izquierda, derecha)
+2. Modo batalla: en este modo solo se poermitira entrada por mouse/touch-pad, el jugador podra escoger de su baraja alguna carta para jugar contra el adversario 
 
 ### **Mechanics**
 
