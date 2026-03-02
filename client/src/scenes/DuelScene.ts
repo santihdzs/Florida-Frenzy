@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { Card, generateDeck, compareCards, ELEMENT_COLORS, Element } from '../utils/cards';
 
 // Import assets directly for Vite
+// Estos errores se arreglarian con un d.ts file, pero funciona bien
 import backgroundImg from '../assets/backgrounds/everglades.jpg';
 import enemyDefault from '../assets/characters/default/enemy-gator.png';
 import enemyAttack1 from '../assets/characters/default/attack-1.png';
