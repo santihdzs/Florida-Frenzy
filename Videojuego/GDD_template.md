@@ -46,32 +46,54 @@
 
 ### **Summary**
 
-Florida Frenzy es un juego roguelite en 2D, que involucra mecánicas de un TCG y un 'platformer game'. Asumes el rol de alguno de los miembros del Krock Klan, y te enfrentas contra las amenazas del pantano de Florida. Colecciona cartas, gana experiencia, participa en duelos que incrementarán en dificultad conforme progreses en el juego.
+Florida Frenzy es un juego roguelite en 2D, que involucra mecánicas de un TCG y un 'platformer game'. Asumes el rol de alguno de los miembros del Krock Klan, y te enfrentas contra las amenazas del pantano de Florida. Colecciona cartas, gana experiencia, participa en duelos que incrementarán en dificultad conforme progreses en el juego. Este también resulta más entretenido, debido a cómo integra mecánicas 'familiares' al jugador, creando una experiencia dinámica. Combinando elementos del juego "UNO", atributos del juego clásico de cartas Pokémon, y el disfrute de una jugabilidad rápida por parte de su 'platformer'. Consistiendo en 'runs' cortas, pero intensas, que generan un juego dinámico y divertido. El elemento diferenciador del juego radica en la integración de dos sistemas paralelos. Por su parte el combate basado en coincidencia de cartas por elemento o número. Asi como un sistema dual de energía (Energía Elemental e Instinto) que introduce decisiones tácticas adicionales más allá de simplemente “hacer match”.
 
 ### **Gameplay**
 
-Objetivo del juego y estructura:
-El objetivo principal es sobrevivir a una serie de &quot;runs&quot; (partidas reiniciables) en las cuales avanzaras a través de niveles en un mapa 2D.
-1. Exploración: esta es en movimiento lateral tipo platformer donde el jugador evade enemigos de menor nivel.
-2. Combate: al entrar en contacto con el enemigo se iniciara el combate, pasando a una batalla por turnos basada en cartas.
-3. Progreso: cuando se pierde un combate, se regresa al jugador al primer nivel, pero se mantendra el progreso "global" mediante swamp XP con el cual se mejorara tu 'Clan Credit. El cual te dará acceso a desbloqueables.
+El objetivo principal es sobrevivir a una serie de &quot;runs&quot; (partidas reiniciables) en las cuales avanzarás a través de niveles en un mapa 2D. Cada 'run' dependerá de tu agilidad para superar los obstaculos presentes durante el platformer, asi como de el nivel de dificultad que implique el duelo de cartas que se te presente durante tu trayectoria.
 
-Obstaculos y enemigos :
-El jugador se enfrentará a diversas facciones del pantano (mapaches, ratas y osos), así como a jefes de zona, los cuales deben de ser derrotados para validar el exito de la run en curso.
+Con un aproximado de 3 niveles/mapas dentro del pantano(mas un breve tutorial), el jugador podrá disfrutar del juego y su versatilidad. Encontrandose con la parte 'platformer' del juego, donde el jugador evade enemigos de menor nivel. Debido a que los mapas serán diseñados para generar ciertos elementos de manera distinta, y por consecuencia, aleatoria. Cada run se compone de tres zonas principales:
+- 3 combates estándar
+- 1 evento especial (recompensa)
+- 1 jefe de la zona
 
-Tácticas y reglas de combate:
-La mecanica principal esta basada en el match de cartas (estilo uno):
-1. Reglas de coincidencia: solo puedes jugar una carta si coincide en elemento o Número con la &quot;Carta lider&quot; actual.
-2. Poderes elementales: agua, pantano, fuego, arena y hielo.
-3. Gestión de energía:
-    1. Energía elemental: esta basada en el tipo de las cartas.
-    2. Energia instinto: basada en el número de la carta, utilizada para poder recargar habilidades. 
+El jugador se enfrentará a diversas facciones enemigas del pantano (mapaches, ratas y osos), así como a los jefes de zona, los cuales deben de ser derrotados para validar el exito de la run en curso. Cada tipo de enemigo obliga a adaptar estrategia de cartas. Al entrar en contacto con un enemigo en específico, iniciará el duelo de cartas. Dependerá de la destreza y el inventario (mazo) del jugador, con tal de que este resulte ganador contra alguno de los rivales que se encontrará en su camino. 
+
+Conforme el jugador progrese, la dificultad escalará, y sus oponentes aplicarán jugadas más complicadas. De igual manera, tendrá acceso a objetos desbloqueables, de acuerdo a su progreso mismo. Siendo que sus victorias le darán acceso a un pequeño catálogo de opciones para mejorar sus estadísticas, o su propio mazo. Cuando pierde un combate, el jugador es regresado al primer nivel. Dada la naturaleza Roguelite del juego, conservará su progreso "global" mediante su experiencia adquirida (Swamp XP). Con la cual podrá mejorara su 'Clan Credit'; lo que le dará acceso a los desbloqueables. Como la carta estrella, "Hielo".
+
+
+La fase de exploración dentro del platformer es bastante sencilla. El jugador debe de evadir 'n' cantidad de obstaculos y enemigos de nivel y mecánicas menores, hasta entrar en la fase del duelo de cartas. Su mecánica principal esta basada en jugar aquellas cartas que cuenten con algún atributo identico a la carta en juego (estilo UNO). Siendo más específicos:
+    - Mano inicial: 5 cartas
+    - Robo por turno: 1 carta
+    - Vida base del jugador: 100 - ++ HP
+    - Condición de victoria: reducir la vida del enemigo a 0
+    - Condición de derrota: perder todos los HP
+Nuevamente, solo puede jugarse una carta si coincide en elemento o número, con la carta en juego. De no poder jugar ninguna, puede descartar una carta, o recibir daño leve por exposición.
+
+Existen cinco elementos con identidad estratégica:
+    Agua (Defensa y reducción de daño)
+    Pantano (Veneno y daño progresivo)
+    Fuego (Alto daño directo)
+    Arena (Reductor del daño enemigo)
+    Hielo (Comodín - Congelación 2x turnos, jugar 2x cartas por 2x turnos, o pérdida de 2x turnos enemigos)
+
+También, existen dos recursos:
+Energía Elemental, la cual se genera al jugar cartas del mismo elemento consecutivamente. Se utiliza para activar habilidades especiales.
+Y la Energía Instinto. Se genera dependiendo del valor numérico de la carta jugada. Permite recargar habilidades únicas del personaje.
+Ambos recursos tienen límite máximo, y se reinician parcialmente al finalizar un combate.
+
+Al finalizar una run (victoria o derrota), el jugador obtiene Swamp XP. Este le permite escoger entre:
+- Desbloquear nuevas cartas
+- Mejorar estadísticas base
+- Desbloquear variantes de clanes
+- Acceso a cartas raras
+Generando su progreso "permanente".
 
 ### **Mindset**
 
-El objetivo es mezclar un la jugabilidad "nostálgica" con los elementos 'punk' y caricaturescos de los personajes.
-1. Estilo: tono caricaturesco con personajes punks que usan metal y basura como armadura.
-2. Emoción: el jugador toma el rol de alguno de los miembros de clan, y cada uno posee su propia personalidad. La interfaz está centrada en datos e interacciones claras para fomentar el análisis táctico bajo presión.
+El objetivo es mezclar un la jugabilidad "nostálgica" con los elementos 'punk' y caricaturescos de los personajes. Provocando una sensación de estrategia caótica, con identidad punk-industrial del pantano. El jugador debe sentirse como un miembro mas del Klan que improvisa constantemente. La experiencia está diseñada bajo la idea de que sea fácil de entender, pero difícil de dominar.
+
+El caos visual contrasta con la claridad de información de la interfaz, fomentando análisis cr´tico y lógico en medio de la tensión.
 
 ## _Technical_
 
