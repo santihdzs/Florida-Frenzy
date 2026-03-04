@@ -100,19 +100,19 @@ El caos visual contrasta con la claridad de información de la interfaz, fomenta
 ---
 
 ### **Screens**
-<!--Aun no es definitivo-->
 1. Title Screen
-    1. Start
-    2. Multiplayer
-    3. Store
-    4. Settings
-2. Game
-    1. Charecter selection
-    2. level selection
-    3. platform mode
-    4. Battle mode
-    5. Assessment / Next Level / Game Over
-3. End Credit
+Contiene el logo del juego, una imagen del pantano en el fondo, y las siguientes opciones (en descendente):
+    - Start
+    - Multiplayer
+    - Store
+    - Settings
+    1. Options (dentro de Settings)
+        - Modular el volúmen (música, efectos, y general/ambos)
+        - Ajuste de pantalla (tickbox); se adapta al browser del jugador
+2. Level Select
+    No habría en este caso, dad que las 'runs' son continuas 
+
+
 
 ### **Controls**
 
