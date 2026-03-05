@@ -1,4 +1,4 @@
-# **Florida Frenzy**
+# **FLORIDA FRENZY**
 
 ## _Game Design Document_
 
@@ -89,6 +89,7 @@ Al finalizar una run (victoria o derrota), el jugador obtiene Swamp XP. Este le 
 - Acceso a cartas raras
 Generando su progreso "permanente".
 
+
 ### **Mindset**
 
 El objetivo es mezclar un la jugabilidad "nostálgica" con los elementos 'punk' y caricaturescos de los personajes. Provocando una sensación de estrategia caótica, con identidad punk-industrial del pantano. El jugador debe sentirse como un miembro mas del Klan que improvisa constantemente. La experiencia está diseñada bajo la idea de que sea fácil de entender, pero difícil de dominar.
@@ -100,30 +101,50 @@ El caos visual contrasta con la claridad de información de la interfaz, fomenta
 ---
 
 ### **Screens**
-<!--Aun no es definitivo-->
 1. Title Screen
-    1. Start
-    2. Multiplayer
-    3. Store
-    4. Settings
-2. Game
-    1. Charecter selection
-    2. level selection
-    3. platform mode
-    4. Battle mode
-    5. Assessment / Next Level / Game Over
-3. End Credit
+Contiene el logo del juego, una imagen del pantano en el fondo, y las siguientes opciones (en descendente):
+    - Start
+    - Multiplayer
+    - Store
+    - Settings
+    1. Options (dentro de Settings)
+        - Modular el volúmen (música, efectos, y general/ambos)
+        - Ajuste de pantalla (tickbox); se adapta al browser del jugador
+2. Level Select
+No habría en este caso, dado que las 'runs' son continuas.
+3. Game
+- Modo Exploración
+    Movimiento lateral, con elementos clásicos de un 'platformer'; el jugador se desplaza por el mapa enfrentando enemigos con mecánicas de ataque sencillas, hasta entrar en contacto con aquel enemigo que inicia un duelo de cartas.
+- Duelo de Cartas
+    Muestra el tablero, el mazo con las cartas del jugador, así como las estadísticas de este mismo y las de su oponente.
+    1. Inventory
+        Permite revisar el mazo con las cartas disponibles, alguna mejora, y las estadísticas del juegador.
+    2. Assesment / Next Level
+        El jugador es felicitado por su victoria, y se le ofrecen 5 cartas nuevas desbloqueables; este solo podrá escoger una para su colección.
+4. End Credits
+    Una vez el boss final es derrotado (Pythra), el jugador será felicitado por Klancy, quien le enseñó al jugador cómo jugar desde un inicio. Finalmente rombe la cuarta pared, y muestra los nombres de los creadores del juego.
+
 
 ### **Controls**
 
-How will the player interact with the game? Will they be able to choose the controls? What kind of in-game events are they going to be able to trigger, and how? (e.g. pressing buttons, opening doors, etc.)
+El juego requerirá del uso de teclado y mouse para ambos modos (principalmente para la exploración).
 
-1. Modo plataforma: el jugador podra mover a su personaje por todo el mapa (plataformas), en el cual se podra mover con el teclado (a,w,s,d) o podra elegir entre flechas del teclado (arriba, abajo, izquierda, derecha)
-2. Modo batalla: en este modo solo se poermitira entrada por mouse/touch-pad, el jugador podra escoger de su baraja alguna carta para jugar contra el adversario 
+**Controles de Movimiento**
+W & Space Bar <-- Saltar
+D <-- Mover Derecha
+A <-- Mover Izquierda
+E <-- Interactuar
+I <-- Acceso al inventario (abrir y cerrar)
+ESC <-- Pausa
+Mouse Movement <-- Apuntar (Exploración) e interactuar con el tablero de cartas
+Click Izquierdo <-- Disparar (Exploración) y seleccionar/jugar una carta
+Click Izquierdo <-- Descartar una carta
 
 ### **Mechanics**
 
-Are there any interesting mechanics? If so, how are you going to accomplish them? Physics, algorithms, etc.
+El juego se basa en varios sistemas técnicos para sus mecánicas principales.
+
+Primeramente, el duelo de cartas utiliza un sistema de pareo por algún atributo (número o poder/color). El cual esta inspirado en el juego clásico "UNO".
 
 ## _Level Design_
 
