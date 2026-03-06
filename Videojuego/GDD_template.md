@@ -144,7 +144,12 @@ Click Izquierdo <-- Descartar una carta
 
 El juego se basa en varios sistemas técnicos para sus mecánicas principales.
 
-Primeramente, el duelo de cartas utiliza un sistema de pareo por algún atributo (número o poder/color). El cual esta inspirado en el juego clásico "UNO".
+Primeramente, el duelo de cartas utiliza un sistema de pareo por algún atributo (número o poder/color). El cual esta inspirado en el juego clásico "UNO". Por cada jugada, el programa revisa si la carta en mano coincide con la carta en la mesa, considerando dos factores:
+    Elemento
+    Número
+De no coincidir, la jugada se vuelve inválida.
+El juego también tiene dos tipos de energía. Su objetivo es llenar la habilidad del personaje del jugador (cada una por mitad).
+Por su parte la Energía Elemental se genera lógicamente al coincidir una carta por elemento. 
 
 ## _Level Design_
 
