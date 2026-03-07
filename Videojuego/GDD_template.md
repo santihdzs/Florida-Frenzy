@@ -259,45 +259,71 @@ _(Note : These sections can safely be skipped if they&#39;re not relevant, or yo
     Fin de run
 
 
+
 ## _Development_
 
 ---
 
 ### **Abstract Classes / Components**
 
-1. BasePhysics
+1. BaseEntity
     1. BasePlayer
     2. BaseEnemy
-    3. BaseObject
-2. BaseObstacle
-3. BaseInteractable
+    3. BaseNPC
+2. BaseCard
+3. BaseDeck
+4. BaseBattle
+5. BaseZone
+6. BaseInteractable
+7. BaseObstacle
 
 _(example)_
 
 ### **Derived Classes / Component Compositions**
 
 1. BasePlayer
-    1. PlayerMain
-    2. PlayerUnlockable
-2. BaseEnemy
-    1. EnemyWolf
-    2. EnemyGoblin
-    3. EnemyGuard (may drop key)
-    4. EnemyGiantRat
-    5. EnemyPrisoner
-3. BaseObject
-    1. ObjectRock (pick-up-able, throwable)
-    2. ObjectChest (pick-up-able, throwable, spits gold coins with key)
-    3. ObjectGoldCoin (cha-ching!)
-    4. ObjectKey (pick-up-able, throwable)
-4. BaseObstacle
-    1. ObstacleWindow (destroyed with rock)
-    2. ObstacleWall
-    3. ObstacleGate (watches to see if certain buttons are pressed)
-5. BaseInteractable
-    1. InteractableButton
+    1. CrocClanCharacter
+        1. CharacterChristian
+        2. CharacterGustav
+        3. CharacterGavin
+        4. CharacterEddy
 
-_(example)_
+2. BaseEnemy
+    1. EnemyRizzy
+    2. EnemyRabyz
+    3. EnemyBoldear
+    4. BossPythra
+    5. NPCRat
+    6. NPCRaccoon
+    7. NPCBear
+
+3. BaseCard
+    1. CardWater
+    2. CardFire
+    3. CardSwamp
+    4. CardSand
+    5. CardIce
+        1. IceStun
+        2. IceOverdrive
+        3. IceJam
+
+4. BaseZone
+    1. ZoneSwamp
+    2. ZoneGarbageDump
+    3. ZoneSuburbs
+    4. ZoneSewers
+
+5. BaseInteractable
+    1. InteractableEnemyTrigger
+    2. InteractableRewardChest
+    3. InteractableEventSpot
+
+6. BaseObstacle
+    1. ObstacleSwampWater
+    2. ObstacleGarbagePile
+    3. ObstacleBrokenCar
+
+
 
 ## _Graphics_
 
@@ -305,11 +331,21 @@ _(example)_
 
 ### **Style Attributes**
 
-What kinds of colors will you be using? Do you have a limited palette to work with? A post-processed HSV map/image? Consistency is key for immersion.
+Decidimos irnos por un estilo caricaturesco, con elementos relativamente realistas, para los personajes. Adecuando sus alreadedores (escenarios) con esta misma idea. Aunque, durante el proceso del desarrollo, la IA utilizada para generar a los personajes base (ChatGPT), realizó a los enemigos ligeramente más realistas y con más detalles. La idea es que los cocodrilos tengan este aspecto de guerreros de un clan, que recicla lo que encuentra en los basureros (y tristemente en los ríos) de toda el área pantanosa de Florida. Aprendieron "el arte antiguo" de Florida Frenzy, por lo que el aspecto de las cartas va por una impresión de "antigüedades" o elementos legendarios. Los enemigos son la consecuencia de experimentos bio-cibernéticos que se dieron a la fuga. Mientras que estos lograron adquirir su intligencia por medio de su interconección con computadoras al cerebro, nuestro protagonistas la desarrollaron por los contaminantes y radiación que se encuentra en las aguas del pantano.
 
-What kind of graphic style are you going for? Cartoony? Pixel-y? Cute? How, specifically? Solid, thick outlines with flat hues? Non-black outlines with limited tints/shades? Emphasize smooth curvatures over sharp angles? Describe a set of general rules depicting your style here.
+Dejando así un contraste visual entre "buenos vs. malos", dandole una perspectiva clara al jugador. Los poderes/elementos de las cartas están hechos para ser lo más simples, entendibles y llamativas posibles. 
 
-Well-designed feedback, both good (e.g. leveling up) and bad (e.g. being hit), are great for teaching the player how to play through trial and error, instead of scripting a lengthy tutorial. What kind of visual feedback are you going to use to let the player know they&#39;re interacting with something? That they \*can\* interact with something?
+Los personajes, así como otros sprites y diseños que se utilizarán en el juego, se encuentran en las siguientes carpetas
+    | Category | Location |
+    |----------|----------|
+    | Logos | [logos](../client/src/assets/logos/) |
+    | Iconos | [iconos](../client/public/)
+    | Sprites | [sprites](../client/src/assets/sprites/) |
+    | Fondos | [backgrounds](../client/src/assets/backgrounds/)
+    | Personajes (WIP) | [characters](../client/src/assets/characters/)
+    | Sprites y Diseños Desechados | [scrapped_assets](../Videojuego/scrapped_assets/) |
+
+
 
 ### **Graphics Needed**
 
