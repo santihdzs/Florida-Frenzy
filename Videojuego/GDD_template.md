@@ -70,6 +70,23 @@ La fase de exploración dentro del platformer es bastante sencilla. El jugador d
     - Condición de derrota: perder todos los HP
 Nuevamente, solo puede jugarse una carta si coincide en elemento o número, con la carta en juego. De no poder jugar ninguna, puede descartar una carta, o recibir daño leve por exposición.
 
+Esto dejaría el 'loop' del juego así:
+    Start Run
+    ↓
+    Exploración Platformer
+    ↓
+    Contacto con enemigo
+    ↓
+    Duelo de cartas
+    ↓
+    Recompensa (Mejora del mazo)
+    ↓
+    Avance a siguiente zona (contemplado que se repita 3x)
+    ↓
+    Boss Final
+    ↓
+    Fin de run
+
 Existen cinco elementos con identidad estratégica:
     Agua (Defensa y reducción de daño)
     Pantano (Veneno y daño progresivo)
