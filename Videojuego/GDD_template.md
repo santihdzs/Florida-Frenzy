@@ -161,12 +161,26 @@ Click Izquierdo <-- Descartar una carta
 
 El juego se basa en varios sistemas técnicos para sus mecánicas principales.
 
-Primeramente, el duelo de cartas utiliza un sistema de pareo por algún atributo (número o poder/color). El cual esta inspirado en el juego clásico "UNO". Por cada jugada, el programa revisa si la carta en mano coincide con la carta en la mesa, considerando dos factores:
+Primeramente, el duelo de cartas utiliza un sistema de pareo por algún atributo (número o poder/color). El cual esta inspirado en el juego clásico "UNO". Para que una jugada sea válida, la carta jugada debe coincidir con la carta presente en la mesa considerando alguno de los siguientes atributos:
     Elemento
     Número
-De no coincidir, la jugada se vuelve inválida.
-El juego también tiene dos tipos de energía. Su objetivo es llenar la habilidad del personaje del jugador (cada una por mitad).
-Por su parte la Energía Elemental se genera lógicamente al coincidir una carta por elemento. 
+Si ninguno de estos coincide, la jugada se considera inválida y el jugador deberá descartar una carta, o recibir daño leve por exposición.
+
+Como fue discutido anteriormente, el juego cuenta con dos recursos energéticos que permiten activar la habilidad especial del personaje seleccionado. La Energía Elemental se genera cuando una carta coincide tanto en elemento como en número, ambas energías se generan con un incremento mayor. Mientras que la Energía Instinto cuando el jugador realiza una coincidencia por valor numérico. La primera "llena" la mitad izquierda de la barra de habilidad, y la segunda la mitad derecha.
+
+Los enemigos también utilizan el sistema de cartas durante los duelos. Dependiendo del nivel de dificultad o del tipo de enemigo, la inteligencia artificial puede tomar decisiones diferentes al momento de jugar una carta. Tenemos contempladas tres modalidaes:
+*Easy AI*
+    Selecciona una carta válida de forma aleatoria, entre las opciones disponibles.
+
+*Medium AI*
+    Le da prioridad a cartas que produzcan coincidencias dobles (elemento y número), con el objetivo de generar energía más rápido.
+
+*Hard AI*
+    Evalúa las cartas disponibles, dandole prioridad a jugadas que generen la mayor cantidad de energía, activen habilidades y mantengan presión ofensiva sobre el jugador
+
+La idea es que por dos runs, la dificultad se mantenga sencilla (complementando con el hecho de que el jugador esta cursando el tutorial, y es nuevo en el juego). Subiría a dificultad media por otras tres, y de ahí en adelante se mantendría en la última dificultad. 
+
+El combate se desarrolla por turnos alternados entre el jugador y el enemigo. Durante un turno, cada participante puede jugar una carta válida desde su mano, o realizar una acción alternativa (como descartar una carta).
 
 ## _Level Design_
 
@@ -174,46 +188,76 @@ Por su parte la Energía Elemental se genera lógicamente al coincidir una carta
 
 _(Note : These sections can safely be skipped if they&#39;re not relevant, or you&#39;d rather go about it another way. For most games, at least one of them should be useful. But I&#39;ll understand if you don&#39;t want to use them. It&#39;ll only hurt my feelings a little bit.)_
 
-### **Themes**
+### **Themes (maps)**
 
-1. Forest
+1. Pantano (Swamp)
     1. Mood
-        1. Dark, calm, foreboding
+        1. Turbulento, sucio, tierroso, hogareño
     2. Objects
         1. _Ambient_
-            1. Fireflies
-            2. Beams of moonlight
-            3. Tall grass
+            1. Árboles
+            2. Vegetación de la zona
+            3. Riachuelo del pantano
+            4. Superficie a la orilla del riachuelo
         2. _Interactive_
-            1. Wolves
-            2. Goblins
-            3. Rocks
-2. Castle
+            1. Ratas (primer mapa)
+            2. Inicio de duelo (por contacto)
+2. Basurero (garbage dump)
     1. Mood
-        1. Dangerous, tense, active
+        1. Sucio, revuelto, incomodo
     2. Objects
         1. _Ambient_
-            1. Rodents
-            2. Torches
-            3. Suits of armor
+            1. Elementos de armaduras
+            2. Camiones
         2. _Interactive_
-            1. Guards
-            2. Giant rats
-            3. Chests
+            1. Mapaches (segundo mapa)
+            2. Inicio de duelo (por contacto)
+3. Suburbios (suburbs)
+    1. Mood
+        1. Peligroso, remoto
+    2. Objects
+        1. _Ambient_
+            1. Casas, departamentos
+            2. Calles
+            3. Vehículos
+        2. _Interactive_
+            1. Osos (tercer mapa)
+            2. Inicio de duelo (por contacto)
+4. El Desagüe (The Sewers)
+    1. Mood
+        1. Peligroso, sucio, conflictuado, desconocido
+    2. Objects
+        1. _Ambient_
+            1. Tuberias
+            2. Plataformas
+            3. Escaleras
+        2. _Interactive_
+            1. Osos (tercer mapa)
+            2. Inicio de duelo (por contacto)
+            3. Pythor - Boss Final (Python bivittatus)
 
-_(example)_
 
 ### **Game Flow**
 
-1. Player starts in forest
-2. Pond to the left, must move right
-3. To the right is a hill, player jumps to traverse it (&quot;jump&quot; taught)
-4. Player encounters castle - door&#39;s shut and locked
-5. There&#39;s a window within jump height, and a rock on the ground
-6. Player picks up rock and throws at glass (&quot;throw&quot; taught)
-7. … etc.
+1. Klancy introduce al jugador, al mundo de Florida Frenzy
+2. Le enseña cómo funciona el juego de cartas, y qué debe hacer dentro de la parte de la etapa del Platformer
+3. De ahí, el ciclo anteriormente propuesto, continua:
+    Start Run
+    ↓
+    Exploración Platformer
+    ↓
+    Contacto con enemigo
+    ↓
+    Duelo de cartas
+    ↓
+    Recompensa (Mejora del mazo)
+    ↓
+    Avance a siguiente zona (contemplado que se repita 3x)
+    ↓
+    Boss Final
+    ↓
+    Fin de run
 
-_(example)_
 
 ## _Development_
 
