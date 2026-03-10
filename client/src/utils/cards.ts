@@ -1,25 +1,32 @@
 // Element types and their relationships
-export type Element = 'fire' | 'water' | 'earth' | 'electric' | 'venom';
+export type Element = 'water' | 'fire' | 'swamp' | 'sand' | 'ice';
 
 // Fire > Electric, Electric > Water, Water > Fire, Earth > Venom, Venom > Earth
 // Same element = compare power value
 export const ELEMENT_COLORS: Record<Element, number> = {
-  fire: 0xff4444,
   water: 0x4444ff,
-  earth: 0x44aa44,
-  electric: 0xaaaa44,
-  venom: 0x8844aa
+  fire: 0xff4444,
+  swamp: 0x2f6b3f,
+  sand: 0xc2a56b,
+  ice: 0xaee7ff
 };
 
-export function getElementStrength(element: Element): Element {
-  const strengths: Record<Element, Element> = {
-    fire: 'electric',
-    water: 'fire',
-    earth: 'venom',
-    electric: 'water',
-    venom: 'earth'
-  };
-  return strengths[element];
+export const ELEMENT_COUNTERS: Record<Exclude<Element, 'ice'>, Exclude<Element, 'ice'>> = {
+  water: 'fire',
+  fire: 'swamp',
+  swamp: 'sand',
+  sand: 'water'
+};
+
+// Ice Effects
+export type IceEffects = 'stun' | 'overdrive' | 'jam';
+
+// Cards
+export interface Cards {
+  id: string;
+  element: Element;
+  damagePower: number;
+  iceEffect?: IceEffects;
 }
 
 export function compareCards(
