@@ -1,15 +1,17 @@
-# **FLORIDA FRENZY**
+# ![Florida Frenzy Header](../client/src/assets/logos/logo.png)
 
 ## _Game Design Document_
+![Tec de Monterrey](tecnologico-de-monterrey-blue.png)
+
+### **Propuesta completa del juego FLORIDA FRENZY**
+#### ***Equipo 7***:
+- Yael Ordaz – A01786776
+- J. Manuel Montero - A01660761
+- Santiago Hernández – A01787550
 
 ---
-
-##### **Copyright notice / author information / boring legal stuff nobody likes**
-
 ##
 ## _Index_
-
----
 
 1. [Index](#index)
 2. [Game Design](#game-design)
@@ -40,11 +42,15 @@
     3. [Music Needed](#music-needed)
 8. [Schedule](#schedule)
 
+---
+
 ## _Game Design_
 
 ---
 
 ### **Summary**
+
+![CharacterFrameBackground](../client/src/assets/sprites/CharacterShowcase.png)
 
 Florida Frenzy es un juego roguelite en 2D, que involucra mecánicas de un TCG y un 'platformer game'. Asumes el rol de alguno de los miembros del Crock Clan, y te enfrentas contra las amenazas del pantano de Florida. Colecciona cartas, gana experiencia, participa en duelos que incrementarán en dificultad conforme progreses en el juego. Este también resulta más entretenido, debido a cómo integra mecánicas 'familiares' al jugador, creando una experiencia dinámica. Combinando elementos del juego "UNO", atributos del juego clásico de cartas Pokémon, y el disfrute de una jugabilidad rápida por parte de su 'platformer'. Consistiendo en 'runs' cortas, pero intensas, que generan un juego dinámico y divertido. El elemento diferenciador del juego radica en la integración de dos sistemas paralelos. Por su parte el combate basado en coincidencia de cartas por elemento o número. Asi como un sistema dual de energía (Energía Elemental e Instinto) que introduce decisiones tácticas adicionales más allá de simplemente “hacer match”.
 
@@ -62,49 +68,46 @@ El jugador se enfrentará a diversas facciones enemigas del pantano (mapaches, r
 Conforme el jugador progrese, la dificultad escalará, y sus oponentes aplicarán jugadas más complicadas. De igual manera, tendrá acceso a objetos desbloqueables, de acuerdo a su progreso mismo. Siendo que sus victorias le darán acceso a un pequeño catálogo de opciones para mejorar sus estadísticas, o su propio mazo. Cuando pierde un combate, el jugador es regresado al primer nivel. Dada la naturaleza Roguelite del juego, conservará su progreso "global" mediante su experiencia adquirida (Swamp XP). Con la cual podrá mejorara su 'Clan Credit'; lo que le dará acceso a los desbloqueables. Como la carta estrella, "Hielo".
 
 
-La fase de exploración dentro del platformer es bastante sencilla. El jugador debe de evadir 'n' cantidad de obstaculos y enemigos de nivel y mecánicas menores, hasta entrar en la fase del duelo de cartas. Su mecánica principal esta basada en jugar aquellas cartas que cuenten con algún atributo identico a la carta en juego (estilo UNO). Siendo más específicos:
-    - Mano inicial: 5 cartas
-    - Robo por turno: 1 carta
-    - Vida base del jugador: 100 - ++ HP
-    - Condición de victoria: reducir la vida del enemigo a 0
-    - Condición de derrota: perder todos los HP
-Nuevamente, solo puede jugarse una carta si coincide en elemento o número, con la carta en juego. De no poder jugar ninguna, puede descartar una carta, o recibir daño leve por exposición.
+La fase de exploración dentro del platformer es bastante sencilla. El jugador debe evadir cierta cantidad de obstáculos y enemigos menores hasta entrar en la fase del duelo de cartas. Su mecánica principal está basada en jugar cartas que cuenten con algún atributo idéntico a la carta en juego, al estilo de UNO.
+
+Siendo más específicos:
+
+- Mano inicial: 5 cartas
+- Robo por turno: 1 carta
+- Vida base del jugador: 100 HP
+- Condición de victoria: reducir la vida del enemigo a 0
+- Condición de derrota: perder todos los HP
+
+Solo puede jugarse una carta si coincide en elemento o número con la carta en juego. Si el jugador no puede jugar ninguna, puede descartar una carta o recibir daño leve por exposición.
 
 Esto dejaría el 'loop' del juego así:
-    Start Run
-    ↓
-    Exploración Platformer
-    ↓
-    Contacto con enemigo
-    ↓
-    Duelo de cartas
-    ↓
-    Recompensa (Mejora del mazo)
-    ↓
-    Avance a siguiente zona (contemplado que se repita 3x)
-    ↓
-    Boss Final
-    ↓
-    Fin de run
+
+Start Run → Exploración Platformer → Contacto con enemigo → Duelo de cartas → Recompensa → Avance (x3) → Boss Final → Fin de run
+
 
 Existen cinco elementos con identidad estratégica:
-    Agua (Defensa y reducción de daño)
-    Pantano (Veneno y daño progresivo)
-    Fuego (Alto daño directo)
-    Arena (Reductor del daño enemigo)
-    Hielo (Comodín - Congelación 2x turnos, jugar 2x cartas por 2x turnos, o pérdida de 2x turnos enemigos)
 
-También, existen dos recursos:
-Energía Elemental, la cual se genera al jugar cartas del mismo elemento consecutivamente. Se utiliza para activar habilidades especiales.
-Y la Energía Instinto. Se genera dependiendo del valor numérico de la carta jugada. Permite recargar habilidades únicas del personaje.
-Ambos recursos tienen límite máximo, y se reinician parcialmente al finalizar un combate.
+- **Agua**: defensa y reducción de daño.
+- **Pantano**: veneno y daño progresivo.
+- **Fuego**: alto daño directo.
+- **Arena**: reducción del daño enemigo.
+- **Hielo**: comodín; puede congelar por 2 turnos, permitir jugar 2 cartas por 2 turnos, o provocar pérdida de 2 turnos enemigos.
 
-Al finalizar una run (victoria o derrota), el jugador obtiene Swamp XP. Este le permite escoger entre:
+También existen dos recursos:
+
+- **Energía Elemental**: se genera al jugar cartas del mismo elemento consecutivamente. Se utiliza para activar habilidades especiales.
+- **Energía Instinto**: se genera dependiendo del valor numérico de la carta jugada. Permite recargar habilidades únicas del personaje.
+
+Ambos recursos tienen un límite máximo y se reinician parcialmente al finalizar un combate.
+
+Al finalizar una run, ya sea por victoria o derrota, el jugador obtiene **Swamp XP**. Este recurso le permite escoger entre:
+
 - Desbloquear nuevas cartas
 - Mejorar estadísticas base
 - Desbloquear variantes de clanes
-- Acceso a cartas raras
-Generando su progreso "permanente".
+- Obtener acceso a cartas raras
+
+Esto constituye el sistema de progreso permanente del juego.
 
 
 ### **Mindset**
@@ -128,18 +131,18 @@ Contiene el logo del juego, una imagen del pantano en el fondo, y las siguientes
         - Modular el volúmen (música, efectos, y general/ambos)
         - Ajuste de pantalla (tickbox); se adapta al browser del jugador
 2. Level Select
-No habría en este caso, dado que las 'runs' son continuas.
+    - No habría en este caso, dado que las 'runs' son continuas.
 3. Game
-- Modo Exploración
-    Movimiento lateral, con elementos clásicos de un 'platformer'; el jugador se desplaza por el mapa enfrentando enemigos con mecánicas de ataque sencillas, hasta entrar en contacto con aquel enemigo que inicia un duelo de cartas.
-- Duelo de Cartas
-    Muestra el tablero, el mazo con las cartas del jugador, así como las estadísticas de este mismo y las de su oponente.
-    1. Inventory
+    - Modo Exploración
+        Movimiento lateral, con elementos clásicos de un 'platformer'; el jugador se desplaza por el mapa enfrentando enemigos con mecánicas de ataque sencillas, hasta entrar en contacto con aquel enemigo que inicia un duelo de cartas.
+    - Duelo de Cartas
+        Muestra el tablero, el mazo con las cartas del jugador, así como las estadísticas de este mismo y las de su oponente.
+        1. Inventory:
         Permite revisar el mazo con las cartas disponibles, alguna mejora, y las estadísticas del juegador.
-    2. Assesment / Next Level
+        2. Assesment / Next Level: 
         El jugador es felicitado por su victoria, y se le ofrecen 5 cartas nuevas desbloqueables; este solo podrá escoger una para su colección.
 4. End Credits
-    Una vez el boss final es derrotado (Pythra), el jugador será felicitado por Klancy, quien le enseñó al jugador cómo jugar desde un inicio. Finalmente rombe la cuarta pared, y muestra los nombres de los creadores del juego.
+    - Una vez el boss final es derrotado (Pythra), el jugador será felicitado por Klancy, quien le enseñó al jugador cómo jugar desde un inicio. Finalmente rombe la cuarta pared, y muestra los nombres de los creadores del juego.
 
 
 ### **Controls**
@@ -147,15 +150,15 @@ No habría en este caso, dado que las 'runs' son continuas.
 El juego requerirá del uso de teclado y mouse para ambos modos (principalmente para la exploración).
 
 **Controles de Movimiento**
-W & Space Bar <-- Saltar
-D <-- Mover Derecha
-A <-- Mover Izquierda
-E <-- Interactuar
-I <-- Acceso al inventario (abrir y cerrar)
-ESC <-- Pausa
-Mouse Movement <-- Apuntar (Exploración) e interactuar con el tablero de cartas
-Click Izquierdo <-- Disparar (Exploración) y seleccionar/jugar una carta
-Click Izquierdo <-- Descartar una carta
+1. W & Space Bar <-- Saltar
+2. D <-- Mover Derecha
+3. A <-- Mover Izquierda
+4. E <-- Interactuar
+5. I <-- Acceso al inventario (abrir y cerrar)
+6. ESC <-- Pausa
+7. Mouse Movement <-- Apuntar (Exploración) e interactuar con el tablero de cartas
+8. Click Izquierdo <-- Disparar (Exploración) y seleccionar/jugar una carta
+9. Click Izquierdo <-- Descartar una carta
 
 ### **Mechanics**
 
@@ -185,8 +188,6 @@ El combate se desarrolla por turnos alternados entre el jugador y el enemigo. Du
 ## _Level Design_
 
 ---
-
-_(Note : These sections can safely be skipped if they&#39;re not relevant, or you&#39;d rather go about it another way. For most games, at least one of them should be useful. But I&#39;ll understand if you don&#39;t want to use them. It&#39;ll only hurt my feelings a little bit.)_
 
 ### **Themes (maps)**
 
@@ -239,27 +240,19 @@ _(Note : These sections can safely be skipped if they&#39;re not relevant, or yo
 
 ### **Game Flow**
 
-1. Klancy introduce al jugador, al mundo de Florida Frenzy
-2. Le enseña cómo funciona el juego de cartas, y qué debe hacer dentro de la parte de la etapa del Platformer
-3. De ahí, el ciclo anteriormente propuesto, continua:
-    Start Run
-    ↓
-    Exploración Platformer
-    ↓
-    Contacto con enemigo
-    ↓
-    Duelo de cartas
-    ↓
-    Recompensa (Mejora del mazo)
-    ↓
-    Avance a siguiente zona (contemplado que se repita 3x)
-    ↓
-    Boss Final
-    ↓
-    Fin de run
+1. Klancy introduce al jugador al mundo de Florida Frenzy.
+2. Le enseña cómo funciona el sistema de cartas y la fase de platformer.
+3. El jugador inicia una run.
+4. Explora una zona del mapa.
+5. Entra en contacto con un enemigo.
+6. Se activa un duelo de cartas.
+7. Si gana, recibe una recompensa o mejora para el mazo.
+8. Avanza a la siguiente zona.
+9. El ciclo se repite hasta llegar al jefe final.
+10. Al derrotar al jefe final, se activa el cierre de la run y la secuencia final.
 
 
-
+---
 ## _Development_
 
 ---
@@ -335,15 +328,16 @@ Decidimos irnos por un estilo caricaturesco, con elementos relativamente realist
 
 Dejando así un contraste visual entre "buenos vs. malos", dandole una perspectiva clara al jugador. Los poderes/elementos de las cartas están hechos para ser lo más simples, entendibles y llamativas posibles. 
 
-Los personajes, así como otros sprites y diseños que se utilizarán en el juego, se encuentran en las siguientes carpetas
-    | Category | Location |
-    |----------|----------|
-    | Logos | [logos](../client/src/assets/logos/) |
-    | Iconos | [iconos](../client/public/)
-    | Sprites | [sprites](../client/src/assets/sprites/) |
-    | Fondos | [backgrounds](../client/src/assets/backgrounds/)
-    | Personajes (WIP) | [characters](../client/src/assets/characters/)
-    | Sprites y Diseños Desechados | [scrapped_assets](../Videojuego/scrapped_assets/) |
+Los personajes, así como otros sprites y diseños que se utilizarán en el juego, se encuentran en las siguientes carpetas:
+
+| Category | Location |
+|----------|----------|
+| Logos | [logos](../client/src/assets/logos/) |
+| Iconos | [iconos](../client/public/) |
+| Sprites | [sprites](../client/src/assets/sprites/) |
+| Fondos | [backgrounds](../client/src/assets/backgrounds/) |
+| Personajes (WIP) | [characters](../client/src/assets/characters/) |
+| Sprites y diseños desechados | [scrapped_assets](../Videojuego/scrapped_assets/) |
 
 
 
