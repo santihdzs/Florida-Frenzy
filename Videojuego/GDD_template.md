@@ -78,8 +78,6 @@ Siendo más específicos:
 - Condición de victoria: reducir la vida del enemigo a 0
 - Condición de derrota: perder todos los HP
 
-Solo puede jugarse una carta si coincide en elemento o número con la carta en juego. Si el jugador no puede jugar ninguna, puede descartar una carta o recibir daño leve por exposición.
-
 Esto dejaría el 'loop' del juego así:
 
 Start Run → Exploración Platformer → Contacto con enemigo → Duelo de cartas → Recompensa → Avance (x3) → Boss Final → Fin de run
@@ -104,7 +102,6 @@ Al finalizar una run, ya sea por victoria o derrota, el jugador obtiene **Swamp 
 
 - Desbloquear nuevas cartas
 - Mejorar estadísticas base
-- Desbloquear variantes de clanes
 - Obtener acceso a cartas raras
 
 Esto constituye el sistema de progreso permanente del juego.
@@ -157,19 +154,89 @@ El juego requerirá del uso de teclado y mouse para ambos modos (principalmente 
 5. I <-- Acceso al inventario (abrir y cerrar)
 6. ESC <-- Pausa
 7. Mouse Movement <-- Apuntar (Exploración) e interactuar con el tablero de cartas
-8. Click Izquierdo <-- Disparar (Exploración) y seleccionar/jugar una carta
-9. Click Izquierdo <-- Descartar una carta
+8. Click Izquierdo <-- Disparar (Exploración) y seleccionar/jugar una carta (doble click para confirmar una selección)
+9. Click Derecho <-- Descartar una carta
 
 ### **Mechanics**
 
-El juego se basa en varios sistemas técnicos para sus mecánicas principales.
+El duelo de cartas consiste en diferentes reglas y atributos que definen el flujo del enfrentamiento. Ya que esta directamente inspirado en el juego 'UNO', las mecánicas se asemejan a las de este juego de mesa. Con algunos elementos innovadores y estratégicos, que hacen de una jugada algo más entretenido.
 
-Primeramente, el duelo de cartas utiliza un sistema de pareo por algún atributo (número o poder/color). El cual esta inspirado en el juego clásico "UNO". Para que una jugada sea válida, la carta jugada debe coincidir con la carta presente en la mesa considerando alguno de los siguientes atributos:
-    Elemento
-    Número
-Si ninguno de estos coincide, la jugada se considera inválida y el jugador deberá descartar una carta, o recibir daño leve por exposición.
+#### **Valid Plays**
 
-Como fue discutido anteriormente, el juego cuenta con dos recursos energéticos que permiten activar la habilidad especial del personaje seleccionado. La Energía Elemental se genera cuando una carta coincide tanto en elemento como en número, ambas energías se generan con un incremento mayor. Mientras que la Energía Instinto cuando el jugador realiza una coincidencia por valor numérico. La primera "llena" la mitad izquierda de la barra de habilidad, y la segunda la mitad derecha.
+Una carta se considera válida si coincide con la carta en mesa en al menos uno de estos dos atributos:
+
+- Elemento
+- Valor numérico
+
+**Ejemplo 1:**  
+Carta en mesa: Fuego 5  
+Carta del jugador: Fuego 8  
+Resultado: válida por coincidencia de elemento.
+
+**Ejemplo 2:**  
+Carta en mesa: Arena 4  
+Carta del jugador: Agua 4  
+Resultado: válida por coincidencia de número.
+
+**Ejemplo 3:**  
+Carta en mesa: Pantano 7  
+Carta del jugador: Fuego 3  
+Resultado: inválida.
+
+**Ejemplo 4:**
+Carta en mesa: Agua 4
+Carta del jugador: Hielo (Ice Overdrive)
+Resultado: válida, al ser un comodin, el jugador puede utilizar esta carta legalmente
+
+#### **No Valid Move Rule**
+
+Si un jugador no tiene una carta válida, puede elegir una de dos acciones:
+
+- Descartar una carta de su mano.
+- Recibir daño leve por exposición y conservar la mano actual.
+
+Esto obliga al jugador a decidir entre perder recursos o perder vida.
+
+
+#### **Card Structure**
+
+Cada carta contiene:
+
+- Elemento
+- Valor numérico
+- Tipo
+- Efecto principal
+- Rareza
+- Costo de energía (si aplica)
+
+#### **Card Types**
+
+Las cartas del juego se dividen en cuatro tipos principales:
+
+- **Ataque**: infligen daño directo al enemigo.
+- **Defensa**: reducen daño recibido o aumentan resistencia temporal (mientras que generan un daño leve, en comparación a la reducción propia).
+- **Estado**: aplican efectos persistentes como quemadura (daño extra), envenenamiento (daño lento dependiente de la vida del oponente), arena movediza (cartas con cierto número o color se bloquean temporalmente), y congelamiento.
+- **Especiales**: unicamente la carta de Hielo (esta solo contaría con un rango numérico del 1-4, y solo aplicaría para Ice Stun y Ice Jam)
+
+#### **Initial Card Set Examples**
+
+| Carta | Elemento | Número | Tipo | Efecto |
+|------|----------|------:|------|--------|
+| Splash Guard | Agua | 5 | Defensa | Reduce 7 de daño recibido este turno, inflige 2 de daño |
+| Tidal Push | Agua | 6 | Ataque | Inflige 12 de daño |
+| Venom Drip | Pantano | 2 | Estado | Aplica veneno por 2 turnos |
+| Mire Trap | Pantano | 6 | Ataque | Inflinge 6 de daño |
+| Burn Bite | Fuego | 4 | Ataque y Estado | Inflige 4 de daño directo y aplica 2 de daño por quemadura |
+| Wild Flare | Fuego | 11 | Especial | Inflige 11 de daño alto pero consume Energía Instinto (66%) |
+| Quick Sand | Arena | 5 | Defensa y Estado | Reduce 50% de daño del siguiente ataque enemigo |
+| Dust Jam | Arena | 8 | Ataque | Inflinge 8 de daño |
+| Ice Overdrive | Hielo | Null | Especial | Funciona como comodín de elemento |
+| Ice Stun | Hielo | 2 | Estado | Congela al enemigo por 2 turnos |
+| Ice Jam | Hielo | 4 | Estado | El jugador en turno puede jugar 2 cartas por 4 turnos |
+
+
+
+#### **Enemies**
 
 Los enemigos también utilizan el sistema de cartas durante los duelos. Dependiendo del nivel de dificultad o del tipo de enemigo, la inteligencia artificial puede tomar decisiones diferentes al momento de jugar una carta. Tenemos contempladas tres modalidaes:
 *Easy AI*
