@@ -60,19 +60,21 @@ El objetivo principal es sobrevivir a una serie de &quot;runs&quot; (partidas re
 
 Con un aproximado de 3 niveles/mapas dentro del pantano(mas un breve tutorial), el jugador podrá disfrutar del juego y su versatilidad. Encontrandose con la parte 'platformer' del juego, donde el jugador evade enemigos de menor nivel. Debido a que los mapas serán diseñados para generar ciertos elementos de manera distinta, y por consecuencia, aleatoria. Cada run se compone de tres zonas principales:
 - 3 combates estándar
-- 1 evento especial (recompensa)
+- 1 recompensa principal por cada combate superado
 - 1 jefe de la zona
 
-El jugador se enfrentará a diversas facciones enemigas del pantano (mapaches, ratas y osos), así como a los jefes de zona, los cuales deben de ser derrotados para validar el exito de la run en curso. Cada tipo de enemigo obliga a adaptar estrategia de cartas. Al entrar en contacto con un enemigo en específico, iniciará el duelo de cartas. Dependerá de la destreza y el inventario (mazo) del jugador, con tal de que este resulte ganador contra alguno de los rivales que se encontrará en su camino. 
+El jugador se enfrentará a diversas facciones enemigas del pantano (mapaches, ratas y osos), así como a los jefes de zona, los cuales deben de ser derrotados para validar el exito de la run en curso. Cada tipo de enemigo obliga a adaptar estrategia de cartas. Al entrar en contacto con un enemigo en específico, iniciará el duelo de cartas. Dependerá de la destreza y la construcción del mazo (deck) del jugador, con tal de que este resulte ganador contra alguno de los rivales que se encontrará en su camino. 
 
 Conforme el jugador progrese, la dificultad escalará, y sus oponentes aplicarán jugadas más complicadas. De igual manera, tendrá acceso a objetos desbloqueables, de acuerdo a su progreso mismo. Siendo que sus victorias le darán acceso a un pequeño catálogo de opciones para mejorar sus estadísticas, o su propio mazo. Cuando pierde un combate, el jugador es regresado al primer nivel. Dada la naturaleza Roguelite del juego, conservará su progreso "global" mediante su experiencia adquirida (Swamp XP). Con la cual podrá mejorara su 'Clan Credit'; lo que le dará acceso a los desbloqueables. Como la carta estrella, "Hielo".
 
+#### **Card System**
 
 La fase de exploración dentro del platformer es bastante sencilla. El jugador debe evadir cierta cantidad de obstáculos y enemigos menores hasta entrar en la fase del duelo de cartas. Su mecánica principal está basada en jugar cartas que cuenten con algún atributo idéntico a la carta en juego, al estilo de UNO.
 
 Siendo más específicos:
 
 - Mano inicial: 5 cartas
+- Deck inicial: 12 cartas seleccionadas por el jugador antes de la run
 - Robo por turno: 1 carta
 - Vida base del jugador: 100 HP
 - Condición de victoria: reducir la vida del enemigo a 0
@@ -82,29 +84,104 @@ Esto dejaría el 'loop' del juego así:
 
 Start Run → Exploración Platformer → Contacto con enemigo → Duelo de cartas → Recompensa → Avance (x3) → Boss Final → Fin de run
 
+El jugador no tiene acceso a todas sus cartas al mismo tiempo. En su lugar, comienza cada duelo con una mano inicial de 5 cartas, las cuales provienen de su deck previamente construido.
 
-Existen cinco elementos con identidad estratégica:
+Durante cada turno, el jugador roba 1 carta adicional desde su deck, lo que introduce un componente de incertidumbre y adaptación estratégica en cada enfrentamiento.
 
-- **Agua**: defensa y reducción de daño.
-- **Pantano**: veneno y daño progresivo.
-- **Fuego**: alto daño directo.
-- **Arena**: reducción del daño enemigo.
-- **Hielo**: comodín; puede congelar por 2 turnos, permitir jugar 2 cartas por 2 turnos, o provocar pérdida de 2 turnos enemigos.
+Las cartas utilizadas durante el combate se envían a una pila de descarte. En caso de que el deck se agote, la pila de descarte puede reutilizarse como un nuevo deck.
+
+Esto transforma el sistema en una combinación entre mecánicas tipo UNO y un sistema de construcción de mazo (deckbuilding), donde el jugador decide previamente qué cartas utilizar antes de cada run.
+
+Si el jugador no cuenta con una carta válida en su mano:
+
+- Roba 1 carta adicional desde su deck.
+- Si aún no puede realizar una jugada válida, recibe daño leve por exposición.
+
+Adicionalmente, si el jugador acumula demasiadas cartas en su mano (10 o más), comenzará a recibir daño progresivo por fatiga, incentivando una gestión activa de recursos y evitando la acumulación excesiva de cartas.
 
 También existen dos recursos:
 
 - **Energía Elemental**: se genera al jugar cartas del mismo elemento consecutivamente. Se utiliza para activar habilidades especiales.
 - **Energía Instinto**: se genera dependiendo del valor numérico de la carta jugada. Permite recargar habilidades únicas del personaje.
 
-Ambos recursos tienen un límite máximo y se reinician parcialmente al finalizar un combate.
+Ambos recursos tienen un límite máximo y se reinician al finalizar un combate.
 
-Al finalizar una run, ya sea por victoria o derrota, el jugador obtiene **Swamp XP**. Este recurso le permite escoger entre:
 
-- Desbloquear nuevas cartas
-- Mejorar estadísticas base
-- Obtener acceso a cartas raras
+#### **Platformer System**
 
-Esto constituye el sistema de progreso permanente del juego.
+Nuevamente, durante la fase de exploración, el jugador interactúa con un entorno 2D tipo platformer, el cual sirve como transición entre combates y como fuente de presión mecánica.
+
+##### **Level Generation**
+
+Los niveles se generan de forma semi-aleatoria a partir de segmentos predefinidos. Cada zona mantiene su identidad visual y temática, pero la disposición de plataformas, obstáculos y enemigos puede variar entre runs.
+
+Esto permite:
+
+- Rejugabilidad
+- Variación en rutas
+- Diferentes niveles de riesgo y recompensa
+
+##### **Player Movement & Combat**
+
+El jugador cuenta con las siguientes capacidades:
+
+- Movimiento lateral (izquierda / derecha)
+- Salto
+- Interacción con objetos
+- Ataque básico cuerpo a cuerpo
+- Ataque a distancia (disparo)
+
+El combate dentro del platformer no es el foco principal, pero introduce presión constante. Su objetivo es desgastar al jugador antes de los duelos de cartas.
+
+##### **Minor Enemies**
+
+Durante la exploración, el jugador se enfrenta a enemigos menores que actúan como obstáculos activos:
+
+- **Ratas**: rápidas, aparecen en grupo, obligan a reaccionar rápidamente.
+- **Mapaches**: comportamiento intermedio, pueden bloquear rutas y perseguir al jugador brevemente.
+- **Osos**: lentos pero resistentes, ocupan más espacio y controlan zonas.
+
+Estos enemigos no representan el desafío principal, pero afectan el estado del jugador antes de los combates.
+
+##### **Obstacles & Objects**
+
+El entorno incluye diferentes elementos que afectan la navegación:
+
+- Plataformas móviles
+- Superficies resbalosas o ralentizantes (pantano)
+- Basura acumulada que bloquea rutas
+- Vehículos destruidos como obstáculos
+- Tuberías y estructuras verticales
+
+Además, pueden aparecer:
+
+- Cofres o recompensas
+- Eventos especiales
+- Cartas raras o de Clan ocultas
+
+##### **Exploration Rewards**
+
+Durante la exploración, el jugador puede encontrar recompensas adicionales:
+
+- Cartas de Clan o Especie (raras)
+- Mejoras temporales
+- Curación parcial
+
+Esto incentiva la exploración más allá del objetivo principal de avanzar.
+
+---
+
+Al finalizar una run, ya sea por victoria o derrota, el jugador obtiene **Swamp XP**. Este recurso permite progresar dentro del sistema de rango del clan (**Clan Credit**), el cual define el acceso a nuevas mecánicas y contenido.
+
+Cada nivel de Clan Credit desbloquea progresivamente:
+
+- Nuevas cartas con efecto
+- Acceso a cartas especiales del elemento Hielo
+- Cartas de Clan o Especie (habilidades únicas)
+- Mejores recompensas al finalizar duelos
+- Mayor flexibilidad en la construcción del deck
+
+Este es el sistema de progreso permanente del juego, diferenciando cada run y permitiendo al jugador experimentar nuevas estrategias conforme avanza.
 
 
 ### **Mindset**
@@ -135,9 +212,15 @@ Contiene el logo del juego, una imagen del pantano en el fondo, y las siguientes
     - Duelo de Cartas
         Muestra el tablero, el mazo con las cartas del jugador, así como las estadísticas de este mismo y las de su oponente.
         1. Inventory:
-        Permite revisar el mazo con las cartas disponibles, alguna mejora, y las estadísticas del juegador.
+        Permite revisar el deck actual del jugador, incluyendo las cartas seleccionadas antes de la run, así como modificaciones temporales obtenidas durante la partida, estadísticas y mejoras activas.
         2. Assesment / Next Level: 
-        El jugador es felicitado por su victoria, y se le ofrecen 5 cartas nuevas desbloqueables; este solo podrá escoger una para su colección.
+        El jugador es felicitado por su victoria y se le presentan varias opciones de recompensa. Entre ellas:
+
+            - Obtener una nueva carta con efecto
+            - Mejorar su estado actual (vida o defensa)
+            - Remover una carta no deseada del deck
+
+        El jugador deberá seleccionar una opción, afectando directamente su estrategia durante la run.
 4. End Credits
     - Una vez el boss final es derrotado (Pythra), el jugador será felicitado por Klancy, quien le enseñó al jugador cómo jugar desde un inicio. Finalmente rombe la cuarta pared, y muestra los nombres de los creadores del juego.
 
@@ -209,14 +292,32 @@ Cada carta contiene:
 - Rareza
 - Costo de energía (si aplica)
 
+
+#### **Deck System**
+
+Antes de iniciar una run, el jugador construye un deck compuesto por un número limitado de cartas (aproximadamente 12). Estas cartas provienen de las opciones desbloqueadas mediante progreso (Swamp XP y Clan Credit).
+
+Durante el combate:
+
+- El jugador roba una mano inicial de 5 cartas.
+- Cada turno roba 1 carta adicional.
+- Solo puede jugar cartas disponibles en su mano.
+- Las cartas utilizadas pasan a una pila de descarte.
+- Si el deck se agota, el descarte puede reciclarse.
+
+Este sistema permite al jugador planear su estrategia antes de la run, mientras que mantiene incertidumbre durante el combate, al no tener acceso inmediato a todas sus cartas.
+
 #### **Card Types**
 
 Las cartas del juego se dividen en cuatro tipos principales:
 
-- **Ataque**: infligen daño directo al enemigo.
-- **Defensa**: reducen daño recibido o aumentan resistencia temporal (mientras que generan un daño leve, en comparación a la reducción propia).
-- **Estado**: aplican efectos persistentes como quemadura (daño extra), envenenamiento (daño lento dependiente de la vida del oponente), arena movediza (cartas con cierto número o color se bloquean temporalmente), y congelamiento.
-- **Especiales**: unicamente la carta de Hielo (esta solo contaría con un rango numérico del 1-4, y solo aplicaría para Ice Stun y Ice Jam)
+- **Fuego**: daño directo basado en el valor numérico de la carta, con posibles efectos de quemadura.
+- **Arena**: daño moderado y control del oponente, incluyendo reducción de daño y bloqueo de jugadas.
+- **Pantano**: enfoque en desgaste, aplicando veneno y efectos progresivos.
+- **Agua**: defensa, mitigación de daño y recuperación parcial.
+- **Hielo**: elemento especial y raro. Funciona como comodín y permite efectos avanzados como congelamiento, bloqueo de habilidades, manipulación de turnos y jugadas múltiples.
+
+
 
 #### **Initial Card Set Examples**
 
@@ -238,7 +339,12 @@ Las cartas del juego se dividen en cuatro tipos principales:
 
 #### **Enemies**
 
-Los enemigos también utilizan el sistema de cartas durante los duelos. Dependiendo del nivel de dificultad o del tipo de enemigo, la inteligencia artificial puede tomar decisiones diferentes al momento de jugar una carta. Tenemos contempladas tres modalidaes:
+Es importante diferenciar entre dos tipos de enemigos:
+
+- **Enemigos de exploración (platformer)**: actúan como obstáculos y generan presión constante, pero no utilizan el sistema de cartas.
+- **Enemigos de duelo**: activan combates formales y utilizan decks propios con inteligencia artificial.
+
+Los enemigos de duelo también utilizan el sistema de cartas establecido, durante los combates. Dependiendo del nivel de dificultad o del tipo de enemigo, la inteligencia artificial puede tomar decisiones diferentes al momento de jugar una carta. Tenemos contempladas tres modalidaes:
 *Easy AI*
     Selecciona una carta válida de forma aleatoria, entre las opciones disponibles.
 
