@@ -58,16 +58,27 @@ Florida Frenzy es un juego roguelite en 2D, que involucra mecánicas de un TCG y
 
 El objetivo principal es sobrevivir a una serie de &quot;runs&quot; (partidas reiniciables) en las cuales avanzarás a través de niveles en un mapa 2D. Cada 'run' dependerá de tu agilidad para superar los obstáculos presentes durante el platformer, así como de el nivel de dificultad que implique el duelo de cartas que se te presente durante tu trayectoria.
 
-Con un aproximado de 3 niveles/mapas dentro del pantano (mas un breve tutorial), el jugador podrá disfrutar del juego y su versatilidad. Encontrandose con la parte 'platformer' del juego, donde el jugador evade enemigos de menor nivel. Debido a que los mapas serán diseñados para generar ciertos elementos de manera distinta, y por consecuencia, aleatoria. Cada run se compone de tres zonas principales:
-- 3 combates estándar
-- 1 recompensa principal por cada combate superado
-- 1 jefe de la zona
+Con un aproximado de 3 niveles/mapas dentro del pantano (mas un breve tutorial), el jugador podrá disfrutar del juego y su versatilidad. Encontrandose con la parte 'platformer' del juego, donde el jugador evade enemigos de menor dificultad. Debido a que los mapas serán diseñados para generar ciertos elementos de manera distinta, y por consecuencia, aleatoria. Cada run principal se estructura en zonas consecutivas que combinan exploración, combate, recompensa y enfrentamientos contra jefes
+- 3 enfrentamientos contra bosses de zona
+- 1 enfrentamiento final contra el boss principal
 
-La primera vez que el jugador inicia el juego, accede a una run introductoria, guiada por Klancy. Esta funciona como el tutrial para el jugador. Tras completarla, las runs siguientes utilizan el nivel de dificultad estándar/alto.
+Las recompensas dentro del juego se dividen en dos tipos:
 
-El jugador se enfrentará a diversas facciones enemigas del pantano (mapaches, ratas y osos), así como a los jefes de zona, los cuales deben de ser derrotados para validar el exito de la run en curso. Cada tipo de enemigo obliga a adaptar estrategia de cartas. Al entrar en contacto con un enemigo en específico, iniciará el duelo de cartas. Dependerá de la destreza y la construcción del mazo (deck) del jugador, con tal de que este resulte ganador contra alguno de los rivales que se encontrará en su camino. 
+- **Recompensas de combate (garantizadas)**:
+  Se obtienen al ganar un duelo. El jugador puede elegir entre varias opciones que afectan su estado o su deck.
 
-Conforme el jugador progrese, la dificultad escalará, y sus oponentes aplicarán jugadas más complicadas. De igual manera, tendrá acceso a objetos desbloqueables, de acuerdo a su progreso mismo. Siendo que sus victorias le darán acceso a un pequeño catálogo de opciones para mejorar sus estadísticas, o su propio mazo. Cuando pierde un combate, el jugador es regresado al primer nivel. Dada la naturaleza Roguelite del juego, conservará su progreso "global" mediante su experiencia adquirida (Swamp XP). Con la cual podrá mejorar su 'Clan Rank'; lo que le dará acceso a los desbloqueables. Como la carta estrella, "Hielo".
+- **Recompensas de exploración (opcionales)**:
+  Se encuentran durante el platformer y pueden incluir cartas raras, mejoras temporales o curación.
+
+Esto permite al jugador decidir entre avanzar rápidamente o explorar en busca de ventajas adicionales.
+
+El jugador se enfrentará a diversas facciones enemigas (mapaches, ratas y osos), así como a los jefes de zona, los cuales deben de ser derrotados para validar el exito de la run en curso. Cada tipo de enemigo obliga a adaptar estrategia de cartas. Al entrar en contacto con un enemigo de duelo (o boss, para simplificar), iniciará el duelo de cartas. Dependerá de la destreza y la construcción del mazo (deck) del jugador, con tal de que este resulte ganador contra alguno de los rivales que se encontrará en su camino. 
+
+Conforme el jugador progrese, la dificultad escalará, y sus oponentes aplicarán jugadas más complicadas. De igual manera, tendrá acceso a objetos desbloqueables, de acuerdo a su progreso mismo. Siendo que sus victorias le darán acceso a un pequeño catálogo de opciones para mejorar sus estadísticas, o su propio mazo. 
+
+La primera vez que el jugador inicia el juego, accede a una run introductoria (tutorial), guiada por Klancy. Tras completarla, las runs siguientes utilizan el nivel de dificultad estándar/alto.
+
+Cuando pierde un combate, el jugador es regresado al primer nivel. Dada la naturaleza Roguelite del juego, conservará su progreso "global" mediante su experiencia adquirida (Swamp XP). Con la cual podrá mejorar su 'Clan Rank'; lo que le dará acceso a los desbloqueables. Como la carta estrella, "Hielo".
 
 El sistema de combate se basa en un modelo híbrido entre mecánicas tipo UNO y construcción de mazo (deckbuilding). El jugador construye un deck antes de cada run y, durante los duelos, utiliza una mano limitada de cartas que se renueva progresivamente mediante robo. Las jugadas se basan en la coincidencia de atributos (elemento o valor numérico), mientras que la gestión de recursos como Energía Elemental e Instinto permite ejecutar estrategias más complejas. El detalle completo del sistema de cartas, reglas de jugada y funcionamiento del deck se encuentra en la sección de **Mechanics**.
 
@@ -78,6 +89,112 @@ También existen dos recursos:
 
 Ambos recursos tienen un límite máximo y se reinician al finalizar un combate.
 
+---
+
+Al finalizar una run, ya sea por victoria o derrota, el jugador obtiene la ya mencionada **Swamp XP**. Este recurso permite progresar dentro del sistema de rango del clan (**Clan Rank**), el cual define el acceso a nuevas mecánicas y contenido.
+
+#### **Clan Rank System**
+
+El progreso del jugador se organiza en niveles de Clan Rank, representando su experiencia acumulada en el juego.
+
+Cada nivel desbloquea nuevas opciones estratégicas y amplía la complejidad del sistema:
+
+- **Rookie (Nivel 1)**  
+  Acceso al set base de cartas.  
+  Sin cartas con efecto ni elementos avanzados.  
+  Enfocado en aprendizaje del sistema.
+
+- **Fighter (Nivel 2)**  
+  Desbloqueo de cartas con efecto.  
+  Acceso al elemento Hielo.  
+  Introducción a mecánicas avanzadas y control del combate.
+
+- **Veteran (Nivel 3)**  
+  Acceso al rango completo de cartas desbloqueables y a las recompensas más avanzadas del sistema.
+  Mejores recompensas al finalizar duelos.
+  Obtiene un bono pasivo de vida inicial en cada nueva run (por ejemplo, +10% a la vida base).  
+  Mayor optimización en la construcción de deck.
+
+Las cartas de Clan o Especie no se desbloquean mediante Clan Rank, sino que se obtienen como recompensas raras durante la exploración en el modo platformer.
+
+El avance entre niveles requiere cantidades crecientes de Swamp XP.
+
+Es importante distinguir entre progreso temporal y permanente:
+
+- **Se conserva entre runs**:
+  - Swamp XP
+  - Clan Rank
+  - Cartas desbloqueadas
+  - Personajes desbloqueados
+
+- **No se conserva entre runs**:
+  - Vida y escudo
+  - Mano actual
+  - Cartas obtenidas durante la run
+  - Mejoras temporales
+
+Esto refuerza la naturaleza roguelite del juego, donde cada run representa un nuevo intento con ventajas acumuladas previamente.
+
+
+### **Mindset**
+
+El objetivo es mezclar un la jugabilidad "nostálgica" con los elementos 'punk' y caricaturescos de los personajes. Provocando una sensación de estrategia caótica, con identidad punk-industrial del pantano. El jugador debe sentirse como un miembro mas del clan que improvisa constantemente. La experiencia está diseñada bajo la idea de que sea fácil de entender, pero difícil de dominar.
+
+El caos visual contrasta con la claridad de información de la interfaz, fomentando análisis crítico y lógico en medio de la tensión.
+
+## _Technical_
+
+---
+
+### **Screens**
+1. Title Screen
+Contiene el logo del juego, una imagen del pantano en el fondo, y las siguientes opciones (en descendente):
+    - Start
+    - Multiplayer (Placeholder - puede no ser implementado)
+    - Store
+    - Settings
+    1. Options (dentro de Settings)
+        - Modular el volúmen (música, efectos, y general/ambos)
+        - Ajuste de pantalla (tickbox); se adapta al browser del jugador
+2. Level Select
+    - No habría en este caso, dado que las 'runs' son continuas.
+3. Game
+    - Modo Exploración
+        Movimiento lateral, con elementos clásicos de un 'platformer'; el jugador se desplaza por el mapa enfrentando enemigos con mecánicas de ataque sencillas, hasta entrar en contacto con un boss que inicia un duelo de cartas.
+    - Duelo de Cartas
+        Muestra el tablero, el mazo con las cartas del jugador, así como las estadísticas de este mismo y las de su oponente.
+        1. Inventory:
+        Permite revisar el deck actual del jugador, incluyendo las cartas seleccionadas antes de la run, así como modificaciones temporales obtenidas durante la partida, estadísticas y mejoras activas.
+        2. Assesment / Next Level: 
+        El jugador es felicitado por su victoria y se le presentan varias opciones de recompensa. Entre ellas:
+
+            - Obtener una nueva carta con efecto
+            - Mejorar su estado actual (vida o defensa)
+            - Remover una carta no deseada del deck
+
+        El jugador deberá seleccionar una opción, afectando directamente su estrategia durante la run.
+4. End Credits
+    - Una vez el boss final es derrotado (Pythra), el jugador será felicitado por Klancy, quien le enseñó al jugador cómo jugar desde un inicio. Finalmente rompe la cuarta pared, y muestra los nombres de los creadores del juego.
+
+
+### **Controls**
+
+El juego requerirá del uso de teclado y mouse para ambos modos (principalmente para la exploración).
+
+**Controles de Movimiento**
+1. W & Space Bar <-- Saltar
+2. D <-- Mover Derecha
+3. A <-- Mover Izquierda
+4. E <-- Interactuar
+5. I <-- Acceso al inventario (abrir y cerrar)
+6. ESC <-- Pausa
+7. Mouse Movement <-- Apuntar (Exploración) e interactuar con el tablero de cartas
+8. Click Izquierdo <-- Disparar (Exploración) y seleccionar/jugar una carta (doble click para confirmar una selección)
+9. Click Derecho <-- Descartar una carta
+
+### **Mechanics**
+
+---
 
 #### **Platformer System**
 
@@ -135,8 +252,7 @@ El entorno incluye diferentes elementos que afectan la navegación:
 
 Además, pueden aparecer:
 
-- Cofres o recompensas
-- Eventos especiales
+- Cofres o recompensas (tentativo)
 - Cartas raras o de Clan ocultas
 
 ##### **Exploration Rewards**
@@ -147,96 +263,9 @@ Durante la exploración, el jugador puede encontrar recompensas adicionales:
 - Mejoras temporales
 - Curación parcial
 
-Esto incentiva la exploración más allá del objetivo principal de avanzar.
+Las cartas de Clan o Especie tienen una probabilidad de aparición baja, convirtiéndolas en recompensas raras que incentivan la exploración.
 
 ---
-
-Al finalizar una run, ya sea por victoria o derrota, el jugador obtiene **Swamp XP**. Este recurso permite progresar dentro del sistema de rango del clan (**Clan Rank**), el cual define el acceso a nuevas mecánicas y contenido.
-
-Cada nivel de Clan Rank desbloquea progresivamente:
-
-- Nuevas cartas con efecto
-- Acceso a cartas especiales del elemento Hielo
-- Cartas de Clan o Especie (habilidades únicas)
-- Mejores recompensas al finalizar duelos
-- Mayor flexibilidad en la construcción del deck
-
-Este es el sistema de progreso permanente del juego, diferenciando cada run y permitiendo al jugador experimentar nuevas estrategias conforme avanza.
-
-Es importante distinguir entre progreso temporal y permanente:
-
-- **Se conserva entre runs**:
-  - Swamp XP
-  - Clan Rank
-  - Cartas desbloqueadas
-  - Personajes desbloqueados
-
-- **No se conserva entre runs**:
-  - Vida y escudo
-  - Mano actual
-  - Cartas obtenidas durante la run
-  - Mejoras temporales
-
-Esto refuerza la naturaleza roguelite del juego, donde cada run representa un nuevo intento con ventajas acumuladas previamente.
-
-
-### **Mindset**
-
-El objetivo es mezclar un la jugabilidad "nostálgica" con los elementos 'punk' y caricaturescos de los personajes. Provocando una sensación de estrategia caótica, con identidad punk-industrial del pantano. El jugador debe sentirse como un miembro mas del clan que improvisa constantemente. La experiencia está diseñada bajo la idea de que sea fácil de entender, pero difícil de dominar.
-
-El caos visual contrasta con la claridad de información de la interfaz, fomentando análisis cr´tico y lógico en medio de la tensión.
-
-## _Technical_
-
----
-
-### **Screens**
-1. Title Screen
-Contiene el logo del juego, una imagen del pantano en el fondo, y las siguientes opciones (en descendente):
-    - Start
-    - Multiplayer
-    - Store
-    - Settings
-    1. Options (dentro de Settings)
-        - Modular el volúmen (música, efectos, y general/ambos)
-        - Ajuste de pantalla (tickbox); se adapta al browser del jugador
-2. Level Select
-    - No habría en este caso, dado que las 'runs' son continuas.
-3. Game
-    - Modo Exploración
-        Movimiento lateral, con elementos clásicos de un 'platformer'; el jugador se desplaza por el mapa enfrentando enemigos con mecánicas de ataque sencillas, hasta entrar en contacto con aquel enemigo que inicia un duelo de cartas.
-    - Duelo de Cartas
-        Muestra el tablero, el mazo con las cartas del jugador, así como las estadísticas de este mismo y las de su oponente.
-        1. Inventory:
-        Permite revisar el deck actual del jugador, incluyendo las cartas seleccionadas antes de la run, así como modificaciones temporales obtenidas durante la partida, estadísticas y mejoras activas.
-        2. Assesment / Next Level: 
-        El jugador es felicitado por su victoria y se le presentan varias opciones de recompensa. Entre ellas:
-
-            - Obtener una nueva carta con efecto
-            - Mejorar su estado actual (vida o defensa)
-            - Remover una carta no deseada del deck
-
-        El jugador deberá seleccionar una opción, afectando directamente su estrategia durante la run.
-4. End Credits
-    - Una vez el boss final es derrotado (Pythra), el jugador será felicitado por Klancy, quien le enseñó al jugador cómo jugar desde un inicio. Finalmente rompe la cuarta pared, y muestra los nombres de los creadores del juego.
-
-
-### **Controls**
-
-El juego requerirá del uso de teclado y mouse para ambos modos (principalmente para la exploración).
-
-**Controles de Movimiento**
-1. W & Space Bar <-- Saltar
-2. D <-- Mover Derecha
-3. A <-- Mover Izquierda
-4. E <-- Interactuar
-5. I <-- Acceso al inventario (abrir y cerrar)
-6. ESC <-- Pausa
-7. Mouse Movement <-- Apuntar (Exploración) e interactuar con el tablero de cartas
-8. Click Izquierdo <-- Disparar (Exploración) y seleccionar/jugar una carta (doble click para confirmar una selección)
-9. Click Derecho <-- Descartar una carta
-
-### **Mechanics**
 
 El duelo de cartas consiste en diferentes reglas y atributos que definen el flujo del enfrentamiento. Ya que esta directamente inspirado en el juego 'UNO', las mecánicas se asemejan a las de este juego de mesa. Con algunos elementos innovadores y estratégicos, que hacen de una jugada algo más entretenido.
 
@@ -285,9 +314,34 @@ Cada carta contiene:
 - Elemento
 - Valor numérico
 - Tipo
-- Efecto principal
+- Efecto (si aplica)
 - Rareza
 - Costo de energía (si aplica)
+
+#### **Element Types**
+
+Las cartas del juego se dividen en cuatro elementos principales:
+
+- **Fuego**: daño directo basado en el valor numérico de la carta, con posibles efectos de quemadura.
+
+![Fire](../client/src/assets/sprites/CardFire.png)
+
+- **Arena**: daño moderado y control del oponente, incluyendo reducción de daño y bloqueo de jugadas.
+
+![Sand](../client/src/assets/sprites/CardSand.png)
+
+- **Pantano**: enfoque en desgaste, aplicando veneno y efectos progresivos.
+
+![Swamp](../client/src/assets/sprites/CardSwamp.png)
+
+- **Agua**: defensa, mitigación de daño y recuperación parcial.
+
+![Water](../client/src/assets/sprites/CardWater.png)
+
+- **Hielo**: elemento especial y raro. Funciona como comodín y permite efectos avanzados como congelamiento, bloqueo de habilidades, manipulación de turnos y jugadas múltiples.
+
+![IceFront](../client/src/assets/sprites/CardIceFront.png)
+
 
 #### **Card Categories**
 
@@ -298,7 +352,11 @@ Las cartas se clasifican según su función dentro del combate:
 - **Estado**: aplican efectos como veneno, quemadura o control.
 - **Especial**: modifican reglas del turno o del sistema de juego.
 
-Las cartas básicas suelen depender únicamente de su valor y elemento, mientras que las cartas con efecto introducen mecánicas adicionales que alteran el flujo del combate.
+Las **cartas básicas** dependen principalmente de su valor numérico y elemento para determinar su efecto.
+
+Las **cartas con efecto** introducen mecánicas adicionales como estados, control del turno, modificación de daño o alteración de reglas, y generalmente requieren consumo de energía para ser utilizadas.
+
+Esto genera una progresión natural desde jugadas simples, hasta estrategias más complejas.
 
 #### **Deck System**
 
@@ -314,15 +372,27 @@ Durante el combate:
 
 Este sistema permite al jugador planear su estrategia antes de la run, mientras que mantiene incertidumbre durante el combate, al no tener acceso inmediato a todas sus cartas.
 
-#### **Element Types**
+Las cartas del elemento Hielo son consideradas raras y poderosas. Por esta razón, su cantidad dentro de un deck es limitada.
 
-Las cartas del juego se dividen en cuatro elementos principales:
+Esto obliga al jugador a utilizarlas de manera estratégica y modera la cantidad de comodines activados.
 
-- **Fuego**: daño directo basado en el valor numérico de la carta, con posibles efectos de quemadura.
-- **Arena**: daño moderado y control del oponente, incluyendo reducción de daño y bloqueo de jugadas.
-- **Pantano**: enfoque en desgaste, aplicando veneno y efectos progresivos.
-- **Agua**: defensa, mitigación de daño y recuperación parcial.
-- **Hielo**: elemento especial y raro. Funciona como comodín y permite efectos avanzados como congelamiento, bloqueo de habilidades, manipulación de turnos y jugadas múltiples.
+La acción de "descartar" consiste en remover una carta de la mano del jugador sin activar su efecto, enviándola directamente a la pila de descarte.
+
+Descartar permite al jugador gestionar su mano cuando no cuenta con jugadas favorables, sacrificando recursos a corto plazo para mejorar sus opciones futuras. 
+
+Por ejemplo, si la mano del jugador contiene:
+
+- Fuego 3
+- Fuego 4
+- Fuego 5
+- Arena 2
+- Pantano 1
+
+Y la carta en la mesa es **Agua 7**, el jugador puede:
+
+- **Robar**: con la posibilidad de obtener una carta útil.
+- **Descartar**: eliminando una carta inútil para mejorar sus opciones futuras.
+
 
 #### **Energy System**
 
@@ -331,7 +401,7 @@ Como fue mencionado, el juego utiliza un sistema dual de energía compuesto por 
 - **Energía Elemental (EE)**
 - **Energía Instinto (EI)**
 
-Ambas energías llenan una barra compartida dividida en dos mitades (50/50). Cuando la barra se llena completamente, el jugador puede activar la habilidad especial (ultimate) de su personaje seleccionado.
+Ambas energías llenan una barra compartida dividida en dos mitades (50/50). La habilidad especial solo puede activarse cuando ambas mitades de la barra (EE y EI) están completamente llenas.
 
 ##### **Energy Generation**
 
@@ -405,17 +475,26 @@ Estas habilidades permiten modificar el flujo del combate y refuerzan el estilo 
 Recupera 50% de su vida actual y 30% de su escudo.  
 Obtiene en su mano una carta válida basada en la carta en mesa.
 
+![Christian](../client/src/assets/characters/christian/Christian_v4_resized.png)
+
 - **Gustav**:  
 Recupera 25% de su vida y 60% de su escudo.  
 Se vuelve inmune a efectos durante el siguiente turno.
+
+![Gustav](../client/src/assets/characters/gustav/Gustav_v3_resized.png)
 
 - **Gavin**:  
 Recupera 30% de su vida y 30% de su escudo.  
 Durante los siguientes 2 turnos, el daño recibido de cartas enemigas se reduce en un 50%.
 
+![Gavin](../client/src/assets/characters/gavin/Gavin_v3_resized.png)
+
 - **Eddy**:  
 Recupera 75% de su vida actual, pero pierde 35% de su escudo.  
 Durante los siguientes 2 turnos, el daño de sus cartas se duplica.
+
+![Christian](../client/src/assets/characters/eddy/Eddy_v2_resized.png)
+
 
 Cada personaje modifica la forma óptima de construir el deck y gestionar recursos durante la run.
 
@@ -426,7 +505,7 @@ Cada personaje modifica la forma óptima de construir el deck y gestionar recurs
 Es importante diferenciar entre dos tipos de enemigos:
 
 - **Enemigos de exploración (platformer)**: actúan como obstáculos y generan presión constante, pero no utilizan el sistema de cartas.
-- **Enemigos de duelo (bosses)**: activan los duelos de cartas y utilizan decks propios con inteligencia artificial.
+- **Enemigos de duelo (bosses)**: representan encuentros obligatorios dentro de cada zona. Cada uno corresponde a una facción y actúa como punto de progreso dentro de la run, activando un duelo de cartas con mecánicas únicas.
 
 Dependiendo del nivel de dificultad o del tipo de enemigo, la inteligencia artificial puede tomar decisiones diferentes al momento de jugar una carta. Tenemos contempladas tres modalidades:
 *Easy AI*
@@ -452,6 +531,8 @@ Durante los siguientes 2 turnos, el daño de las cartas del jugador se reduce en
 
 Diseñado para introducir la mecánica de bosses, castiga jugadas agresivas sin planificación.
 
+![Skawl](../client/src/assets/characters/skawl/Skawl_resized.png)
+
 ---
 
 - **Rabyz** — Boss de control (Mapache) 
@@ -459,6 +540,8 @@ Recupera 50% de su vida y gana 20% de escudo.
 Elimina todos los efectos activos sobre sí mismo y reduce la Energía Elemental del jugador en un porcentaje moderado.
 
 Enfocado en romper la estrategia del jugador, obligándolo a reconstruir momentum.
+
+![Rabyz](../client/src/assets/characters/rabyz/Rabyz_resized.png)
 
 ---
 
@@ -468,13 +551,17 @@ Durante el siguiente turno del jugador, su mano se limita a jugar solo 1 carta y
 
 Limita la capacidad ofensiva del jugador, manteniendo presión sin eliminar completamente la interacción.
 
+![Boldear](../client/src/assets/characters/boldear/Boldear_resized.png)
+
 ---
 
 - **Pythra** — Boss final (Pitón) 
 Recupera 75% de su vida y gana 80% de escudo.  
 Durante 3 turnos, utiliza únicamente cartas de Hielo y, adicionalmente, puede activar una versión reducida de las habilidades de los bosses anteriores.
 
-Funciona como una prueba final, combinando control, presión y manipulación del flujo del combate.
+Funciona como la prueba final, combinando control, presión y manipulación del flujo del combate.
+
+![Pythra](../client/src/assets/characters/pythra/Pythra_resized.png)
 
 ---
 
@@ -497,7 +584,7 @@ Funciona como una prueba final, combinando control, presión y manipulación del
             4. Superficie a la orilla del riachuelo
         2. _Interactive_
             1. Ratas (primer mapa)
-            2. Inicio de duelo (por contacto)
+            2. Inicio de duelo con boss (por contacto)
 2. Basurero (garbage dump)
     1. Mood
         1. Sucio, revuelto, incomodo
@@ -507,7 +594,7 @@ Funciona como una prueba final, combinando control, presión y manipulación del
             2. Camiones
         2. _Interactive_
             1. Mapaches (segundo mapa)
-            2. Inicio de duelo (por contacto)
+            2. Inicio de duelo con boss (por contacto)
 3. Suburbios (suburbs)
     1. Mood
         1. Peligroso, remoto
@@ -518,7 +605,7 @@ Funciona como una prueba final, combinando control, presión y manipulación del
             3. Vehículos
         2. _Interactive_
             1. Osos (tercer mapa)
-            2. Inicio de duelo (por contacto)
+            2. Inicio de duelo con boss (por contacto)
 4. El Desagüe (The Sewers)
     1. Mood
         1. Peligroso, sucio, conflictuado, desconocido
@@ -529,22 +616,25 @@ Funciona como una prueba final, combinando control, presión y manipulación del
             3. Escaleras
         2. _Interactive_
             1. Osos (tercer mapa)
-            2. Inicio de duelo (por contacto)
+            2. Inicio de duelo con boss final (por contacto)
             3. Pythra - Boss Final (Python bivittatus)
 
 
 ### **Game Flow**
 
 1. Klancy introduce al jugador al mundo de Florida Frenzy.
-2. Le enseña cómo funciona el sistema de cartas y la fase de platformer.
+2. Le da una breve introudcción (texto) sobre qué esperar (dará pistas durante cada evento dentro de esta run de novato).
 3. El jugador inicia una run.
-4. Explora una zona del mapa.
-5. Entra en contacto con un enemigo.
-6. Se activa un duelo de cartas.
+4. Explora una zona del mapa (platformer).
+5. Entra en contacto con un boss (activa un duelo de cartas).
+6. El jugador debe derrotar a su oponente con las reglas del duelo.
 7. Si gana, recibe una recompensa o mejora para el mazo.
 8. Avanza a la siguiente zona.
-9. El ciclo se repite hasta llegar al jefe final.
+9. El ciclo se repite otras 2 veces, hasta llegar al jefe final.
 10. Al derrotar al jefe final, se activa el cierre de la run y la secuencia final.
+
+O en su defecto:
+Platformer → Boss 1 → Platformer → Boss 2 → Platformer → Boss 3 → Platformer → Boss Final
 
 
 ---
@@ -639,35 +729,43 @@ Los personajes, así como otros sprites y diseños que se utilizarán en el jueg
 ### **Graphics Needed**
 
 1. Characters
-    1. Human-like
-        1. Goblin (idle, walking, throwing)
-        2. Guard (idle, walking, stabbing)
-        3. Prisoner (walking, running)
-    2. Other
-        1. Wolf (idle, walking, running)
-        2. Giant Rat (idle, scurrying)
-2. Blocks
-    1. Dirt
-    2. Dirt/Grass
-    3. Stone Block
-    4. Stone Bricks
-    5. Tiled Floor
-    6. Weathered Stone Block
-    7. Weathered Stone Bricks
-3. Ambient
-    1. Tall Grass
-    2. Rodent (idle, scurrying)
-    3. Torch
-    4. Armored Suit
-    5. Chains (matching Weathered Stone Bricks)
-    6. Blood stains (matching Weathered Stone Bricks)
-4. Other
-    1. Chest
-    2. Door (matching Stone Bricks)
-    3. Gate
-    4. Button (matching Weathered Stone Bricks)
+    1. Playable Characters (Croc Clan)
+        1. Christian (idle, walk, jump, attack (platformer) - idle, attack, damage, ultimate (TCG))
+        2. Gustav (idle, walk, jump, attack (platformer) - idle, attack, damage, ultimate (TCG))
+        3. Gavin (idle, walk, jump, attack (platformer) - idle, attack, damage, ultimate (TCG))
+        4. Eddy (idle, walk, jump, attack (platformer) - idle, attack, damage, ultimate (TCG))
+    2. Bosses
+        1. Skawl (rat boss - idle, attack, damage, ultimate)
+        2. Rabyz (raccoon boss - idle, attack, damage, ultimate)
+        3. Boldear (bear boss - idle, attack, damage, ultimate)
+        4. Pythra (final boss - idle, attack, damage, ultimate)
+    3. Minor Enemies (platformer)
+        1. Rat (idle, movement)
+        2. Raccoon (idle, movement)
+        3. Bear (idle, movement)
 
-_(example)_
+2. Environment / Blocks
+    1. Swamp terrain (mud, water, vegetation)
+    2. Garbage dump elements (trash piles, metal scraps)
+    3. Suburban elements (roads, houses, vehicles)
+    4. Sewer structures (pipes, platforms, ladders)
+
+3. UI Elements
+    1. Health bar (HP)
+    2. Shield bar
+    3. Energy bar (EE / EI split)
+    4. Card UI (hand, deck, discard, table)
+    5. Menu interfaces (main menu, options, inventory)
+
+4. Cards
+    1. Elemental cards (Fire, Water, Swamp, Sand)
+    2. Ice cards (special variants)
+    3. Clan/Species cards (rare)
+
+5. Objects & Interactables
+    1. Chests
+    2. Reward nodes / event points
+    3. Enemy triggers (duel initiation)
 
 
 ## _Sounds/Music_
@@ -676,73 +774,122 @@ _(example)_
 
 ### **Style Attributes**
 
-Again, consistency is key. Define that consistency here. What kind of instruments do you want to use in your music? Any particular tempo, key? Influences, genre? Mood?
+El estilo sonoro del juego busca mantener coherencia con su estética "punk-industrial del pantano", combinando elementos retro, con un enfoque moderno.
 
-Stylistically, what kind of sound effects are you looking for? Do you want to exaggerate actions with lengthy, cartoony sounds (e.g. mario&#39;s jump), or use just enough to let the player know something happened (e.g. mega man&#39;s landing)? Going for realism? You can use the music style as a bit of a reference too.
+La música estará inspirada en:
 
- Remember, auditory feedback should stand out from the music and other sound effects so the player hears it well. Volume, panning, and frequency/pitch are all important aspects to consider in both music _and_ sounds - so plan accordingly!
+- Boom-bap (old-school hip-hop)
+- Sonido 8-bit / chiptune
+- Ritmos marcados y repetitivos para acompañar la tensión del juego
+
+Esto genera una mezcla entre lo nostálgico y lo urbano, alineado con la identidad del Croc Clan.
+
+En cuanto a efectos de sonido:
+
+- Se prioriza claridad sobre realismo
+- Feedback inmediato al jugador
+- Sonidos cortos, impactantes y distinguibles
+
+El audio debe permitir al jugador identificar acciones clave sin interferir con la música.
+
+---
 
 ### **Sounds Needed**
 
-1. Effects
-    1. Soft Footsteps (dirt floor)
-    2. Sharper Footsteps (stone floor)
-    3. Soft Landing (low vertical velocity)
-    4. Hard Landing (high vertical velocity)
-    5. Glass Breaking
-    6. Chest Opening
-    7. Door Opening
-2. Feedback
-    1. Relieved &quot;Ahhhh!&quot; (health)
-    2. Shocked &quot;Ooomph!&quot; (attacked)
-    3. Happy chime (extra life)
-    4. Sad chime (died)
+1. Movement & Environment
+    1. Footsteps (swamp / mud)
+    2. Footsteps (hard surface / urban)
+    3. Jump
+    4. Landing (soft / hard)
 
-_(example)_
+2. Combat (Platformer)
+    1. Melee attack hit
+    2. Projectile shot
+    3. Enemy hit
+
+3. Card System
+    1. Card play sound
+    2. Invalid move feedback
+    3. Draw card
+    4. Discard card
+    5. Energy gain (EE / EI)
+    6. Ultimate activation
+
+4. Feedback
+    1. Damage taken
+    2. Shield gain
+    3. Victory (duel win)
+    4. Defeat (run end)
+    5. Reward selection
+
+---
 
 ### **Music Needed**
 
-1. Slow-paced, nerve-racking &quot;forest&quot; track
-2. Exciting &quot;castle&quot; track
-3. Creepy, slow &quot;dungeon&quot; track
-4. Happy ending credits track
-5. Rick Astley&#39;s hit #1 single &quot;Never Gonna Give You Up&quot;
+1. Swamp Theme (exploration)
+    - Calm but tense, slow boom-bap rhythm
 
-_(example)_
+2. Combat Theme (card duels)
+    - Faster tempo, more intense beats
+
+3. Boss Theme
+    - Higher intensity, layered instrumentation
+
+4. Menu Theme
+    - Minimalist loop, relaxed tone
+
+5. End Credits Theme
+    - Conclusive, slightly uplifting variation of main theme
 
 
 ## _Schedule_
 
 ---
 
-_(define the main activities and the expected dates when they should be finished. This is only a reference, and can change as the project is developed)_
+_(define the main activities and expected timeline; subject to change during development)_
 
-1. develop base classes
-    1. base entity
-        1. base player
-        2. base enemy
-        3. base block
-  2. base app state
-        1. game world
-        2. menu world
-2. develop player and basic block classes
-    1. physics / collisions
-3. find some smooth controls/physics
-4. develop other derived classes
-    1. blocks
-        1. moving
-        2. falling
-        3. breaking
-        4. cloud
-    2. enemies
-        1. soldier
-        2. rat
-        3. etc.
-5. design levels
-    1. introduce motion/jumping
-    2. introduce throwing
-    3. mind the pacing, let the player play between lessons
-6. design sounds
-7. design music
+1. Pre-production
+    1. Define Game Design Document (GDD)
+    2. Define core mechanics (cards, deck, energy system)
+    3. Define game loop and progression systems
 
-_(example)_
+2. Core System Development
+    1. Implement base classes (player, enemy, card, deck)
+    2. Implement card system logic (valid plays, effects, discard)
+    3. Implement energy system (EE / EI)
+    4. Implement turn-based combat system
+
+3. Platformer Development
+    1. Implement player movement and physics
+    2. Implement enemy behaviors (NPCs)
+    3. Implement level generation system
+    4. Integrate exploration and duel triggers
+
+4. Game Systems Integration
+    1. Implement Clan Rank and progression
+    2. Implement reward system
+    3. Implement boss logic and AI behavior
+
+5. UI & Visual Integration
+    1. Implement HUD (HP, shield, energy)
+    2. Implement card interface
+    3. Implement menus and navigation
+
+6. Audio Integration
+    1. Add sound effects
+    2. Add background music
+    3. Balance audio levels
+
+7. Testing & Balancing
+    1. Gameplay balancing (cards, bosses, progression)
+    2. Bug fixing
+    3. Performance optimization
+
+8. Finalization
+    1. Polish visuals and audio
+    2. Prepare final build
+    3. Documentation and presentation
+
+---
+
+![TheEndOfThisDocument](../client/src/assets/backgrounds/everglades.jpg)
