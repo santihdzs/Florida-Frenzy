@@ -147,6 +147,6 @@ export class MenuScene extends Phaser.Scene {
   }
 
   startGame() {
-    this.scene.start('DuelScene');
+    this.scene.start('EvergladesScene');
   }
 }

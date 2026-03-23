@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { MenuScene } from './scenes/MenuScene';
 import { DuelScene } from './scenes/DuelScene';
-import { PlatformerScene } from './scenes/PlatformerScene';
+import { EvergladesScene } from './scenes/EvergladesScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
@@ -9,11 +9,7 @@ const config: Phaser.Types.Core.GameConfig = {
   width: 1200,
   height: 750,
   backgroundColor: '#1a1a2e',
-  scene: [MenuScene, DuelScene, PlatformerScene],
-  physics: {
-    default: 'arcade',
-    arcade: { debug: false }
-  }
+  scene: [MenuScene, DuelScene, EvergladesScene],
 };
 
 new Phaser.Game(config);
