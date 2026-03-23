@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { PhysicsBody, Platform, updateBody, checkWorldBounds } from '../physics/customPhysics';
 import backgroundImg from '../assets/backgrounds/everglades.jpg';
 
 // level geometry
@@ -37,10 +38,20 @@ const BULLET_LIFETIME_MS = 2000;
 // game loop
 const PLATFORMER_LEVELS_PER_DUEL = 3;
 
+interface Bullet {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  sprite: Phaser.GameObjects.Rectangle;
+  life: number;
+}
+
 export class PlatformerScene extends Phaser.Scene {
-  private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
-  private platforms!: Phaser.Physics.Arcade.StaticGroup;
-  private bullets!: Phaser.Physics.Arcade.Group;
+  private player!: PhysicsBody;
+  private playerSprite!: Phaser.GameObjects.Rectangle;
+  private platforms: Platform[] = [];
+  private bullets: Bullet[] = [];
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private levelCount = 0;
@@ -62,31 +73,24 @@ export class PlatformerScene extends Phaser.Scene {
   }
 
   create() {
-    this.physics.world.setBounds(0, 0, LEVEL_WIDTH, VIEW_HEIGHT + 200);
-
     // background tiled across the level
     for (let x = 0; x < LEVEL_WIDTH; x += 1200) {
       this.add.image(x + 600, VIEW_HEIGHT / 2, 'platformer-bg');
     }
 
     // platforms and ground
-    this.platforms = this.physics.add.staticGroup();
+    this.platforms = [];
     this.buildGround();
     this.generatePlatforms();
 
     // player
     this.createPlayer();
-    this.physics.add.collider(this.player, this.platforms);
 
-    // bullets
-    this.bullets = this.physics.add.group({ defaultKey: 'bullet' });
-    this.physics.add.collider(this.bullets, this.platforms, (_bullet) => {
-      (_bullet as Phaser.Physics.Arcade.Sprite).destroy();
-    });
+    // bullets array
+    this.bullets = [];
 
     // camera
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, VIEW_HEIGHT);
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
     // input
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -102,18 +106,20 @@ export class PlatformerScene extends Phaser.Scene {
         this.shoot(pointer);
       }
     });
-
-    // finish zone at right edge
-    const finishZone = this.add.zone(LEVEL_WIDTH - 40, VIEW_HEIGHT / 2, 80, VIEW_HEIGHT);
-    this.physics.add.existing(finishZone, true);
-    this.physics.add.overlap(this.player, finishZone, () => {
-      if (!this.levelComplete) this.showLevelComplete();
-    });
   }
 
-  update() {
+  update(time: number, delta: number) {
     if (this.levelComplete) return;
-    this.handleMovement();
+
+    this.handleMovement(delta);
+    this.updateBullets(delta);
+    this.updateCamera();
+
+    // Check level completion
+    if (this.checkLevelComplete()) {
+      this.showLevelComplete();
+      return;
+    }
 
     // fell off the map -> game over
     if (this.player.y > VIEW_HEIGHT + 100) {
@@ -124,79 +130,140 @@ export class PlatformerScene extends Phaser.Scene {
   // -- player --
 
   private createPlayer() {
-    if (!this.textures.exists('player-cube')) {
-      const gfx = this.make.graphics({ x: 0, y: 0, add: false });
-      gfx.fillStyle(0xff3333);
-      gfx.fillRect(0, 0, PLAYER_SIZE, PLAYER_SIZE);
-      gfx.generateTexture('player-cube', PLAYER_SIZE, PLAYER_SIZE);
-      gfx.destroy();
-    }
+    this.player = {
+      x: 100,
+      y: GROUND_Y - PLAYER_SIZE - 10,
+      width: PLAYER_SIZE,
+      height: PLAYER_SIZE,
+      vx: 0,
+      vy: 0,
+      gravity: PLAYER_GRAVITY,
+      onGround: false,
+    };
 
-    this.player = this.physics.add.sprite(100, GROUND_Y - PLAYER_SIZE - 10, 'player-cube');
-    this.player.setOrigin(0.5, 1);
-    this.player.setBounce(0);
-    this.player.setCollideWorldBounds(false);
-    this.player.body.setGravityY(PLAYER_GRAVITY);
-    this.player.body.setSize(PLAYER_SIZE, PLAYER_SIZE);
-    this.player.body.setOffset(0, 0);
+    // Create visual sprite (red square)
+    this.playerSprite = this.add.rectangle(
+      this.player.x + PLAYER_SIZE / 2,
+      this.player.y + PLAYER_SIZE / 2,
+      PLAYER_SIZE,
+      PLAYER_SIZE,
+      0xff3333
+    );
   }
 
-  private handleMovement() {
-    const onGround = this.player.body.blocked.down;
-
+  private handleMovement(delta: number) {
+    // Horizontal movement
     if (this.cursors.left.isDown || this.wasd.A.isDown) {
-      this.player.setVelocityX(-PLAYER_SPEED);
+      this.player.vx = -PLAYER_SPEED;
     } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
-      this.player.setVelocityX(PLAYER_SPEED);
+      this.player.vx = PLAYER_SPEED;
     } else {
-      this.player.setVelocityX(0);
+      this.player.vx = 0;
     }
 
-    if (onGround && (this.cursors.up.isDown || this.wasd.W.isDown || this.cursors.space?.isDown)) {
-      this.player.setVelocityY(PLAYER_JUMP_VELOCITY);
+    // Jumping
+    if (this.player.onGround && (this.cursors.up.isDown || this.wasd.W.isDown || this.cursors.space?.isDown)) {
+      this.player.vy = PLAYER_JUMP_VELOCITY;
+      this.player.onGround = false;
     }
+
+    // Update physics
+    updateBody(this.player, delta, this.platforms);
+    checkWorldBounds(this.player, LEVEL_WIDTH, VIEW_HEIGHT + 200);
+
+    // Sync sprite position
+    this.playerSprite.x = this.player.x + PLAYER_SIZE / 2;
+    this.playerSprite.y = this.player.y + PLAYER_SIZE / 2;
   }
 
   // -- shooting --
 
   private shoot(pointer: Phaser.Input.Pointer) {
-    if (!this.textures.exists('bullet')) {
-      const gfx = this.make.graphics({ x: 0, y: 0, add: false });
-      gfx.fillStyle(0xffff00);
-      gfx.fillRect(0, 0, BULLET_SIZE, BULLET_SIZE);
-      gfx.generateTexture('bullet', BULLET_SIZE, BULLET_SIZE);
-      gfx.destroy();
-    }
-
     const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const playerX = this.player.x;
-    const playerY = this.player.y - PLAYER_SIZE / 2;
+    const playerCenterX = this.player.x + PLAYER_SIZE / 2;
+    const playerCenterY = this.player.y + PLAYER_SIZE / 2;
 
-    const angle = Phaser.Math.Angle.Between(playerX, playerY, worldPoint.x, worldPoint.y);
+    const angle = Phaser.Math.Angle.Between(playerCenterX, playerCenterY, worldPoint.x, worldPoint.y);
     const vx = Math.cos(angle) * BULLET_SPEED;
     const vy = Math.sin(angle) * BULLET_SPEED;
 
-    const bullet = this.bullets.create(playerX, playerY, 'bullet') as Phaser.Physics.Arcade.Sprite;
-    bullet.setVelocity(vx, vy);
-    bullet.body.setAllowGravity(false);
+    // Create bullet visual
+    const bulletSprite = this.add.rectangle(
+      playerCenterX,
+      playerCenterY,
+      BULLET_SIZE,
+      BULLET_SIZE,
+      0xffff00
+    );
 
-    // auto-destroy after lifetime
-    this.time.delayedCall(BULLET_LIFETIME_MS, () => {
-      if (bullet.active) bullet.destroy();
-    });
+    const bullet: Bullet = {
+      x: playerCenterX,
+      y: playerCenterY,
+      vx,
+      vy,
+      sprite: bulletSprite,
+      life: BULLET_LIFETIME_MS,
+    };
+
+    this.bullets.push(bullet);
+  }
+
+  private updateBullets(delta: number) {
+    const dt = delta / 1000;
+
+    for (let i = this.bullets.length - 1; i >= 0; i--) {
+      const bullet = this.bullets[i];
+
+      // Update position
+      bullet.x += bullet.vx * dt;
+      bullet.y += bullet.vy * dt;
+      bullet.life -= delta;
+
+      // Update sprite
+      bullet.sprite.x = bullet.x;
+      bullet.sprite.y = bullet.y;
+
+      // Check platform collision
+      let hitPlatform = false;
+      for (const plat of this.platforms) {
+        if (
+          bullet.x >= plat.x &&
+          bullet.x <= plat.x + plat.width &&
+          bullet.y >= plat.y &&
+          bullet.y <= plat.y + plat.height
+        ) {
+          hitPlatform = true;
+          break;
+        }
+      }
+
+      // Remove if hit platform or expired
+      if (hitPlatform || bullet.life <= 0) {
+        bullet.sprite.destroy();
+        this.bullets.splice(i, 1);
+        continue;
+      }
+
+      // Check if bullet reached finish zone
+      if (bullet.x >= LEVEL_WIDTH - 40) {
+        bullet.sprite.destroy();
+        this.bullets.splice(i, 1);
+      }
+    }
+  }
+
+  private updateCamera() {
+    // Camera follows player
+    this.cameras.main.scrollX = Phaser.Math.Clamp(
+      this.player.x - this.cameras.main.width / 2,
+      0,
+      LEVEL_WIDTH - this.cameras.main.width
+    );
   }
 
   // -- ground with holes --
 
   private buildGround() {
-    if (!this.textures.exists('ground-seg')) {
-      const gfx = this.make.graphics({ x: 0, y: 0, add: false });
-      gfx.fillStyle(0x444466);
-      gfx.fillRect(0, 0, 1, GROUND_THICKNESS);
-      gfx.generateTexture('ground-seg', 1, GROUND_THICKNESS);
-      gfx.destroy();
-    }
-
     // build list of holes first, then fill ground around them
     const holes: { x: number; w: number }[] = [];
     let cursor = 600; // safe zone at start
@@ -229,20 +296,18 @@ export class PlatformerScene extends Phaser.Scene {
   }
 
   private placeGroundSegment(x: number, width: number) {
-    const textureKey = `ground-${Math.round(width)}`;
-    if (!this.textures.exists(textureKey)) {
-      const gfx = this.make.graphics({ x: 0, y: 0, add: false });
-      gfx.fillStyle(0x444466);
-      gfx.fillRect(0, 0, width, GROUND_THICKNESS);
-      gfx.generateTexture(textureKey, width, GROUND_THICKNESS);
-      gfx.destroy();
-    }
-    const seg = this.platforms.create(
-      x + width / 2,
-      GROUND_Y + GROUND_THICKNESS / 2,
-      textureKey
-    ) as Phaser.Physics.Arcade.Sprite;
-    seg.refreshBody();
+    // Create visual ground segment
+    const gfx = this.add.graphics();
+    gfx.fillStyle(0x444466);
+    gfx.fillRect(x, GROUND_Y, width, GROUND_THICKNESS);
+
+    // Add to physics platforms
+    this.platforms.push({
+      x,
+      y: GROUND_Y,
+      width,
+      height: GROUND_THICKNESS,
+    });
   }
 
   // -- floating platforms --
@@ -270,28 +335,29 @@ export class PlatformerScene extends Phaser.Scene {
   }
 
   private placePlatform(x: number, y: number, width: number) {
-    const textureKey = `plat-${width}`;
-    if (!this.textures.exists(textureKey)) {
-      const gfx = this.make.graphics({ x: 0, y: 0, add: false });
-      gfx.fillStyle(0x555588);
-      gfx.fillRect(0, 0, width, PLATFORM_HEIGHT);
-      gfx.generateTexture(textureKey, width, PLATFORM_HEIGHT);
-      gfx.destroy();
-    }
-    const plat = this.platforms.create(
-      x + width / 2,
+    // Create visual platform
+    const gfx = this.add.graphics();
+    gfx.fillStyle(0x555588);
+    gfx.fillRect(x, y, width, PLATFORM_HEIGHT);
+
+    // Add to physics platforms
+    this.platforms.push({
+      x,
       y,
-      textureKey
-    ) as Phaser.Physics.Arcade.Sprite;
-    plat.refreshBody();
+      width,
+      height: PLATFORM_HEIGHT,
+    });
   }
 
   // -- level complete --
 
+  private checkLevelComplete(): boolean {
+    // Check if player reached finish zone at right edge
+    return this.player.x >= LEVEL_WIDTH - 40 - PLAYER_SIZE;
+  }
+
   private showLevelComplete() {
     this.levelComplete = true;
-    this.player.setVelocity(0, 0);
-    this.player.body.setAllowGravity(false);
 
     const centerX = this.cameras.main.scrollX + this.cameras.main.width / 2;
     const centerY = this.cameras.main.scrollY + this.cameras.main.height / 2;
@@ -335,8 +401,6 @@ export class PlatformerScene extends Phaser.Scene {
 
   private showGameOver() {
     this.levelComplete = true;
-    this.player.setVelocity(0, 0);
-    this.player.body.setAllowGravity(false);
 
     const centerX = this.cameras.main.scrollX + this.cameras.main.width / 2;
     const centerY = this.cameras.main.scrollY + this.cameras.main.height / 2;
