@@ -45,7 +45,7 @@ CREATE TABLE enemy (
     id_enemy INT AUTO_INCREMENT PRIMARY KEY,
     enemy_name VARCHAR(50) NOT NULL UNIQUE,
     enemy_desc TEXT,
-    enemy_type VARCHAR(50) NOT NULL,
+    enemy_type ENUM('PLATFORMER_ENEMY', 'CARD_ENEMY', 'FINAL_BOSS') NOT NULL,
     faction ENUM('RAT', 'RACCOON', 'BEAR', 'PYTHON') NOT NULL,
     enemy_base_hp INT NOT NULL DEFAULT 100,
     ai_level ENUM('EASY', 'MEDIUM', 'HARD') NOT NULL DEFAULT 'EASY',
@@ -75,7 +75,7 @@ CREATE TABLE player_card (
     id_player_card INT AUTO_INCREMENT PRIMARY KEY,
     id_player INT NOT NULL,
     id_card_game INT NOT NULL,
-    num_cards_owned INT NOT NULL DEFAULT 0,
+    num_cards_owned INT NOT NULL DEFAULT 1,
     is_unlocked BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT fk_player_card_player FOREIGN KEY (id_player) REFERENCES player(id_player) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_player_card_card_game FOREIGN KEY (id_card_game) REFERENCES card_game(id_card_game) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -107,7 +107,7 @@ CREATE TABLE run (
     id_run INT AUTO_INCREMENT PRIMARY KEY,
     start_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     end_time DATETIME NULL,
-    run_result ENUM('WIN', 'LOSE') NOT NULL,
+    run_status ENUM('WIN', 'IN_PROGRESS', 'LOSE') NOT NULL DEFAULT 'IN_PROGRESS',
     zones_done INT NOT NULL DEFAULT 0,
     swamp_xp_earned INT NOT NULL DEFAULT 0,
     id_player INT NOT NULL,
@@ -126,16 +126,10 @@ CREATE TABLE battle (
     enemy_hp_remaining INT NOT NULL DEFAULT 0,
     start_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     end_time DATETIME NULL,
-    id_player INT NOT NULL,
-    id_character_game INT NOT NULL,
     id_run INT NOT NULL,
     id_zone_game INT NOT NULL,
     id_enemy INT NOT NULL,
-    CONSTRAINT fk_battle_player FOREIGN KEY (id_player) REFERENCES player(id_player) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_battle_character_game FOREIGN KEY (id_character_game) REFERENCES character_game(id_character_game) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_battle_run FOREIGN KEY (id_run) REFERENCES run(id_run) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_battle_zone_game FOREIGN KEY (id_zone_game) REFERENCES zone_game(id_zone_game) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_battle_enemy FOREIGN KEY (id_enemy) REFERENCES enemy(id_enemy) ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = 'florida_frenzy' AND REFERENCED_TABLE_NAME IS NOT NULL ORDER BY TABLE_NAME, COLUMN_NAME;
