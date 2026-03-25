@@ -1,3 +1,7 @@
+-- ENCODIGN - ENGINE
+-- PRIMARY KEY EXTERNAL ELEMENTS
+-- OPTIMIZATION KEYS
+
 DROP SCHEMA IF EXISTS florida_frenzy;
 CREATE SCHEMA florida_frenzy;
 USE florida_frenzy;
