@@ -15,7 +15,7 @@ CREATE TABLE player (
     clan_rank ENUM('ROOKIE', 'FIGHTER', 'VETERAN') NOT NULL DEFAULT 'ROOKIE',
     first_login DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_login DATETIME NULL DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE character_game (
     id_character_game INT AUTO_INCREMENT PRIMARY KEY,
@@ -27,7 +27,7 @@ CREATE TABLE character_game (
     ch_ultimate VARCHAR(100) NOT NULL,
     ch_ultimate_desc TEXT,
     is_default_unlocked BOOLEAN NOT NULL DEFAULT FALSE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE card_game (
     id_card_game INT AUTO_INCREMENT PRIMARY KEY,
@@ -43,7 +43,7 @@ CREATE TABLE card_game (
     energy_e_cost INT NOT NULL DEFAULT 0,
     energy_i_cost INT NOT NULL DEFAULT 0,
     card_rarity ENUM('BASE', 'EFFECT', 'RARE', 'CLAN') NOT NULL DEFAULT 'BASE'
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE enemy (
     id_enemy INT AUTO_INCREMENT PRIMARY KEY,
@@ -54,7 +54,7 @@ CREATE TABLE enemy (
     enemy_base_hp INT NOT NULL DEFAULT 100,
     ai_level ENUM('EASY', 'MEDIUM', 'HARD') NOT NULL DEFAULT 'EASY',
     is_boss BOOLEAN NOT NULL DEFAULT FALSE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE zone_game (
     id_zone_game INT AUTO_INCREMENT PRIMARY KEY,
@@ -62,7 +62,7 @@ CREATE TABLE zone_game (
     zone_map VARCHAR(100),
     zone_desc TEXT,
     zone_difficulty_set ENUM('EASY', 'MEDIUM', 'HARD', 'FINAL') NOT NULL DEFAULT 'EASY'
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE player_character (
     id_player_character INT AUTO_INCREMENT PRIMARY KEY,
@@ -73,7 +73,7 @@ CREATE TABLE player_character (
     CONSTRAINT fk_player_character_player FOREIGN KEY (id_player) REFERENCES player(id_player) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_player_character_character_game FOREIGN KEY (id_character_game) REFERENCES character_game(id_character_game) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT uq_player_character_game UNIQUE (id_player, id_character_game)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE player_card (
     id_player_card INT AUTO_INCREMENT PRIMARY KEY,
@@ -84,7 +84,7 @@ CREATE TABLE player_card (
     CONSTRAINT fk_player_card_player FOREIGN KEY (id_player) REFERENCES player(id_player) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_player_card_card_game FOREIGN KEY (id_card_game) REFERENCES card_game(id_card_game) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT uq_player_card_game UNIQUE (id_player, id_card_game)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE deck (
     id_deck INT AUTO_INCREMENT PRIMARY KEY,
@@ -95,7 +95,7 @@ CREATE TABLE deck (
     id_character_game INT NOT NULL,
     CONSTRAINT fk_deck_player FOREIGN KEY (id_player) REFERENCES player(id_player) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_deck_character_game FOREIGN KEY (id_character_game) REFERENCES character_game(id_character_game) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE deck_card (
     id_deck_card INT AUTO_INCREMENT PRIMARY KEY,
@@ -105,7 +105,7 @@ CREATE TABLE deck_card (
     CONSTRAINT fk_deck_card_deck FOREIGN KEY (id_deck) REFERENCES deck(id_deck) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_deck_card_card_game FOREIGN KEY (id_card_game) REFERENCES card_game(id_card_game) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT uq_deck_card UNIQUE (id_deck, id_card_game)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE run (
     id_run INT AUTO_INCREMENT PRIMARY KEY,
@@ -120,7 +120,7 @@ CREATE TABLE run (
     CONSTRAINT fk_run_player FOREIGN KEY (id_player) REFERENCES player(id_player) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_run_character_game FOREIGN KEY (id_character_game) REFERENCES character_game(id_character_game) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_run_deck FOREIGN KEY (id_deck) REFERENCES deck(id_deck) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE battle (
     id_battle INT AUTO_INCREMENT PRIMARY KEY,
@@ -136,4 +136,4 @@ CREATE TABLE battle (
     CONSTRAINT fk_battle_run FOREIGN KEY (id_run) REFERENCES run(id_run) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_battle_zone_game FOREIGN KEY (id_zone_game) REFERENCES zone_game(id_zone_game) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_battle_enemy FOREIGN KEY (id_enemy) REFERENCES enemy(id_enemy) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
