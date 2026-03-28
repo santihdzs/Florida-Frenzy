@@ -1,20 +1,17 @@
 /*
 1. character_game
 2. enemy
-3. zoine_game
+3. zone_game
 4. card_game
 */
 
--- add (ch_name, ch_desc, base_hp, base_attack, base_defense, ch_ultimate, ch_ultimate_desc, is_default_unlocked)?
-INSERT INTO character_game VALUES ('Christian', 'El intrépido líder del equipo, con habilidades balanceadas, y recuperación estable.', 100, 10, 10, 'Vertical Leap', 'Recupera 50% de su vida actual y 30% de su escudo - Obtiene en su mano una carta válida basada en la carta en mesa', TRUE),
+INSERT INTO character_game (ch_name, ch_desc, base_hp, base_attack, base_defense, ch_ultimate, ch_ultimate_desc, is_default_unlocked) VALUES ('Christian', 'El intrépido líder del equipo, con habilidades balanceadas, y recuperación estable.', 100, 10, 10, 'Vertical Leap', 'Recupera 50% de su vida actual y 30% de su escudo - Obtiene en su mano una carta válida basada en la carta en mesa', TRUE),
 ('Gustav', 'La barricada más leal del clan. Siempre listo para proteger con su mítico escudo.', 110, 8, 15, 'Head Crack', 'Recupera 25% de su vida y 60% de su escudo - Se vuelve inmune a efectos durante el siguiente turno', TRUE),
 ('Gavin', 'El estratega, la "máquina" más confiable. De los cocodrilos más inteligentes del pantano.', 95, 12, 8, 'Testing', 'Recupera 30% de su vida y 30% de su escudo - Durante los siguientes 2 turnos, el daño recibido de cartas enemigas se reduce en un 50%', TRUE),
 ('Eddy', 'El rápido y pretencioso caimán. Ni quien lo detenga.', 85, 16, 6, 'Swamp Trait', 'Recupera 75% de su vida actual, pero pierde 35% de su escudo - Durante los siguientes 2 turnos, el daño de sus cartas se duplica', TRUE);
 COMMIT;
 
-
--- ad (enemy_name, enemy_desc, enemy_type, faction, enemy_base_hp, ai_level, enemy_ultimate, enemy_ultimate_desc)
-INSERT INTO enemy VALUES 
+INSERT INTO enemy (enemy_name, enemy_desc, enemy_type, faction, enemy_base_hp, enemy_ultimate, enemy_ultimate_desc, ai_level) VALUES 
 -- PLATFORMER
 ('Rat Scout', 'Rápidos pero débiles', 'PLATFORMER_ENEMY', 'RAT', 40, 'EASY', NULL, NULL),
 ('Raccoon Raider', 'Roaming balanceado', 'PLATFORMER_ENEMY', 'RACCOON', 60, 'MEDIUM', NULL, NULL),
@@ -27,15 +24,13 @@ INSERT INTO enemy VALUES
 ('Pythra', 'Boss final dominante.', 'FINAL_BOSS', 'PYTHON', 350, 'HARD', 'Frozen Dominion', 'Usa cartas de hielo y replica habilidades de otros bosses');
 
 
--- add (zone_name, zone_map, zone_desc, difficulty_set)
-INSERT INTO zone_game VALUES ('Swamp', 'map_swamp', 'El hogar del clan', 'EASY'),
+INSERT INTO zone_game (zone_name, zone_map, zone_desc, zone_difficulty_set) VALUES ('Swamp', 'map_swamp', 'El hogar del clan', 'EASY'),
 ('Garbage Dump', 'map_garbage', 'Basurero caótico', 'MEDIUM'),
 ('Suburbs', 'map_suburbs', 'Una calle peligrosa', 'HARD'),
 ('Sewers', 'map_sewers', 'Zona final en el desagüe', 'FINAL');
 
 
--- add (card_name, card_category, card_element, card_number, card_effect, effect_desc, base_damage, energy_e_gain, energy_i_gain, energy_e_cost, energy_i_cost, card_rarity) 
-INSERT INTO card_game VALUES
+INSERT INTO card_game (card_name, card_category, card_element, card_number, card_effect, effect_desc, base_damage, energy_e_gain, energy_i_gain, energy_e_cost, energy_i_cost, card_rarity) VALUES
 -- FIRE
 ('Fire 1', 'ATTACK', 'FIRE', 1, 'DAMAGE', 'Deal direct damage equal to value', 1, 1, 1, 0, 0, 'BASE'),
 ('Fire 2', 'ATTACK', 'FIRE', 2, 'DAMAGE', 'Deal direct damage equal to value', 2, 1, 1, 0, 0, 'BASE'),

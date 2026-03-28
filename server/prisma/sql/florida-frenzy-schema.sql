@@ -14,7 +14,7 @@ CREATE TABLE player (
     swamp_xp INT NOT NULL DEFAULT 0,
     clan_rank ENUM('ROOKIE', 'FIGHTER', 'VETERAN') NOT NULL DEFAULT 'ROOKIE',
     first_login DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_login DATETIME NULL DEFAULT NULL
+    last_login DATETIME NULL DEFAULT NULL,
 
     PRIMARY KEY (id_player),
     UNIQUE KEY uq_player_username (username),
@@ -169,23 +169,24 @@ CREATE TABLE run (
     CONSTRAINT fk_run_deck FOREIGN KEY (id_deck) REFERENCES deck(id_deck) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE run (
-    id_run INT UNSIGNED NOT NULL AUTO_INCREMENT,
+CREATE TABLE battle (
+    id_battle INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    battle_result ENUM('WIN', 'LOSE') NOT NULL,
+    turn_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    player_hp_remaining SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    enemy_hp_remaining SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     start_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     end_time DATETIME NULL,
-    run_status ENUM('WIN', 'IN_PROGRESS', 'LOSE') NOT NULL DEFAULT 'IN_PROGRESS',
-    zones_done TINYINT UNSIGNED NOT NULL DEFAULT 0,
-    swamp_xp_earned INT UNSIGNED NOT NULL DEFAULT 0,
-    id_player SMALLINT UNSIGNED NOT NULL,
-    id_character_game SMALLINT UNSIGNED NOT NULL,
-    id_deck SMALLINT UNSIGNED NOT NULL,
+    id_run INT UNSIGNED NOT NULL,
+    id_zone_game SMALLINT UNSIGNED NOT NULL,
+    id_enemy SMALLINT UNSIGNED NOT NULL,
 
-    PRIMARY KEY (id_run),
-    KEY idx_run_player (id_player),
-    KEY idx_run_character_game (id_character_game),
-    KEY idx_run_deck (id_deck),
-    KEY idx_run_status (run_status),
-    CONSTRAINT fk_run_player FOREIGN KEY (id_player) REFERENCES player(id_player) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_run_character_game FOREIGN KEY (id_character_game) REFERENCES character_game(id_character_game) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_run_deck FOREIGN KEY (id_deck) REFERENCES deck(id_deck) ON DELETE CASCADE ON UPDATE CASCADE
+    PRIMARY KEY (id_battle),
+    KEY idx_battle_run (id_run),
+    KEY idx_battle_zone_game (id_zone_game),
+    KEY idx_battle_enemy (id_enemy),
+    KEY idx_battle_result (battle_result),
+    CONSTRAINT fk_battle_run FOREIGN KEY (id_run) REFERENCES run(id_run) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_battle_zone_game FOREIGN KEY (id_zone_game) REFERENCES zone_game(id_zone_game) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_battle_enemy FOREIGN KEY (id_enemy) REFERENCES enemy(id_enemy) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
