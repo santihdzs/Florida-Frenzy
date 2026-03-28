@@ -16,8 +16,21 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
+
+    const welcomeScreen = document.getElementById('welcome-screen');
+    if (welcomeScreen) {
+        this.input.enabled = false;
+        window.addEventListener('game-start-click', () => {
+            this.time.delayedCall(300, () => {
+                if (this.input) this.input.enabled = true;
+            });
+        }, { once: true });
+    } else {
+        this.input.enabled = true;
+    }
 
     // Background
     this.add.image(centerX, centerY, 'title-background');
@@ -41,7 +54,7 @@ export class MenuScene extends Phaser.Scene {
       { text: 'START', y: 320, action: () => this.startGame() },
       { text: 'MULTIPLAYER', y: 405, action: () => console.log('Multiplayer - coming soon') },
       { text: 'STORE', y: 490, action: () => console.log('Store - coming soon') },
-      { text: 'SETTINGS', y: 575, action: () => console.log('Settings - coming soon') }
+      { text: 'SETTINGS', y: 575, action: () => this.settingsScene() }
     ];
 
     //dimnesions for buttons
@@ -74,7 +87,7 @@ export class MenuScene extends Phaser.Scene {
 
     //events and animations
     container.on('pointerover',() => {
-      text.setColor('#b0c4de');
+      text.setColor('#226d1b');
       this.tweens.add({ targets: container, scale: 1.03, duration: 100 });
     });
 
@@ -148,5 +161,9 @@ export class MenuScene extends Phaser.Scene {
 
   startGame() {
     this.scene.start('DuelScene');
+  }
+
+  settingsScene(){
+    this.scene.start('SettingsScene');
   }
 }
