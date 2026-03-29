@@ -6,7 +6,7 @@ body {
 }
 
 .cafe-header {
-    background: linear-gradient(135deg, #c8eaf7, #eebbf9);
+    background: linear-gradient(135deg, #c8eaf7, #eebcf9);
     font-family: cursive, sans-serif;
     font-weight: bolder;
     color: #402826;
@@ -62,6 +62,15 @@ body {
     object-fit: cover;
 }
 
+.cat-card img {
+    transition: transform 0.3s ease;
+}
+
+.cat-card img:hover {
+    transform: scale(1.05);
+    cursor: pointer;
+}
+
 .cat-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 12px 20px rgba(0,0,0,0.18);
@@ -81,6 +90,21 @@ footer {
     background-color: #c8e7f7;
     color: #4a2c2a;
     margin-top: 40px;
+}
+
+section {
+    background-color: #fff0f3;
+    border-radius: 15px;
+}
+
+section a {
+    color: #d48b9a;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+section a:hover {
+    text-decoration: underline;
 }
 
 /* Animacion 1 */
