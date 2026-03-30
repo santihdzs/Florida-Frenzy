@@ -1,6 +1,4 @@
--- ENCODIGN - ENGINE
--- PRIMARY KEY EXTERNAL ELEMENTS
--- OPTIMIZATION KEYS
+-- Florida Frenzy Database Schema
 
 DROP SCHEMA IF EXISTS florida_frenzy;
 CREATE SCHEMA florida_frenzy;

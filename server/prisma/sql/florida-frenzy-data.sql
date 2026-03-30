@@ -11,7 +11,7 @@ INSERT INTO character_game (ch_name, ch_desc, base_hp, base_attack, base_defense
 ('Eddy', 'El rápido y pretencioso caimán. Ni quien lo detenga.', 85, 16, 6, 'Swamp Trait', 'Recupera 75% de su vida actual, pero pierde 35% de su escudo - Durante los siguientes 2 turnos, el daño de sus cartas se duplica', TRUE);
 COMMIT;
 
-INSERT INTO enemy (enemy_name, enemy_desc, enemy_type, faction, enemy_base_hp, enemy_ultimate, enemy_ultimate_desc, ai_level) VALUES 
+INSERT INTO enemy (enemy_name, enemy_desc, enemy_type, faction, enemy_base_hp, ai_level, enemy_ultimate, enemy_ultimate_desc) VALUES 
 -- PLATFORMER
 ('Rat Scout', 'Rápidos pero débiles', 'PLATFORMER_ENEMY', 'RAT', 40, 'EASY', NULL, NULL),
 ('Raccoon Raider', 'Roaming balanceado', 'PLATFORMER_ENEMY', 'RACCOON', 60, 'MEDIUM', NULL, NULL),
