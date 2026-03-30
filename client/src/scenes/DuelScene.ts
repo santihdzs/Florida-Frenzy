@@ -17,6 +17,8 @@ export class DuelScene extends Phaser.Scene {
   private totalCoins = 0;
   private roundsWon = 0;
   private levelCount = 0;
+  private playerHand: Card[] = [];
+  private opponentHand: Card[] = [];
   private playerDeck: Card[] = [];
   private opponentDeck: Card[] = [];
   private cardObjects: Phaser.GameObjects.Container[] = [];
@@ -116,8 +118,12 @@ export class DuelScene extends Phaser.Scene {
     this.characterPlaceholder = this.add.image(centerX, 300, this.currentEnemyImage).setScale(0.5);
 
     // Generate decks
-    this.playerDeck = generateDeck();
-    this.opponentDeck = generateDeck();
+    this.playerDeck = generateDeck(12);
+    this.opponentDeck = generateDeck(12);
+
+    this.playerHand = this.playerDeck.splice(0, 5);
+    this.opponentHand = this.opponentDeck.splice(0, 5);
+
     this.renderCards();
   }
 
@@ -192,7 +198,7 @@ export class DuelScene extends Phaser.Scene {
     const totalWidth = 5 * cardWidth + 4 * spacing;
     const startX = centerX - totalWidth / 2;
 
-    this.playerDeck.forEach((card, index) => {
+    this.playerHand.forEach((card, index) => {
       const x = startX + index * (cardWidth + spacing) + cardWidth / 2;
       const y = 650;
 
@@ -273,7 +279,8 @@ export class DuelScene extends Phaser.Scene {
     this.messageText.setColor('#ffffff');
 
     // Opponent randomly selects a card
-    const opponentCard = this.opponentDeck[Math.floor(Math.random() * this.opponentDeck.length)];
+    const opponentCard = this.opponentHand[Math.floor(Math.random() * this.opponentHand.length)];
+    if (!opponentCard) return;
 
     // Show opponent's card (right side) and player card (left side) at battle height
     const centerX = this.cameras.main.width / 2;
@@ -327,14 +334,25 @@ export class DuelScene extends Phaser.Scene {
       opponentCardContainer.destroy();
       
       // Replace used card with a new one
-      const cardIndex = this.playerDeck.indexOf(card);
-      if (cardIndex !== -1) {
-        const elements: Element[] = ['fire', 'water', 'earth', 'electric', 'venom'];
-        this.playerDeck[cardIndex] = {
-          id: `card-${Date.now()}`,
-          element: elements[Math.floor(Math.random() * elements.length)],
-          power: Math.floor(Math.random() * 5) + 1
-        };
+      const handIndex = this.playerHand.indexOf(card);
+      if (handIndex !== -1) {
+        this.playerHand.splice(handIndex, 1);
+
+        if (this.playerDeck.length > 0) {
+          const nextCard = this.playerDeck.shift();
+          if (nextCard) this.playerHand.push(nextCard);
+        }
+      }
+
+      // Opponent also replaces used card
+      const opponentHandIndex = this.opponentHand.indexOf(opponentCard);
+      if (opponentHandIndex !== -1) {
+        this.opponentHand.splice(opponentHandIndex, 1);
+
+        if (this.opponentDeck.length > 0) {
+          const nextOpponentCard = this.opponentDeck.shift();
+          if (nextOpponentCard) this.opponentHand.push(nextOpponentCard);
+        }
       }
 
       if (this.playerHp <= 0) {
