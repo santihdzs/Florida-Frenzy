@@ -171,6 +171,14 @@ Contiene el logo del juego, una imagen del pantano en el fondo, y las siguientes
             - Obtener una nueva carta con efecto
             - Mejorar su estado actual (vida o defensa)
             - Remover una carta no deseada del deck
+        3. Deck Builder:
+        Pantalla previa a la run donde el jugador selecciona las cartas que llevará en su deck. Aquí puede revisar cartas desbloqueadas, cartas especiales disponibles y cartas raras obtenidas anteriormente.
+
+        El Deck Builder permite:
+            - Seleccionar cartas base y especiales desbloqueadas
+            - Revisar el tamaño actual del deck
+            - Confirmar el personaje con el que se iniciará la run
+            - Ver restricciones de construcción
 
         El jugador deberá seleccionar una opción, afectando directamente su estrategia durante la run.
 4. End Credits
@@ -232,13 +240,50 @@ El combate dentro del platformer no es el foco principal, pero introduce presió
 
 ##### **Minor Enemies**
 
-Durante la exploración, el jugador se enfrenta a enemigos menores que actúan como obstáculos activos:
+Durante la exploración, el jugador se enfrenta a enemigos menores que actúan como obstáculos activos y desgastan su estado antes de los duelos de cartas.
 
-- **Ratas**: rápidas, aparecen en grupo, obligan a reaccionar rápidamente.
-- **Mapaches**: comportamiento intermedio, pueden bloquear rutas y perseguir al jugador brevemente.
-- **Osos**: lentos pero resistentes, ocupan más espacio y controlan zonas.
+- **Ratas**
+  - Baja vida
+  - Daño bajo
+  - Movimiento rápido
+  - Suelen aparecer en grupo
+  - Comportamiento: avanzan constantemente hacia el jugador, similar a enemigos básicos de platformers clásicos
+  - Rol: obligan a reaccionar rápido y castigan distracciones
 
-Estos enemigos no representan el desafío principal, pero afectan el estado del jugador antes de los combates.
+- **Mapaches**
+  - Vida media
+  - Daño medio
+  - Comportamiento mixto entre movilidad y ataque a distancia
+  - Pueden colocarse en una posición y lanzar proyectiles al jugador antes de reposicionarse
+  - Rol: generar presión desde media distancia y bloquear rutas
+
+- **Osos**
+  - Alta vida
+  - Daño alto
+  - Movimiento lento, pero persecución directa cuando detectan al jugador
+  - Requieren varios impactos para ser derrotados
+  - Rol: controlar espacio, cerrar rutas y forzar enfrentamientos
+
+##### **Approximate Platformer Combat Values**
+
+Los valores exactos pueden ajustarse durante el balanceo, pero conceptualmente se contemplan así:
+
+- **Ratas**
+  - Vida: baja
+  - Ataque: bajo
+  - Resistencias: mínimas
+
+- **Mapaches**
+  - Vida: media
+  - Ataque: medio
+  - Resistencias: moderadas
+
+- **Osos**
+  - Vida: alta
+  - Ataque: alto
+  - Resistencias: altas
+
+Estos enemigos pueden derrotarse mediante ataques melee o a distancia, pero su propósito principal no es detener completamente la run, sino debilitar al jugador antes del siguiente boss.
 
 ##### **Obstacles & Objects**
 
@@ -253,7 +298,7 @@ El entorno incluye diferentes elementos que afectan la navegación:
 Además, pueden aparecer:
 
 - Cofres o recompensas (tentativo)
-- Cartas raras o de Clan ocultas
+- Cartas de Clan ocultas
 
 ##### **Exploration Rewards**
 
@@ -270,6 +315,8 @@ Las cartas de Clan o Especie tienen una probabilidad de aparición baja, convirt
 El duelo de cartas consiste en diferentes reglas y atributos que definen el flujo del enfrentamiento. Ya que esta directamente inspirado en el juego 'UNO', las mecánicas se asemejan a las de este juego de mesa. Con algunos elementos innovadores y estratégicos, que hacen de una jugada algo más entretenido.
 
 El combate con cartas se desarrolla por turnos alternados entre el jugador y el enemigo en cuestión. Durante un turno, cada participante puede jugar una carta válida desde su mano, o realizar una acción alternativa (como descartar una carta).
+
+--- 
 
 #### **Valid Plays**
 
@@ -298,14 +345,26 @@ Carta en mesa: Agua 4
 Carta del jugador: Hielo (Ice Overdrive)
 Resultado: válida, al ser un comodin, el jugador puede utilizar esta carta legalmente
 
+--- 
+
 #### **No Valid Move Rule**
 
 Si un jugador no tiene una carta válida, roba 1 carta adicional desde su deck.
 
-Si después de robar sigue sin poder jugar, recibe daño leve por exposición.
+Si ninguna carta del deck conicide con lo que el jugador necesita, o ya no queda alguna en primer lugar, el jugador empieza a comer de la pila de descarte.
 
 Esto obliga al jugador a decidir entre perder recursos o perder vida.
 
+**Aclaración importante:**  
+El jugador **no puede jugar una carta inválida** solo para desperdiciarla.  
+Si una carta no coincide por elemento o valor numérico con la carta en mesa, simplemente no puede ser utilizada en ese turno.
+
+En ese caso, el jugador debe:
+- robar desde su deck
+- continuar robando según las reglas del sistema
+- o descartar voluntariamente una carta desde su mano si decide gestionar recursos de esa forma
+
+--- 
 
 #### **Card Structure**
 
@@ -317,6 +376,8 @@ Cada carta contiene:
 - Efecto (si aplica)
 - Rareza
 - Costo de energía (si aplica)
+
+--- 
 
 #### **Element Types**
 
@@ -342,6 +403,7 @@ Las cartas del juego se dividen en cuatro elementos principales:
 
 ![IceFront](../client/src/assets/sprites/CardIceFront.png)
 
+--- 
 
 #### **Card Categories**
 
@@ -349,7 +411,7 @@ Las cartas se clasifican según su función dentro del combate:
 
 - **Ataque**: infligen daño directo al oponente.
 - **Defensa**: generan escudo o reducen daño recibido.
-- **Estado**: aplican efectos como veneno, quemadura o control.
+- **Estado**: aplican efectos como veneno, quemadura, control, alivio, y más.
 - **Especial**: modifican reglas del turno o del sistema de juego.
 
 Las **cartas básicas** dependen principalmente de su valor numérico y elemento para determinar su efecto.
@@ -358,17 +420,341 @@ Las **cartas con efecto** introducen mecánicas adicionales como estados, contro
 
 Esto genera una progresión natural desde jugadas simples, hasta estrategias más complejas.
 
+--- 
+
+#### **Card System - Complete Catalog**
+
+Adentrandonos más en la lógica del sistema de cartas, en cuántas hay y qué hacen, este se divide en cuatro categorías principales:
+
+1. Cartas Base  
+2. Cartas Especiales  
+3. Cartas de Hielo  
+4. Cartas de Clan (Extremadamente raras)  
+
+Cada tipo cumple un rol específico dentro del combate.
+
+##### **Card Value & Effect Resolution**
+
+El valor numérico de una carta sí modifica directamente su impacto base.
+
+En cartas base:
+
+- **Fire X** → inflige daño directo igual a X
+- **Water X** → genera escudo igual a X
+- **Swamp X** → aplica un efecto de desgaste proporcional a X
+- **Sand X** → reduce daño entrante en proporción a X
+
+En cartas especiales, el valor numérico puede:
+
+- aumentar daño base,
+- ampliar duración de un estado,
+- incrementar escudo generado,
+- o funcionar como requisito de activación según el efecto.
+
+##### **When Effects Apply**
+
+Los efectos especiales se aplican inmediatamente después de que la carta es jugada y validada, salvo que el efecto indique explícitamente una duración posterior.
+
+Por lo tanto, una carta puede generar:
+
+- un efecto inmediato (ej. daño, escudo, limpieza),
+- un efecto temporal (ej. veneno por turnos, bloqueo por 1 turno),
+- o una modificación de reglas (ej. jugar 2 cartas, desactivar cartas con efecto).
+
+---
+
+#### **1. Base Cards (36 cartas)**
+
+Cartas fundamentales del juego. No poseen efectos especiales, pero definen el flujo principal del combate. Y como es mencionado, son las cartas que siempre permanecerán desbloqueadas. Definen la base de toda carta, y el juego no funcionaría sin estas.
+
+Cada una tiene:
+- Un número (1–9)
+- Un elemento
+- Un comportamiento base según su elemento
+
+##### **Elementos base**
+Como fueron descritos previamente, en términos de mecánicas y funcionamiento simple, cada una se categoriza de la siguiente forma:
+
+- **Fire (Fuego)** → Daño directo  
+- **Water (Agua)** → Genera escudo  
+- **Swamp (Pantano)** → Aplica veneno (daño por turnos)  
+- **Sand (Arena)** → Reduce daño recibido  
+
+---
+
+##### **Comportamiento por elemento**
+
+- **Fire X**
+  - Inflige daño directo, de acuerdo a su valor numérico
+
+- **Water X**
+  - Genera escudo, de acuerdo a su valor numérico
+
+- **Swamp X**
+  - Aplica veneno durante X turnos (daño acumulativo o constante), de acuerdo a su valor numérico dividido entre 3
+
+- **Sand X**
+  - Reduce el daño recibido en el siguiente turno, de acuerdo a su valor numérico
+
+---
+
+## **2. Special Cards (20 cartas)**
+
+Cartas con efectos adicionales que expanden la estrategia.  
+Cada elemento cuenta con **5 variantes especiales**.
+
+---
+
+### **Fire Special Cards (Ofensivas)**
+
+- **Burn Strike**
+  - Daño completo + aplica quemadura (daño extra por 2 turnos del 25% de su valor numérico)
+
+- **Half Break**
+  - Inflige 50% de daño, pero bloquea Fire enemigo por 1 turno
+
+- **Rage Boost**
+  - Duplica el daño si el jugador tiene menos del 50% de HP
+
+- **Explosion**
+  - Daño alto (12), pero también daña al jugador ligeramente
+
+- **Chain Fire**
+  - Si el siguiente turno también es Fire, el daño se incrementa
+
+---
+
+### **Water Special Cards (Defensivas)**
+
+- **Healing Wave**
+  - Convierte 25% del escudo en vida
+
+- **Shield Surge**
+  - Duplica el escudo disponible
+
+- **Cleanse**
+  - Elimina efectos negativos (veneno, quemadura)
+
+- **Reflect**
+  - Devuelve 25% del daño recibido
+
+- **Flow State**
+  - Aumenta regeneración de energía un 20%
+
+---
+
+### **Swamp Special Cards (Control / desgaste)**
+
+- **Toxic Spread**
+  - Aplica 5 de daño por veneno, por 3 turnos
+
+- **Decay**
+  - Reduce el escudo enemigo progresivamente, por un 5%
+
+- **Infection**
+  - Extiende efectos activos del enemigo por 1 turno
+
+- **Corrosion**
+  - Reduce el daño de las cartas enemigas 20%, por 2 turnos
+
+- **Leech**
+  - 15% del daño infligido regresa como vida
+
+---
+
+### **Sand Special Cards (Mitigación / control)**
+
+- **Quicksand**
+  - Bloquea un número específico (ej. no puede jugar 5)
+
+- **Dust Blind**
+  - Oculta los valores de las cartas base del enemigo por 1 turno
+
+- **Barrier**
+  - Aplica 20% de escudo
+
+- **Skywalker**
+  - Funciona como comodín exclusivo de arena
+
+- **Sandstorm**
+  - Aumenta el daño de las cartas de arena del jugador un 7% por tres turnos
+
+---
+
+## **3. Ice Cards (5 cartas especiales)**
+
+Cartas raras con efectos únicos.  
+No siguen reglas estándar de elemento.
+
+---
+
+- **Ice Stun**
+  - Congela al enemigo (pierde 1–2 turnos)
+
+- **Ice Jam**
+  - Desactiva cartas con efecto por 1–2 turnos
+
+- **Ice Overdrive**
+  - Permite jugar 2 cartas en un turno
+
+- **Ice Shift**
+  - Funciona como comodín general (elemento o número)
+
+- **Ice Flood**
+  - Obliga al enemigo a robar de la pila de descarte, hasta encontrar un elemento designado por el jugador
+
+---
+
+## **4. Clan Cards (Extremely Rare)**
+
+Cartas únicas, obtenidas únicamente en el modo platformer.  
+Tienen efectos extremadamente poderosos.
+
+---
+
+- **Crocodile**
+  - Imita la carta en juego, e incrementa su efecto/daño un 5%
+
+- **Alligator**
+  - Convierte todo el daño recibido en escudo durante 1 turno
+
+- **Gavial**
+  - Permite reorganizar la mano completamente
+
+- **Caiman**
+  - Aplica un estado aleatorio al enemigo
+
+- **Sarcosuchus**
+  - Reduce al enemigo a 1 HP y 1 escudo (uso limitado o condición especial)
+
+---
+
+## **Notas de Balance**
+
+- Las cartas base garantizan consistencia  
+- Las cartas especiales introducen decisiones estratégicas  
+- Las cartas de hielo rompen reglas del sistema  
+- Las cartas de clan funcionan como "game changers"  
+
+--- 
+
 #### **Deck System**
 
-Antes de iniciar una run, el jugador construye un deck compuesto por un número limitado de cartas (12, máximo 16). Estas cartas provienen de las opciones desbloqueadas mediante progreso (Swamp XP y Clan Rank).
+##### **Deck Construction Rules**
 
-Durante el combate:
+Antes de cada run, el jugador debe construir su deck respetando las siguientes reglas:
 
-- El jugador roba una mano inicial de 5 cartas.
-- Cada turno roba 1 carta adicional.
-- Solo puede jugar cartas disponibles en su mano.
-- Las cartas utilizadas pasan a una pila de descarte.
-- Si el deck se agota, el descarte puede reciclarse.
+- El tamaño del deck depende del Clan Rank:
+  - **Rookie** → 12 cartas
+  - **Fighter** → 15 cartas
+  - **Veteran** → 18 cartas
+
+- El deck puede incluir:
+  - Cartas base
+  - Cartas especiales desbloqueadas
+  - Cartas de Hielo (si el rango lo permite)
+  - Cartas de Clan o Especie (si fueron encontradas previamente)
+
+- Restricciones:
+  - Máximo **1 carta de Clan** por deck
+  - Las cartas de Hielo tienen cantidad limitada dentro del deck
+  - El jugador solo puede construir el deck con cartas previamente desbloqueadas
+
+Esto permite que la construcción del mazo sea una decisión estratégica real y no solo una selección estética.
+
+A continuación, desarrolamos un poco más en la lógica detrás de esto.
+
+---
+
+#### **Hand, Deck & Discard Interaction**
+
+El sistema de cartas se compone de tres estructuras principales durante el combate:
+
+- **Deck (mazo)**
+- **Hand (mano)**
+- **Discard Pile (pila de descarte)**
+
+---
+
+##### **Deck (Mazo)**
+
+El deck representa el conjunto de cartas activas del jugador durante una run.
+
+El tamaño del deck depende del nivel de Clan Rank del jugador:
+
+- **Rookie** → 12 cartas  
+- **Fighter** → 15 cartas  
+- **Veteran** → 18 cartas  
+
+De nuevo, estas cartas son seleccionadas antes de iniciar la run y representan la base estratégica del jugador.
+
+---
+
+##### **Hand (Mano)**
+
+- El jugador inicia cada combate con una mano de **5 cartas**.
+- Cada turno roba **1 carta adicional** desde su deck.
+- Solo las cartas en la mano pueden ser jugadas.
+
+Esto obliga al jugador a gestionar sus recursos y planificar sus jugadas con información limitada.
+
+---
+
+##### **Discard Pile (Pila de descarte)**
+
+Al inicio del combate, existe una pila de descarte con cartas base (**72 cartas base mezcladas**) que sirve como fuente adicional en caso de que el deck no sea suficiente. Todas las cartas utilizadas o descartadas se envían a una esta misma pila.
+
+---
+
+##### **Forced Draw & Discard Interaction**
+
+Si un jugador no tiene una carta válida:
+
+1. Roba cartas desde su deck.
+2. Si el deck no contiene una carta útil (o se agota), comienza a robar desde la pila de descarte.
+
+Sin embargo, las cartas robadas desde la pila de descarte:
+
+- **NO se agregan directamente a la mano**
+- Se envían nuevamente al fondo de la pila de descarte
+- El jugador continúa robando hasta encontrar una carta válida
+
+---
+
+##### **Draw Fatigue System**
+
+Robar repetidamente desde la pila de descarte genera penalizaciones.
+
+Cada cierto número de cartas robadas, el jugador recibe daño:
+
+- 10 cartas robadas → 5 de daño  
+- 20 cartas robadas → 7 de daño  
+- 30 cartas robadas → 9 de daño  
+
+Este sistema introduce presión constante y evita que el jugador dependa indefinidamente del robo.
+
+---
+
+##### **Discard Action**
+
+El jugador puede descartar una carta voluntariamente:
+
+- La carta se elimina de la mano
+- No activa ningún efecto
+- Se envía directamente a la pila de descarte
+
+Esto permite gestionar manos desfavorables y buscar mejores opciones estratégicas.
+
+---
+
+##### **System Purpose**
+
+Este sistema:
+
+- Mantiene la incertidumbre del combate
+- Refuerza la importancia de la construcción del deck
+- Introduce decisiones de riesgo/recompensa
+- Evita estancamientos en el flujo del juego
 
 Este sistema permite al jugador planear su estrategia antes de la run, mientras que mantiene incertidumbre durante el combate, al no tener acceso inmediato a todas sus cartas.
 
@@ -406,12 +792,19 @@ Ambas energías llenan una barra compartida dividida en dos mitades (50/50). La 
 ##### **Energy Generation**
 
 - **Energía Elemental (EE)**:
-  - Se genera al jugar cartas del mismo elemento consecutivamente.
+  - Se genera al jugar cartas del mismo elemento consecutivamente. 
   - Se utiliza para activar cartas con efecto y habilidades especiales.
 
 - **Energía Instinto (EI)**:
   - Se genera en función del valor numérico de la carta jugada.
   - Se utiliza para potenciar cartas numéricas.
+
+Cada energía se llena con 20 puntos. Es decir, 20 aciertos; dependiendo cada una de sus condiciones, por supuesto.
+A su vez, dependiendo la dificultad establecida, se requiere de más puntos para llenar cada mitad. Aunque esto se mantiene balanceado de igual forma:
+
+- EASY: Cada barra se llena con 20 puntos - 1 punto por acierto
+- MEDIUM: Cada barra se llena con 40 puntos - 2 puntos por acierto
+- HARD: Cada barra se llena con 60 puntos - 3 puntos por acierto
 
 ##### **Card Enhancement**
 
@@ -507,15 +900,40 @@ Es importante diferenciar entre dos tipos de enemigos:
 - **Enemigos de exploración (platformer)**: actúan como obstáculos y generan presión constante, pero no utilizan el sistema de cartas.
 - **Enemigos de duelo (bosses)**: representan encuentros obligatorios dentro de cada zona. Cada uno corresponde a una facción y actúa como punto de progreso dentro de la run, activando un duelo de cartas con mecánicas únicas.
 
-Dependiendo del nivel de dificultad o del tipo de enemigo, la inteligencia artificial puede tomar decisiones diferentes al momento de jugar una carta. Tenemos contempladas tres modalidades:
-*Easy AI*
-    Selecciona una carta válida de forma aleatoria, entre las opciones disponibles.
+---
 
-*Medium AI*
-    Le da prioridad a cartas que produzcan coincidencias dobles (elemento y número), con el objetivo de generar energía más rápido.
+#### **Card Difficulty Scaling**
 
-*Hard AI (permanente tras la primera run)*
-    Evalúa las cartas disponibles, dándole prioridad a jugadas que generen la mayor cantidad de energía, activen habilidades y mantengan presión ofensiva sobre el jugador
+La dificultad del sistema de cartas no solo cambia la agresividad de la IA, sino también la forma en que esta prioriza jugadas y administra recursos.
+
+- **Easy**
+  - La IA selecciona jugadas válidas de forma mayormente aleatoria.
+  - Tiene menor prioridad por coincidencias dobles.
+  - Usa cartas especiales con baja frecuencia.
+  - Rara vez optimiza energía o turnos futuros.
+
+- **Medium**
+  - La IA prioriza coincidencias dobles (elemento + número, así que cargan ambas barras de su ultimate a la par) cuando están disponibles.
+  - Busca mantener presión ofensiva moderada.
+  - Utiliza cartas especiales de forma situacional.
+  - Intenta evitar jugadas débiles si existe una alternativa mejor.
+
+- **Hard**
+  - La IA evalúa sus opciones y prioriza:
+    - coincidencias dobles,
+    - cartas especiales con mayor impacto,
+    - generación eficiente de energía,
+    - mantenimiento de control sobre el jugador.
+  - Usa con mayor frecuencia, cartas que interrumpen o limitan la estrategia rival.
+  - Toma decisiones con orientación a ventaja futura, no solo al turno actual.
+
+La progresión global de dificultad se estructura de la siguiente forma:
+
+- **Run introductoria** → Easy
+- **Runs iniciales posteriores (3)** → Medium
+- **Runs restantes / dificultad estándar del juego** → Hard
+
+De este modo, el jugador aprende primero las reglas básicas, después se adapta a decisiones intermedias de la IA, y finalmente enfrenta el comportamiento completo del sistema.
 
 #### **Bosses**
 
@@ -565,7 +983,41 @@ Funciona como la prueba final, combinando control, presión y manipulación del 
 
 ---
 
+##### **Enemy Deck Access & Decision Rules**
 
+Los bosses utilizan decks propios, construidos a partir de cartas base y cartas especiales coherentes con su facción y estilo de combate.
+
+- **Skawl**
+  - Prioriza cartas rápidas y jugadas simples
+  - Mayor presencia de cartas base y control moderado
+
+- **Rabyz**
+  - Utiliza más cartas de control y cartas especiales
+  - Busca interrumpir la estrategia del jugador
+
+- **Boldear**
+  - Prioriza cartas de presión, defensa y castigo
+  - Tiende a favorecer jugadas de valor alto
+
+- **Pythra**
+  - Accede a cartas de Hielo y a patrones más complejos de control
+  - Funciona como examen final del sistema
+
+La IA de los enemigos toma decisiones considerando:
+
+- Si puede realizar una coincidencia válida
+- Si existe coincidencia doble
+- Si tiene acceso a una carta especial más conveniente
+- Si conviene conservar una carta fuerte para el siguiente turno
+- Si debe responder a una jugada ofensiva o defensiva del jugador
+
+En términos simples, la IA no solo “juega una carta disponible”, sino que evalúa si debe:
+- presionar
+- defender
+- controlar
+- preparar una mejor jugada posterior
+
+---
 
 ## _Level Design_
 
