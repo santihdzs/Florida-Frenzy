@@ -1,7 +1,46 @@
+import { create } from "domain";
+
 // Element types, card categories, and rarities for the game
 export type Element = 'fire' | 'water' | 'swamp' | 'sand' | 'ice';
 export type CardCategory = 'attack' | 'defense' | 'status' | 'special';
 export type CardRarity = 'base' | 'effect' | 'rare' | 'clan';
+
+// Possible effects that a card can have in the game
+export type CardEffect =
+  | 'DAMAGE'
+  | 'SHIELD'
+  | 'POISON'
+  | 'WEAKEN'
+  | 'BURN'
+  | 'BLOCK_FIRE'
+  | 'RAGE'
+  | 'EXPLOSION'
+  | 'CHAIN'
+  | 'HEAL'
+  | 'DOUBLE_SHIELD'
+  | 'CLEANSE'
+  | 'REFLECT'
+  | 'ENERGY_BOOST'
+  | 'TOXIC'
+  | 'DECAY'
+  | 'EXTEND'
+  | 'WEAKEN_ATTACK'
+  | 'LIFESTEAL'
+  | 'BLOCK_NUMBER'
+  | 'BLIND'
+  | 'SHIELD_BOOST'
+  | 'WILDCARD'
+  | 'BUFF'
+  | 'STUN'
+  | 'JAM'
+  | 'DOUBLE_PLAY'
+  | 'FORCE_DRAW'
+  | 'AMPLIFY'
+  | 'IMMUNITY'
+  | 'HAND_RESET'
+  | 'RANDOM_STATUS'
+  | 'EXECUTE';
+
 
 // Interface for a card in the game
 export interface Card {
@@ -11,13 +50,29 @@ export interface Card {
   category: CardCategory;
   rarity: CardRarity;
   power: number | null;
-  effect: string | null;
+  effect: CardEffect | null;
   effectDescription: string | null;
+
   baseDamage: number;
+  shieldValue: number;
+  effectValue: number;
+  effectDuration: number;
+  effectValueSecondary: number | null;
+
   energyEGain: number;
   energyIGain: number;
   energyECost: number;
   energyICost: number;
+}
+
+// Interface for the result of resolving a card's effects during gameplay
+export interface CardResolution {
+  damage: number;
+  shield: number;
+  appliedEffect: CardEffect | null;
+  effectValue: number;
+  effectDuration: number;
+  secondaryEffectValue: number | null;
 }
 
 // Mapping of elements to their corresponding colors for UI representation
@@ -29,50 +84,126 @@ export const ELEMENT_COLORS: Record<Element, number> = {
   ice: 0xaee7ff,
 };
 
+// Function for Elemental Energy gain based on card power
+function energyElementGained(power: number): number {
+  if (power <= 4) return 1;
+  if (power <= 7) return 2;
+  return 3;
+}
+
+// Function for Instinct Energy gain based on card power
+function energyInstGained(power: number): number {
+  if (power <= 3) return 1;
+  if (power <= 6) return 2;
+  return 3;
+}
+
+// Clone a card object (useful for creating modified versions of cards without mutating the original)
+function cloneCard(card: Card): Card {
+  return { ...card };
+}
+
+// Create a new card object with a unique ID (useful for cards that are generated or modified during gameplay)
+function withUniqueID(card: Card, suffix: string): Card {
+  return { ...card, id: `${card.id}-${suffix}-${Math.random().toString(36).slice(2, 8)}`, };
+}
+
+function createCard(config: Omit<Card, 'id'>): Card {
+  return {id: config.name.toLowerCase().replace(/\s+/g, '-'), ...config};
+}
+
+
+
+
 // Function to create a base card given an element and power level
 function createBaseCard(element: Element, power: number): Card {
   const capitalized = element.charAt(0).toUpperCase() + element.slice(1);
 
-  const categoryMap: Record<'fire' | 'water' | 'swamp' | 'sand', CardCategory> = {
-    fire: 'attack',
-    water: 'defense',
-    swamp: 'status',
-    sand: 'defense',
-  };
+  switch (element) {
+    case 'fire':
+      return createCard({
+        name: `${capitalized} Card ${power}`,
+        element,
+        category: 'attack',
+        rarity: 'base',
+        power,
+        effect: 'DAMAGE',
+        effectDescription: `Haz ${power} de daño al enemigo.`,
+        baseDamage: power,
+        shieldValue: 0,
+        effectValue: power,
+        effectDuration: 0,
+        effectValueSecondary: null,
+        energyEGain: energyElementGained(power),
+        energyIGain: energyInstGained(power),
+        energyECost: 0,
+        energyICost: 0,
+      });
+      
+    case 'water':
+      return createCard({
+        name: `${capitalized} Card ${power}`,
+        element,
+        category: 'defense',
+        rarity: 'base',
+        power,
+        effect: 'SHIELD',
+        effectDescription: `Gana ${power} puntos de escudo.`,
+        baseDamage: 0,
+        shieldValue: power,
+        effectValue: power,
+        effectDuration: 0,
+        effectValueSecondary: null,
+        energyEGain: energyElementGained(power),
+        energyIGain: energyInstGained(power),
+        energyECost: 0,
+        energyICost: 0,
+      });
+    
+    case 'swamp': {
+      const poisonValue = Math.max(1, Math.floor(power / 3));
+      const poisonDuration = Math.max(1, Math.floor(power / 3));
+      return createCard({
+        name: `${capitalized} Card ${power}`,
+        element,
+        category: 'status',
+        rarity: 'base',
+        power,
+        effect: 'POISON',
+        effectDescription: `Envenena al enemigo por ${poisonValue} de daño durante ${poisonDuration} turnos.`,
+        baseDamage: 0,
+        shieldValue: 0,
+        effectValue: poisonValue,
+        effectDuration: poisonDuration,
+        effectValueSecondary: null,
+        energyEGain: energyElementGained(power),
+        energyIGain: energyInstGained(power),
+        energyECost: 0,
+        energyICost: 0,
+      });
+    }
 
-  const effectMap: Record<'fire' | 'water' | 'swamp' | 'sand', string> = {
-    fire: 'damage',
-    water: 'shield',
-    swamp: 'poison',
-    sand: 'weaken',
-  };
-
-  const descMap: Record<'fire' | 'water' | 'swamp' | 'sand', string> = {
-    fire: 'Deal direct damage equal to value',
-    water: 'Gain shield equal to value',
-    swamp: 'Apply poison damage over time',
-    sand: 'Reduce incoming damage next turn',
-  };
-
-  if (element === 'ice') {
-    throw new Error('Ice is not part of the base card pool');
+    case 'sand': {
+      return createCard({
+        name: `${capitalized} Card ${power}`,
+        element,
+        category: 'defense',
+        rarity: 'base',
+        power,
+        effect: 'WEAKEN',
+        effectDescription: `Reduce el daño del enemigo por ${power} para el siguiente turno.`,
+        baseDamage: 0,
+        shieldValue: 0,
+        effectValue: power,
+        effectDuration: 1,
+        effectValueSecondary: null,
+        energyEGain: energyElementGained(power),
+        energyIGain: energyInstGained(power),
+        energyECost: 0,
+        energyICost: 0,
+      });
+    }
   }
-
-  return {
-    id: `${element}-${power}`,
-    name: `${capitalized} ${power}`,
-    element,
-    category: categoryMap[element],
-    rarity: 'base',
-    power,
-    effect: effectMap[element],
-    effectDescription: descMap[element],
-    baseDamage: element === 'fire' ? power : 0,
-    energyEGain: power <= 4 ? 1 : power <= 7 ? 2 : 3,
-    energyIGain: power <= 3 ? 1 : power <= 6 ? 2 : 3,
-    energyECost: 0,
-    energyICost: 0,
-  };
 }
 
 // Base card pool consisting of 36 cards (9 for each of the 4 elements)
