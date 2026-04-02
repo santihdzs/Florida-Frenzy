@@ -347,7 +347,7 @@ Resultado: válida, al ser un comodin, el jugador puede utilizar esta carta lega
 
 --- 
 
-#### **No Valid Move Rule**
+##### **No Valid Move Rule**
 
 Si un jugador no tiene una carta válida, roba 1 carta adicional desde su deck.
 
@@ -363,6 +363,27 @@ En ese caso, el jugador debe:
 - robar desde su deck
 - continuar robando según las reglas del sistema
 - o descartar voluntariamente una carta desde su mano si decide gestionar recursos de esa forma
+
+##### **Double Match**
+
+Se considera una **coincidencia doble** cuando la carta jugada coincide con la carta en mesa tanto en:
+
+- elemento
+- valor numérico
+
+Ejemplo:
+
+Carta en mesa: Fuego 5  
+Carta jugada: Fuego 5  
+
+Resultado: coincidencia doble.
+
+Una coincidencia doble genera una bonificación superior de energía, ya que alimenta con mayor eficiencia el sistema dual:
+
+- aumenta la Energía Elemental
+- aumenta la Energía Instinto
+
+Esto recompensa las jugadas más precisas y permite acelerar el acceso a mejoras de carta o habilidades especiales.
 
 --- 
 
