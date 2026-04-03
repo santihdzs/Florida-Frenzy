@@ -532,7 +532,7 @@ Cada elemento cuenta con **5 variantes especiales**.
   - 6 de daño + aplica quemadura (2 de daño extra por 2 turnos)
 
 - **Half Break**
-  - Inflige 50% de daño, pero bloquea Fire enemigo por 1 turno
+  - Inflige 5 de daño, pero bloquea Fire enemigo por 1 turno
 
 - **Rage Boost**
   - Duplica el daño si el jugador tiene menos del 50% de HP
