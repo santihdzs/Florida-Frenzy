@@ -529,7 +529,7 @@ Cada elemento cuenta con **5 variantes especiales**.
 ### **Fire Special Cards (Ofensivas)**
 
 - **Burn Strike**
-  - Daño completo + aplica quemadura (daño extra por 2 turnos del 25% de su valor numérico)
+  - 6 de daño + aplica quemadura (2 de daño extra por 2 turnos)
 
 - **Half Break**
   - Inflige 50% de daño, pero bloquea Fire enemigo por 1 turno
