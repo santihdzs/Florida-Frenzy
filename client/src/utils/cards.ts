@@ -215,6 +215,8 @@ export const BASE_CARD_POOL: Card[] = [
 ];
 
 export const SPECIAL_CARD_POOL: Card[] = [
+  // Fire effect cards (5)
+  // note: energy E gain and cost are incoherent; spend 2 to gain 2
   createCard({
     name: 'Burn Strike',
     element: 'fire',
@@ -224,7 +226,36 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effect: 'BURN',
     effectDescription: 'Inflige 6 de daño y quema al enemigo por 2 turnos, causando 2 de daño adicional cada turno.',
     baseDamage: 6,
+    shieldValue: 0,
+    effectValue: 2,
+    effectDuration: 2,
+    effectValueSecondary: null,
+    energyEGain: 2,
+    energyIGain: 2,
+    energyECost: 2,
+    energyICost: 0,
+  }),
+
+  // note: change half damage for "half available damage", which is 5
+  createCard({
+    name: 'Half Break',
+    element: 'fire',
+    category: 'attack',
+    rarity: 'effect',
+    power: 5,
+    effect: 'BLOCK_FIRE',
+    effectDescription: 'Reduce el daño del enemigo por 5 para el siguiente turno.',
+    baseDamage: 5,
+    shieldValue: 0,
+    effectValue: 5,
+    effectDuration: 1,
+    effectValueSecondary: null,
+    energyEGain: 2,
+    energyIGain: 2,
+    energyECost: 2,
+    energyICost: 0,
   })
+
 ]
 
 // Basic utilities
