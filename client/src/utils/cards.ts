@@ -214,6 +214,19 @@ export const BASE_CARD_POOL: Card[] = [
   ...Array.from({ length: 9 }, (_, i) => createBaseCard('sand', i + 1)),
 ];
 
+export const SPECIAL_CARD_POOL: Card[] = [
+  createCard({
+    name: 'Burn Strike',
+    element: 'fire',
+    category: 'attack',
+    rarity: 'effect',
+    power: 6,
+    effect: 'BURN',
+    effectDescription: 'Inflige 6 de daño y quema al enemigo por 2 turnos, causando 2 de daño adicional cada turno.',
+    baseDamage: 6,
+  })
+]
+
 // Basic utilities
 export function getBaseCardPool(): Card[] {
   return BASE_CARD_POOL.map(card => ({ ...card }));
