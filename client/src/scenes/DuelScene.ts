@@ -12,27 +12,27 @@ import enemyHurt2 from '../assets/characters/default/hurt-2.png';
 
 export class DuelScene extends Phaser.Scene {
   private playerHp = 100;
-  private opponentHp = 100;
+  private enemyHp = 100;
   private totalXp = 0;
   private totalCoins = 0;
   private roundsWon = 0;
   private levelCount = 0;
   private playerHand: Card[] = [];
-  private opponentHand: Card[] = [];
+  private enemyHand: Card[] = [];
   private playerDeck: Card[] = [];
-  private opponentDeck: Card[] = [];
+  private enemyDeck: Card[] = [];
   private cardObjects: Phaser.GameObjects.Container[] = [];
   private messageText!: Phaser.GameObjects.Text;
   private battleMessageText!: Phaser.GameObjects.Text;
   private roundText!: Phaser.GameObjects.Text;
   private playerHpBar!: Phaser.GameObjects.Graphics;
-  private opponentHpBar!: Phaser.GameObjects.Graphics;
+  private enemyHpBar!: Phaser.GameObjects.Graphics;
   private playerHpText!: Phaser.GameObjects.Text;
-  private opponentHpText!: Phaser.GameObjects.Text;
+  private enemyHpText!: Phaser.GameObjects.Text;
   private totalXpText!: Phaser.GameObjects.Text;
   private totalCoinsText!: Phaser.GameObjects.Text;
   private playerDamageText!: Phaser.GameObjects.Text;
-  private opponentDamageText!: Phaser.GameObjects.Text;
+  private enemyDamageText!: Phaser.GameObjects.Text;
   private characterShadow!: Phaser.GameObjects.Graphics;
   private characterPlaceholder!: Phaser.GameObjects.Image;
   private currentEnemyImage = 'enemy-default';
@@ -40,8 +40,8 @@ export class DuelScene extends Phaser.Scene {
   private isAnimating = false;
   private readonly PLAYER_HP_X = 50;
   private readonly PLAYER_HP_Y = 80;
-  private readonly OPPONENT_HP_X = 920;
-  private readonly OPPONENT_HP_Y = 80;
+  private readonly enemy_HP_X = 920;
+  private readonly enemy_HP_Y = 80;
 
   constructor() {
     super({ key: 'DuelScene' });
@@ -119,10 +119,10 @@ export class DuelScene extends Phaser.Scene {
 
     // Generate decks
     this.playerDeck = generateDeck(12);
-    this.opponentDeck = generateDeck(12);
+    this.enemyDeck = generateDeck(12);
 
     this.playerHand = this.playerDeck.splice(0, 5);
-    this.opponentHand = this.opponentDeck.splice(0, 5);
+    this.enemyHand = this.enemyDeck.splice(0, 5);
 
     this.renderCards();
   }
@@ -147,11 +147,11 @@ export class DuelScene extends Phaser.Scene {
       color: '#ffd700'
     });
 
-    // Opponent HP (top right)
-    this.add.text(this.OPPONENT_HP_X, (this.OPPONENT_HP_Y - 30), 'Opponent', { fontSize: '20px', color: '#ff4444' });
-    this.opponentHpBar = this.add.graphics();
-    this.updateHpBar(this.opponentHpBar, this.opponentHp, this.OPPONENT_HP_X, this.OPPONENT_HP_Y);
-    this.opponentHpText = this.add.text(this.OPPONENT_HP_X, this.OPPONENT_HP_Y + 30, `${this.opponentHp}/100 HP`, {
+    // enemy HP (top right)
+    this.add.text(this.enemy_HP_X, (this.enemy_HP_Y - 30), 'enemy', { fontSize: '20px', color: '#ff4444' });
+    this.enemyHpBar = this.add.graphics();
+    this.updateHpBar(this.enemyHpBar, this.enemyHp, this.enemy_HP_X, this.enemy_HP_Y);
+    this.enemyHpText = this.add.text(this.enemy_HP_X, this.enemy_HP_Y + 30, `${this.enemyHp}/100 HP`, {
       fontSize: '16px',
       color: '#ffffff'
     });
@@ -162,7 +162,7 @@ export class DuelScene extends Phaser.Scene {
       color: '#ff4444',
       fontStyle: 'bold'
     });
-    this.opponentDamageText = this.add.text(this.OPPONENT_HP_X + 120, this.OPPONENT_HP_Y + 30, '', {
+    this.enemyDamageText = this.add.text(this.enemy_HP_X + 120, this.enemy_HP_Y + 30, '', {
       fontSize: '16px',
       color: '#ff4444',
       fontStyle: 'bold'
@@ -208,7 +208,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private getEnemyImageForHp(): string {
-    const hpPercent = this.opponentHp;
+    const hpPercent = this.enemyHp;
     if (hpPercent <= 25) {
       this.characterPlaceholder.setPosition(this.characterPlaceholder.x, 340);
       this.characterPlaceholder.setScale(0.8);
@@ -278,11 +278,11 @@ export class DuelScene extends Phaser.Scene {
     this.messageText.setText('Current deck');
     this.messageText.setColor('#ffffff');
 
-    // Opponent randomly selects a card
-    const opponentCard = this.opponentHand[Math.floor(Math.random() * this.opponentHand.length)];
-    if (!opponentCard) return;
+    // enemy randomly selects a card
+    const enemyCard = this.enemyHand[Math.floor(Math.random() * this.enemyHand.length)];
+    if (!enemyCard) return;
 
-    // Show opponent's card (right side) and player card (left side) at battle height
+    // Show enemy's card (right side) and player card (left side) at battle height
     const centerX = this.cameras.main.width / 2;
     const battleY = 380;
     
@@ -290,27 +290,27 @@ export class DuelScene extends Phaser.Scene {
     cardContainer.setPosition(centerX - 300, battleY);
     cardContainer.setScale(1.2);
     
-    // Show opponent card on right side
-    const opponentCardContainer = this.createCardContainer(centerX + 300, battleY, opponentCard, 0);
-    opponentCardContainer.setScale(1.2);
+    // Show enemy card on right side
+    const enemyCardContainer = this.createCardContainer(centerX + 300, battleY, enemyCard, 0);
+    enemyCardContainer.setScale(1.2);
 
     // Compare
-    const result = compareCards(card.element, card.power, opponentCard.element, opponentCard.power);
+    const result = compareCards(card, enemyCard);
 
     let battleMessage = '';
     let battleMessageColor = '#ffffff';
 
     // Clear previous damage text
     this.playerDamageText.setText('');
-    this.opponentDamageText.setText('');
+    this.enemyDamageText.setText('');
 
     if (result === 'win') {
       battleMessage = 'Hit!';
       battleMessageColor = '#00ff88';
-      this.opponentHp -= 25;
-      this.updateHpBar(this.opponentHpBar, this.opponentHp, this.OPPONENT_HP_X, this.OPPONENT_HP_Y, this.opponentHpText);
-      // Show -25 for opponent
-      this.opponentDamageText.setText('-25');
+      this.enemyHp -= 25;
+      this.updateHpBar(this.enemyHpBar, this.enemyHp, this.enemy_HP_X, this.enemy_HP_Y, this.enemyHpText);
+      // Show -25 for enemy
+      this.enemyDamageText.setText('-25');
     } else if (result === 'lose') {
       battleMessage = 'Miss!';
       battleMessageColor = '#ff4444';
@@ -331,7 +331,7 @@ export class DuelScene extends Phaser.Scene {
 
     // Check for duel outcome
     this.time.delayedCall(2000, () => {
-      opponentCardContainer.destroy();
+      enemyCardContainer.destroy();
       
       // Replace used card with a new one
       const handIndex = this.playerHand.indexOf(card);
@@ -344,14 +344,14 @@ export class DuelScene extends Phaser.Scene {
         }
       }
 
-      // Opponent also replaces used card
-      const opponentHandIndex = this.opponentHand.indexOf(opponentCard);
-      if (opponentHandIndex !== -1) {
-        this.opponentHand.splice(opponentHandIndex, 1);
+      // enemy also replaces used card
+      const enemyHandIndex = this.enemyHand.indexOf(enemyCard);
+      if (enemyHandIndex !== -1) {
+        this.enemyHand.splice(enemyHandIndex, 1);
 
-        if (this.opponentDeck.length > 0) {
-          const nextOpponentCard = this.opponentDeck.shift();
-          if (nextOpponentCard) this.opponentHand.push(nextOpponentCard);
+        if (this.enemyDeck.length > 0) {
+          const nextenemyCard = this.enemyDeck.shift();
+          if (nextenemyCard) this.enemyHand.push(nextenemyCard);
         }
       }
 
@@ -359,15 +359,15 @@ export class DuelScene extends Phaser.Scene {
         // Player lost - show game over screen with stats
         this.battleMessageText.setText('');
         this.playerDamageText.setText('');
-        this.opponentDamageText.setText('');
+        this.enemyDamageText.setText('');
         this.gameOver();
-      } else if (this.opponentHp <= 0) {
-        // Opponent defeated - show victory cutscene
+      } else if (this.enemyHp <= 0) {
+        // enemy defeated - show victory cutscene
         this.roundsWon++;
         this.roundText.setText(`Round ${this.roundsWon + 1}`);
         this.battleMessageText.setText('');
         this.playerDamageText.setText('');
-        this.opponentDamageText.setText('');
+        this.enemyDamageText.setText('');
         // Destroy character elements for cutscene
         this.characterShadow.destroy();
         this.characterPlaceholder.destroy();
@@ -376,8 +376,8 @@ export class DuelScene extends Phaser.Scene {
         // Continue duel
         this.battleMessageText.setText('');
         this.playerDamageText.setText('');
-        this.opponentDamageText.setText('');
-        this.opponentDeck = generateDeck();
+        this.enemyDamageText.setText('');
+        this.enemyDeck = generateDeck();
         this.messageText.setText('Choose a card!');
         this.messageText.setColor('#ffffff');
         
@@ -421,7 +421,7 @@ export class DuelScene extends Phaser.Scene {
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
     
     // Victory text (store in variables to destroy later)
-    const victoryText = this.add.text(centerX, centerY - 80, 'Opponent Defeated!', {
+    const victoryText = this.add.text(centerX, centerY - 80, 'enemy Defeated!', {
       fontSize: '48px',
       color: '#00ff88',
       fontStyle: 'bold'
