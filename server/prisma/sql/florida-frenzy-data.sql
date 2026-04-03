@@ -87,8 +87,8 @@ INSERT INTO card_game
 -- =========================
 -- FIRE SPECIAL
 -- =========================
-('Burn Strike','ATTACK','FIRE',6,'BURN','Damage + burn for 2 turns',6,0,2,2,0,2,2,2,0,'EFFECT'),
-('Half Break','ATTACK','FIRE',5,'BLOCK_FIRE','Half damage, block enemy fire for 1 turn',3,0,1,1,0,2,2,2,0,'EFFECT'),
+('Burn Strike','ATTACK','FIRE',6,'BURN','Damage + burn for 2 turns',6,0,2,2,0,2,2,4,0,'EFFECT'),
+('Half Break','ATTACK','FIRE',5,'BLOCK_FIRE','Half damage, block enemy fire for 1 turn',5,0,1,1,0,2,2,2,0,'EFFECT'),
 ('Rage Boost','ATTACK','FIRE',7,'RAGE','Double damage if player HP is below 50%',7,0,100,1,0,2,3,3,0,'EFFECT'),
 ('Explosion','ATTACK','FIRE',NULL,'EXPLOSION','High damage but self-damage',12,0,3,0,0,3,3,3,1,'EFFECT'),
 ('Chain Fire','ATTACK','FIRE',6,'CHAIN','Boost next fire attack',6,0,3,1,0,2,2,2,0,'EFFECT'),
