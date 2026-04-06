@@ -8,16 +8,155 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { 
-        background: #0a0a14; 
-        display: flex; 
-        justify-content: center; 
+        background: url('./src/assets/backgrounds/fondo-web.jpg');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        display: flex;
+        flex-direction: column; 
+        justify-content: flex-start; 
         align-items: center; 
         min-height: 100vh;
+        padding-bottom: 10px;
       }
-      #game-container { 
+
+      /* Welcome Screen */
+      #welcome-screen {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out; 
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      /* Style for the text box on the welcome Screen */
+      .narrative-box {
+        background: linear-gradient(180deg, #444 0%, #222 100%);
+        border: 4px solid #666;
+        width: 90%;
+        max-width: 700px;
+        padding: 40px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 20px rgba(0,0,0,0.5);
+        position: relative;
+      }
+
+      /* style for the decorative dots on the welcome screen */
+      .narrative-box::before, .narrative-box::after {
+        content: "•";
+        position: absolute;
+        color: #111;
+        font-size: 30px;
+        text-shadow: 1px 1px 1px rgba(255,255,255,0.2);
+      }
+      .narrative-box::before { top: 10px; left: 15px; letter-spacing: 630px; }
+      .narrative-box::after { bottom: 10px; left: 15px; letter-spacing: 630px; }
+
+      .narrative-box h1 {
+        font-family: "Arial Black", sans-serif;
+        color: #ffcc00;
+        margin-bottom: 20px;
+        text-shadow: 3px 3px 0px #800;
+      }
+
+      .narrative-box p {
+        font-family: Arial, sans-serif;
+        color: #ddd;
+        font-size: 18px;
+        line-height: 1.6;
+        margin-bottom: 30px;
+      }
+
+      /* Button style */
+      .start-btn {
+        background: linear-gradient(180deg, #888 0%, #444 50%, #555 100%);
+        border: 2px solid #222;
+        padding: 15px 50px;
+        color: #b0b0b0;
+        font-family: "Arial Black", sans-serif;
+        font-size: 24px;
+        cursor: pointer;
+        text-shadow: 3px 3px 0px rgba(0,0,0,1);
+        box-shadow: 0 4px 0 #222, 0 10px 20px rgba(0,0,0,0.5);
+        border-radius: 4px;
+        transition: transform 0.1s;
+      }
+
+      .start-btn:active {
+        transform: translateY(4px);
+        box-shadow: 0 0 0 #222;
+      }
+
+      #banner{
+        width: 100%;
+        max-width: 1300px;
+        height: 250px;
+        margin: 20px auto;
+        overflow: hidden;
+        border-radius: 12px;
+      }
+      #banner img{
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .main-layout {
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+        width: 100%;
+        max-width: 1420px;
+        justify-content: center;
+        align-items: flex-start;
+      }
+      #stats {
+        width: 200px;
+        min-height: 750px;
+        background: rgba(31, 31, 31, 0.9);
+        border: 10px solid #6a6161;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+      }
+      #stats h3 {
+        font-family: "Arial Black", "Helvetica Neue", sans-serif; 
+        font-size: 32px;
+        font-weight: 900;
+        text-align: center;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #b0b0b0;
+        text-shadow: 
+        -2px -1px 0 #555,  
+         2px -1px 0 #555,
+        -2px  1px 0 #555,
+         2px  1px 0 #555,
+        inset 1px 1px 1px rgba(255,255,255,0.4),
+        inset -1px -1px 1px rgba(0,0,0,0.4),
+        4px 4px 0px rgba(0,0,0,1), 
+        5px 5px 2px rgba(0,0,0,0.5);    
+        margin-bottom: 25px;
+        padding: 5px;
+        position: relative;
+      }
+      #game-container {
+        flex: 1;
         box-shadow: 0 0 40px rgba(0, 255, 136, 0.2); 
         border-radius: 8px;
         overflow: hidden;
+        width: 100%;
+        max-width: 1200px;
+        height: auto;
+        aspect-ratio: 1200 / 750;
+        outline: 20px solid rgb(103, 100, 100);
+        outline-offset: -20px;
       }
       #game-container canvas {
         display: block;
@@ -25,7 +164,63 @@
     </style>
   </head>
   <body>
-    <div id="game-container"></div>
+
+    <div id="welcome-screen">
+      <div class="narrative-box">
+        <h1>FLORIDA FRENZY</h1>
+    
+    <div class="narrative-content">
+      <p>
+        <strong>Florida Frenzy</strong> is a 2D <em>roguelite</em> that fuses the strategy of a <strong>TCG</strong> with the adrenaline of a <strong>platformer</strong>. 
+      </p>
+      <p>
+        Assume the role of the <strong>Crock Clan</strong> and survive the threats of the swamp. Collect cards, gain experience, and participate in duels that scale in difficulty.
+      </p>
+      <p style="font-size: 16px; color: #bbb; border-left: 3px solid #ffcc00; padding-left: 15px; margin: 20px 0;">
+        Experiment with a dynamic gameplay that combines familiar mechanics like <strong>UNO</strong> and classic <strong>Pokémon TCG</strong> attributes, in short but intense 'runs'.
+      </p>
+      <p>
+        <strong>The Differentiating Element:</strong> A dual system of <strong>Elemental Energy and Instinct</strong>. It's not enough to simply "match" by number or element; each tactical decision counts towards mastering the ecosystem.
+      </p>
+    </div>
+        <button class="start-btn" onclick="startGame(event)">Start</button>
+      </div>
+    </div>
+
+    <div id="banner"><img src="./src/assets/backgrounds/banner.png"></div>
+    <div class="main-layout">
+        <div id="stats">
+            <h3>INFO STATS</h3>
+        </div>
+        <div id="game-container"></div>
+    </div>
     <script type="module" src="/src/index.ts"></script>
   </body>
+  <script>
+    /* Handles the transition from the welcome screen to the main game interface.*/
+    function startGame(event) {
+      if(event){
+        event.preventDefault(); /* Prevents the default action of the button click, ensuring that the page doesn't reload or perform any unintended behavior. */
+        event.stopPropagation(); /* Stops the click event from propagating to parent elements, ensuring that only the intended action is triggered. */
+      }
+
+      const screen = document.getElementById('welcome-screen');
+      const narrativeBox = screen.querySelector('.narrative-box');
+      const button = event ? event.target : null;
+
+      if(button) button.disabled = true; /* Disable the start button to prevent multiple clicks during the transition. */
+      if(narrativeBox) narrativeBox.style.pointerEvents = 'none'; /* Disable pointer events on the narrative box to prevent interaction during the fade-out transition. */
+      
+      screen.style.opacity = '0';
+      screen.style.pointerEvents = 'none';
+
+      const gameStartEvent = new CustomEvent('game-start-click');
+      window.dispatchEvent(gameStartEvent); /* Dispatch a custom event to signal that the game has started, allowing other parts of the application to respond accordingly*/
+      
+      setTimeout(() => {
+        screen.remove(); /* Remove the welcome screen from the DOM after the fade-out transition. */
+        console.log("Florida Frenzy successfully started");
+      }, 500);
+    }
+  </script>
 </html>
