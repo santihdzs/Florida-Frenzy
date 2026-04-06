@@ -54,7 +54,8 @@ export class MenuScene extends Phaser.Scene {
       { text: 'START', y: 320, action: () => this.startGame() },
       { text: 'MULTIPLAYER', y: 405, action: () => console.log('Multiplayer - coming soon') },
       { text: 'STORE', y: 490, action: () => console.log('Store - coming soon') },
-      { text: 'SETTINGS', y: 575, action: () => this.settingsScene() }
+      { text: 'SETTINGS', y: 575, action: () => this.settingsScene() },
+      { text: 'EXIT', y: 660, action: () => this.showExit() }
     ];
 
     //dimnesions for buttons
@@ -108,6 +109,8 @@ export class MenuScene extends Phaser.Scene {
       text.y = 0;
       callback();
     });
+
+    return container;
   }
 
   drawMetalPlate(graphics: Phaser.GameObjects.Graphics, width: number, height: number, pressed: boolean) {
@@ -165,5 +168,95 @@ export class MenuScene extends Phaser.Scene {
 
   settingsScene(){
     this.scene.start('SettingsScene');
+  }
+  
+  exitGame() {
+    // Block input to prevent further interactions during the exit animation
+     this.input.enabled = false;
+
+    // Overlay for fade-out effect
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 1);
+    overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
+    overlay.setAlpha(0);
+    overlay.setDepth(100);
+
+    // Shutdown animation
+    this.tweens.add({
+      targets: overlay,
+      alpha: 1,
+      duration: 800,
+        ease: 'Power2',
+        onComplete: () => {
+          window.location.reload(); // Simulate game exit by reloading the page
+        }
+    });
+  }
+
+  confirmExit() {
+    const confirmation = confirm('Are you sure you want to exit the game?');
+    if (confirmation) {
+      this.exitGame();
+    }
+  }
+
+  showExit() {
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+
+    // Overlay for modal background
+    const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6)
+        .setOrigin(0)
+        .setDepth(90)
+        .setInteractive(); // Block interactions with the background
+
+    const modal = this.add.container(centerX, centerY).setDepth(101);
+    const width = 500;
+    const height = 280;
+
+    // body of the modal
+    const background = this.add.graphics();
+    this.drawMetalPlate(background, width, height, false);
+
+    // Confirmation text
+    const text = this.add.text(0, -50, '¿DESCONECTAR SISTEMA?', {
+        fontFamily: 'Impact, Arial black, sans-serif',
+        fontSize: '32px',
+        color: '#c2baba',
+        stroke: '#000000',
+        strokeThickness: 3,
+        align: 'center'
+    }).setOrigin(0.5);
+
+    const textStyle = {
+      fontFamily: 'Impact, Arial black, sans-serif',
+      fontSize: '28px',
+      color: '#c2baba',
+      stroke: '#000000',
+      strokeThickness: 2
+    };
+
+    const yesBtn = this.createButton(-100, 60, 140, 60, 'YES', () => this.exitGame(), textStyle);
+    const noBtn = this.createButton(100, 60, 140, 60, 'NO', () => {
+      overlay.destroy();
+      modal.destroy();
+      this.input.enabled = true;
+    }, textStyle);
+
+    modal.add([background, text, yesBtn, noBtn]);
+
+    // Pop-up animation
+    modal.setScale(0.5);
+    modal.setAlpha(0);
+    this.tweens.add({
+        targets: modal,
+        scale: 1,
+        alpha: 1,
+        duration: 300,
+        ease: 'Back.easeOut'
+    });
+
+    yesBtn.setDepth(101);
+    noBtn.setDepth(101);
   }
 }
