@@ -3,6 +3,7 @@ import { MenuScene } from './scenes/MenuScene';
 import { DuelScene } from './scenes/DuelScene';
 import { PlatformerScene } from './scenes/PlatformerScene';
 import { SettingsScene } from './scenes/SettingsScene';
+import { InstructionScene } from './scenes/InstructionScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
@@ -15,7 +16,7 @@ const config: Phaser.Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
     expandParent: true
   },
-  scene: [MenuScene, DuelScene, PlatformerScene, SettingsScene],
+  scene: [MenuScene, DuelScene, PlatformerScene, SettingsScene, InstructionScene],
   physics: {
     default: 'arcade',
     arcade: { debug: false }

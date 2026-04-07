@@ -58,6 +58,9 @@ export class MenuScene extends Phaser.Scene {
       { text: 'EXIT', y: 660, action: () => this.showExit() }
     ];
 
+    //button for see instructions in menu (in the )
+    const buttonInstructions = this.createButton(centerX + 410, 670, 280, 50, 'HOW TO PLAY', () => this.instruction(), textStyle);
+
     //dimnesions for buttons
     const buttonWidth = 350;
     const buttonHeight = 70;
@@ -169,6 +172,10 @@ export class MenuScene extends Phaser.Scene {
   settingsScene(){
     this.scene.start('SettingsScene');
   }
+
+  instruction(){
+    this.scene.start('InstructionScene');
+  }
   
   exitGame() {
     // Block input to prevent further interactions during the exit animation
@@ -186,7 +193,7 @@ export class MenuScene extends Phaser.Scene {
       targets: overlay,
       alpha: 1,
       duration: 800,
-        ease: 'Power2',
+        ease: 'Power2', // desacelerate the fade for a more dramatic effect
         onComplete: () => {
           window.location.reload(); // Simulate game exit by reloading the page
         }
