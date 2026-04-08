@@ -7,45 +7,269 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String   @id @default(uuid())
-  firebaseUid   String   @unique
-  email         String
-  displayName   String?
-  coins         Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+enum ClanRank {
+  ROOKIE
+  FIGHTER
+  VETERAN
+}
 
-  runs          Run[]
-  unlocks       Unlock[]
+enum CardCategory {
+  ATTACK
+  DEFENSE
+  STATUS
+  SPECIAL
+}
+
+enum CardElement {
+  FIRE
+  WATER
+  SWAMP
+  SAND
+  ICE
+}
+
+enum CardRarity {
+  BASE
+  EFFECT
+  RARE
+  CLAN
+}
+
+enum EnemyType {
+  PLATFORMER_ENEMY
+  CARD_ENEMY
+  FINAL_BOSS
+}
+
+enum Faction {
+  RAT
+  RACCOON
+  BEAR
+  PYTHON
+}
+
+enum AiLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ZoneDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  FINAL
+}
+
+enum RunStatus {
+  WIN
+  IN_PROGRESS
+  LOSE
+}
+
+enum BattleResult {
+  WIN
+  LOSE
+}
+
+model Player {
+  id          Int       @id @default(autoincrement())
+  firebaseUid String    @unique
+  username    String    @unique
+  nickname    String?
+  email       String    @unique
+  swampXp     Int       @default(0)
+  clanRank    ClanRank  @default(ROOKIE)
+  firstLogin  DateTime  @default(now())
+  lastLogin   DateTime?
+
+  playerCharacters PlayerCharacter[]
+  playerCards      PlayerCard[]
+  decks            Deck[]
+  runs             Run[]
+}
+
+model CharacterGame {
+  id                Int     @id @default(autoincrement())
+  chName            String  @unique
+  chDesc            String?
+  baseHp            Int     @default(100)
+  baseAttack        Int     @default(0)
+  baseDefense       Int     @default(0)
+  chUltimate        String
+  chUltimateDesc    String?
+  isDefaultUnlocked Boolean @default(false)
+
+  playerCharacters PlayerCharacter[]
+  decks            Deck[]
+  runs             Run[]
+  rewards          Reward[]
+}
+
+model CardGame {
+  id                   Int          @id @default(autoincrement())
+  cardName             String       @unique
+  cardCategory         CardCategory
+  cardElement          CardElement
+  cardNumber           Int?
+  cardEffect           String?
+  effectDesc           String?
+  baseDamage           Int          @default(0)
+  shieldValue          Int          @default(0)
+  effectValue          Int          @default(0)
+  effectDuration       Int          @default(0)
+  effectValueSecondary Int          @default(0)
+  energyEGain          Int          @default(0)
+  energyIGain          Int          @default(0)
+  energyECost          Int          @default(0)
+  energyICost          Int          @default(0)
+  cardRarity           CardRarity   @default(BASE)
+
+  playerCards PlayerCard[]
+  deckCards   DeckCard[]
+  rewards     Reward[]
+}
+
+model Enemy {
+  id                Int       @id @default(autoincrement())
+  enemyName         String    @unique
+  enemyDesc         String?
+  enemyType         EnemyType
+  faction           Faction
+  enemyBaseHp       Int       @default(100)
+  enemyUltimate     String?
+  enemyUltimateDesc String?
+  aiLevel           AiLevel   @default(EASY)
+
+  battles Battle[]
+}
+
+model ZoneGame {
+  id             Int            @id @default(autoincrement())
+  zoneName       String         @unique
+  zoneMap        String?
+  zoneDesc       String?
+  zoneDifficulty ZoneDifficulty @default(EASY)
+
+  runZones RunZone[]
+  battles  Battle[]
+}
+
+model PlayerCharacter {
+  id              Int           @id @default(autoincrement())
+  playerId        Int
+  player          Player        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  characterGameId Int
+  characterGame   CharacterGame @relation(fields: [characterGameId], references: [id], onDelete: Cascade)
+  isUnlocked      Boolean       @default(false)
+  usedTimes       Int           @default(0)
+
+  @@unique([playerId, characterGameId])
+}
+
+model PlayerCard {
+  id            Int      @id @default(autoincrement())
+  playerId      Int
+  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  cardGameId    Int
+  cardGame      CardGame @relation(fields: [cardGameId], references: [id], onDelete: Cascade)
+  numCardsOwned Int      @default(1)
+  isUnlocked    Boolean  @default(false)
+
+  @@unique([playerId, cardGameId])
+}
+
+model Deck {
+  id              Int           @id @default(autoincrement())
+  deckName        String
+  isActive        Boolean       @default(false)
+  creationDate    DateTime      @default(now())
+  playerId        Int
+  player          Player        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  characterGameId Int
+  characterGame   CharacterGame @relation(fields: [characterGameId], references: [id], onDelete: Cascade)
+
+  deckCards DeckCard[]
+  runs      Run[]
+}
+
+model DeckCard {
+  id            Int      @id @default(autoincrement())
+  deckId        Int
+  deck          Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  cardGameId    Int
+  cardGame      CardGame @relation(fields: [cardGameId], references: [id], onDelete: Cascade)
+  cardsIncluded Int      @default(1)
+
+  @@unique([deckId, cardGameId])
 }
 
 model Run {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  score         Int
-  fightsWon     Int
-  maxHp         Int
-  finalDeck     String[] // Card IDs
-  endedAt       DateTime @default(now())
+  id              Int           @id @default(autoincrement())
+  startTime       DateTime      @default(now())
+  endTime         DateTime?
+  runStatus       RunStatus     @default(IN_PROGRESS)
+  zonesDone       Int           @default(0)
+  swampXpEarned   Int           @default(0)
+  playerId        Int
+  player          Player        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  characterGameId Int
+  characterGame   CharacterGame @relation(fields: [characterGameId], references: [id], onDelete: Cascade)
+  deckId          Int
+  deck            Deck          @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  runZones RunZone[]
+  battles  Battle[]
 }
 
-model Unlock {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  type      String   // 'card', 'skin', 'archetype'
-  key       String
-  unlockedAt DateTime @default(now())
-
-  @@unique([userId, type, key])
+model RunZone {
+  id          Int      @id @default(autoincrement())
+  order       Int
+  status      String
+  claimReward Boolean  @default(false)
+  zoneGameId  Int
+  zoneGame    ZoneGame @relation(fields: [zoneGameId], references: [id], onDelete: Cascade)
+  runId       Int
+  run         Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
 }
 
-model Leaderboard {
-  id        String   @id @default(uuid())
-  userId    String
-  username  String
-  score     Int
-  achievedAt DateTime @default(now())
+model Battle {
+  id                Int          @id @default(autoincrement())
+  battleResult      BattleResult
+  turnCount         Int          @default(0)
+  playerHpRemaining Int          @default(0)
+  enemyHpRemaining  Int          @default(0)
+  startTime         DateTime     @default(now())
+  endTime           DateTime?
+  runId             Int
+  run               Run          @relation(fields: [runId], references: [id], onDelete: Cascade)
+  zoneGameId        Int
+  zoneGame          ZoneGame     @relation(fields: [zoneGameId], references: [id], onDelete: Cascade)
+  enemyId           Int
+  enemy             Enemy        @relation(fields: [enemyId], references: [id], onDelete: Cascade)
+
+  battleRewards BattleReward[]
+}
+
+model Reward {
+  id              Int            @id @default(autoincrement())
+  rewardName      String
+  rewardType      String
+  rewardDesc      String?
+  rewardValue     Int            @default(0)
+  cardGameId      Int?
+  cardGame        CardGame?      @relation(fields: [cardGameId], references: [id], onDelete: SetNull)
+  characterGameId Int?
+  characterGame   CharacterGame? @relation(fields: [characterGameId], references: [id], onDelete: SetNull)
+
+  battleRewards BattleReward[]
+}
+
+model BattleReward {
+  id           Int     @id @default(autoincrement())
+  playerChoice Boolean @default(false)
+  battleId     Int
+  battle       Battle  @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  rewardId     Int
+  reward       Reward  @relation(fields: [rewardId], references: [id], onDelete: Cascade)
 }

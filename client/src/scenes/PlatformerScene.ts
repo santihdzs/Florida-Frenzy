@@ -4,7 +4,7 @@ import { rectIntersect } from '../physics/customPhysics';
 // World
 const TILE = 48;
 const COLS = 100;
-const ROWS = 15;
+const ROWS = 16;
 const WORLD_W = COLS * TILE;
 const WORLD_H = ROWS * TILE;
 
@@ -230,6 +230,15 @@ export class PlatformerScene extends Phaser.Scene {
 
   // --- world drawing ---
 
+  private neighbors(grid: number[][], row: number, col: number, type: number) {
+    return {
+      n: row > 0        && grid[row - 1][col] === type,
+      s: row < ROWS - 1 && grid[row + 1][col] === type,
+      w: col > 0        && grid[row][col - 1] === type,
+      e: col < COLS - 1 && grid[row][col + 1] === type,
+    };
+  }
+
   private drawWorld(grid: number[][]) {
     const floorGfx = this.add.graphics();
     const obsGfx   = this.add.graphics();
@@ -268,47 +277,92 @@ export class PlatformerScene extends Phaser.Scene {
       for (let col = 0; col < COLS; col++) {
         const tile = grid[row][col];
         const px = col * TILE, py = row * TILE;
-        if      (tile === HOLE)    { this.drawHole(floorGfx, px, py);    this.holeRects.push({ x: px + 8, y: py + 8, w: TILE - 16, h: TILE - 16 }); }
-        else if (tile === BARRIER) { this.drawBarrier(obsGfx, px, py);   this.obstacleRects.push({ x: px, y: py, w: TILE, h: TILE }); }
-        else if (tile === PUDDLE)  { this.drawPuddle(floorGfx, px, py);  this.puddleRects.push({ x: px, y: py, w: TILE, h: TILE }); }
+        if (tile === HOLE) {
+          const nb = this.neighbors(grid, row, col, HOLE);
+          this.drawHole(floorGfx, px, py, nb);
+          this.holeRects.push({
+            x: nb.w ? px           : px + 8,
+            y: nb.n ? py           : py + 8,
+            w: TILE - (nb.w ? 0 : 8) - (nb.e ? 0 : 8),
+            h: TILE - (nb.n ? 0 : 8) - (nb.s ? 0 : 8),
+          });
+        } else if (tile === BARRIER) {
+          const nb = this.neighbors(grid, row, col, BARRIER);
+          this.drawBarrier(obsGfx, px, py, nb);
+          this.obstacleRects.push({ x: px, y: py, w: TILE, h: TILE });
+        } else if (tile === PUDDLE) {
+          const nb = this.neighbors(grid, row, col, PUDDLE);
+          this.drawPuddle(floorGfx, px, py, nb);
+          this.puddleRects.push({ x: px, y: py, w: TILE, h: TILE });
+        }
       }
     }
   }
 
-  private drawHole(gfx: Phaser.GameObjects.Graphics, px: number, py: number) {
+  private drawHole(gfx: Phaser.GameObjects.Graphics, px: number, py: number, nb: { n: boolean; s: boolean; e: boolean; w: boolean }) {
+    const x0 = nb.w ? px            : px + 2;
+    const y0 = nb.n ? py            : py + 2;
+    const x1 = nb.e ? px + TILE     : px + TILE - 2;
+    const y1 = nb.s ? py + TILE     : py + TILE - 2;
+
     gfx.fillStyle(0x111111);
-    gfx.fillRect(px + 2,  py + 2,  TILE - 4,  TILE - 4);
+    gfx.fillRect(x0, y0, x1 - x0, y1 - y0);
+
+    const ix0 = nb.w ? px + 6        : px + 8;
+    const iy0 = nb.n ? py + 6        : py + 8;
+    const ix1 = nb.e ? px + TILE - 6 : px + TILE - 8;
+    const iy1 = nb.s ? py + TILE - 6 : py + TILE - 8;
+
     gfx.fillStyle(0x050508);
-    gfx.fillRect(px + 8,  py + 8,  TILE - 16, TILE - 16);
+    gfx.fillRect(ix0, iy0, ix1 - ix0, iy1 - iy0);
+
     gfx.fillStyle(0x000000);
-    gfx.fillRect(px + 13, py + 13, TILE - 26, TILE - 26);
+    gfx.fillRect(ix0 + 5, iy0 + 5, ix1 - ix0 - 10, iy1 - iy0 - 10);
   }
 
-  private drawBarrier(gfx: Phaser.GameObjects.Graphics, px: number, py: number) {
-    // Green grass strip on top
-    gfx.fillStyle(0x5a9e40);
-    gfx.fillRect(px + 2, py + 2, TILE - 4, 9);
-    // Brown body
+  private drawBarrier(gfx: Phaser.GameObjects.Graphics, px: number, py: number, nb: { n: boolean; s: boolean; e: boolean; w: boolean }) {
+    if (!nb.n) {
+      gfx.fillStyle(0x5a9e40);
+      gfx.fillRect(px, py, TILE, 9);
+    }
+
+    const bodyY = nb.n ? py : py + 9;
     gfx.fillStyle(0x7a4a25);
-    gfx.fillRect(px + 2, py + 11, TILE - 4, TILE - 13);
-    // Left highlight
-    gfx.fillStyle(0xa06030);
-    gfx.fillRect(px + 2, py + 11, 5, TILE - 13);
-    // Bottom/right shadow
-    gfx.fillStyle(0x4a2810);
-    gfx.fillRect(px + 2,      py + TILE - 9, TILE - 4, 7);
-    gfx.fillRect(px + TILE - 8, py + 11,    7, TILE - 13);
-    // South face (depth)
-    gfx.fillStyle(0x2d1608);
-    gfx.fillRect(px + 2, py + TILE, TILE - 4, SOUTH_H);
+    gfx.fillRect(px, bodyY, TILE, py + TILE - bodyY);
+
+    if (!nb.w) {
+      gfx.fillStyle(0xa06030);
+      gfx.fillRect(px, bodyY, 5, py + TILE - bodyY);
+    }
+    if (!nb.e) {
+      gfx.fillStyle(0x4a2810);
+      gfx.fillRect(px + TILE - 8, bodyY, 8, py + TILE - bodyY);
+    }
+    if (!nb.s) {
+      gfx.fillStyle(0x4a2810);
+      gfx.fillRect(px, py + TILE - 9, TILE, 7);
+      gfx.fillStyle(0x2d1608);
+      gfx.fillRect(px, py + TILE, TILE, SOUTH_H);
+    }
   }
 
-  private drawPuddle(gfx: Phaser.GameObjects.Graphics, px: number, py: number) {
+  private drawPuddle(gfx: Phaser.GameObjects.Graphics, px: number, py: number, nb: { n: boolean; s: boolean; e: boolean; w: boolean }) {
+    const x0 = nb.w ? px            : px + 3;
+    const y0 = nb.n ? py            : py + 3;
+    const x1 = nb.e ? px + TILE     : px + TILE - 3;
+    const y1 = nb.s ? py + TILE     : py + TILE - 3;
+
     gfx.fillStyle(0x2a6699);
-    gfx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
+    gfx.fillRect(x0, y0, x1 - x0, y1 - y0);
+
+    const ix0 = nb.w ? px + 5        : px + 8;
+    const iy0 = nb.n ? py + 5        : py + 8;
+    const ix1 = nb.e ? px + TILE - 5 : px + TILE - 8;
+    const iy1 = nb.s ? py + TILE - 5 : py + TILE - 8;
+
     gfx.fillStyle(0x3a88bb);
-    gfx.fillRect(px + 8, py + 8, TILE - 16, TILE - 16);
-    // Shimmer highlights
+    gfx.fillRect(ix0, iy0, ix1 - ix0, iy1 - iy0);
+
     gfx.fillStyle(0x80c8ee);
     gfx.fillRect(px + 12, py + 12, 8, 3);
     gfx.fillRect(px + 26, py + 22, 5, 3);

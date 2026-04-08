@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Card, generateDeck, compareCards, ELEMENT_COLORS, Element } from '../utils/cards';
+import { Card, generateDeck, compareCards, ELEMENT_COLORS } from '../utils/cards';
 
 import backgroundImg from '../assets/backgrounds/everglades.jpg';
 import enemyDefault   from '../assets/characters/default/enemy-gator.png';
@@ -14,7 +14,7 @@ export class DuelScene extends Phaser.Scene {
   private totalXp    = 0;
   private totalCoins = 0;
   private roundsWon  = 0;
-  private levelCount = 0;
+  private level      = 0;
 
   private playerDeck:   Card[] = [];
   private opponentDeck: Card[] = [];
@@ -45,9 +45,8 @@ export class DuelScene extends Phaser.Scene {
     super({ key: 'DuelScene' });
   }
 
-  // Reset all mutable state so scene.restart() gives a clean slate
-  init(data: { levelCount?: number }) {
-    this.levelCount  = data.levelCount ?? 0;
+  init(data: { level?: number }) {
+    this.level       = data.level ?? 0;
     this.playerHp    = 100;
     this.opponentHp  = 100;
     this.totalXp     = 0;
@@ -76,7 +75,6 @@ export class DuelScene extends Phaser.Scene {
 
     this.add.image(centerX, height / 2, 'background');
 
-    // UI panels (graphics added to scene; no reference needed after creation)
     const panels = this.add.graphics();
     panels.fillStyle(0x000000, 0.8);
     panels.fillRoundedRect(30, 30, 280, 160, 10);
@@ -108,12 +106,19 @@ export class DuelScene extends Phaser.Scene {
     this.playerDeck   = generateDeck();
     this.opponentDeck = generateDeck();
     this.renderCards();
+
+    // Debug skip key
+    const keyP = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+    keyP.on('down', () => this.advanceToNextCycle());
   }
 
-  // ── HP bars ────────────────────────────────────────────────────────────────
+  private advanceToNextCycle() {
+    this.scene.start('EvergladesScene', { level: this.level + 1, step: 0 });
+  }
+
+  // ── HP bars ──
 
   private createHpBars() {
-    // Player (top-left)
     this.add.text(this.PLAYER_HP_X, this.PLAYER_HP_Y - 30, 'Player', {
       fontSize: '20px', color: '#00ff88',
     });
@@ -127,7 +132,6 @@ export class DuelScene extends Phaser.Scene {
     this.totalCoinsText = this.add.text(this.PLAYER_HP_X, this.PLAYER_HP_Y + 75,
       `Coins: ${this.totalCoins}`, { fontSize: '14px', color: '#ffd700' });
 
-    // Opponent (top-right)
     this.add.text(this.OPPONENT_HP_X, this.OPPONENT_HP_Y - 30, 'Opponent', {
       fontSize: '20px', color: '#ff4444',
     });
@@ -159,7 +163,7 @@ export class DuelScene extends Phaser.Scene {
     hpText?.setText(`${hp}/100 HP`);
   }
 
-  // ── card rendering ─────────────────────────────────────────────────────────
+  // ── Card rendering ──
 
   private renderCards() {
     this.cardObjects.forEach(c => c.destroy());
@@ -199,7 +203,7 @@ export class DuelScene extends Phaser.Scene {
       fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const powerText = this.add.text(0, 35, card.power.toString(), {
+    const powerText = this.add.text(0, 35, (card.power ?? 0).toString(), {
       fontSize: '42px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5);
 
@@ -216,7 +220,7 @@ export class DuelScene extends Phaser.Scene {
     return container;
   }
 
-  // ── card play / duel logic ─────────────────────────────────────────────────
+  // ── Card play / duel logic ──
 
   private playCard(card: Card, cardContainer: Phaser.GameObjects.Container) {
     if (this.isAnimating) return;
@@ -261,15 +265,9 @@ export class DuelScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => {
       opponentContainer.destroy();
 
-      // Replace used card with a new random one
       const idx = this.playerDeck.indexOf(card);
       if (idx !== -1) {
-        const elements: Element[] = ['fire', 'water', 'earth', 'electric', 'venom'];
-        this.playerDeck[idx] = {
-          id: `card-${Date.now()}`,
-          element: elements[Math.floor(Math.random() * elements.length)],
-          power: Math.floor(Math.random() * 5) + 1,
-        };
+        this.playerDeck[idx] = generateDeck(1)[0];
       }
 
       this.battleMessageText.setText('');
@@ -285,7 +283,6 @@ export class DuelScene extends Phaser.Scene {
         this.characterPlaceholder.destroy();
         this.showVictoryCutscene();
       } else {
-        // Continue duel — reset opponent and update character image
         this.opponentDeck = generateDeck();
         this.messageText.setText('Choose a card!').setColor('#ffffff');
 
@@ -302,7 +299,7 @@ export class DuelScene extends Phaser.Scene {
     });
   }
 
-  // ── victory cutscene ───────────────────────────────────────────────────────
+  // ── Victory cutscene ──
 
   private showVictoryCutscene() {
     const centerX = this.cameras.main.width  / 2;
@@ -311,7 +308,6 @@ export class DuelScene extends Phaser.Scene {
     this.totalXp    += 100;
     this.totalCoins +=  50;
 
-    // Keep running totals visible
     this.totalXpText.setText(`XP: ${this.totalXp}`);
     this.totalCoinsText.setText(`Coins: ${this.totalCoins}`);
 
@@ -337,12 +333,10 @@ export class DuelScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => continueBtn.setColor('#00ff88'))
       .on('pointerout',  () => continueBtn.setColor('#ffffff'))
-      .on('pointerdown', () =>
-        this.scene.start('EvergladesScene', { levelCount: this.levelCount }),
-      );
+      .on('pointerdown', () => this.advanceToNextCycle());
   }
 
-  // ── game over ──────────────────────────────────────────────────────────────
+  // ── Game over ──
 
   private gameOver() {
     const centerX = this.cameras.main.width  / 2;

@@ -6,7 +6,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   create() {
-    const { width, height } = this.cameras.main;
+    const { width } = this.cameras.main;
     const centerX = width / 2;
 
     this.cameras.main.setBackgroundColor('#1a1a1a');
@@ -15,7 +15,7 @@ export class SettingsScene extends Phaser.Scene {
     const titleStyle = {
       fontFamily: 'Impact, sans-serif',
       fontSize: '48px',
-      fill: '#c2baba',
+      color: '#c2baba',
       stroke: '#000',
       strokeThickness: 4
     };
@@ -23,7 +23,7 @@ export class SettingsScene extends Phaser.Scene {
     const labelStyle = {
       fontFamily: 'Arial Black, sans-serif',
       fontSize: '24px',
-      fill: '#e0e0e0'
+      color: '#e0e0e0'
     };
 
     // Title
@@ -60,7 +60,7 @@ export class SettingsScene extends Phaser.Scene {
     this.add.text(centerX, 300, 'SCREEN RESOLUTION', labelStyle).setOrigin(0.5);
     
     //buttons for resolution control
-    const resBtn = this.createMetalBtn(centerX, 360, 300, 60, resolutions[currentResIndex].label, () => {
+    this.createMetalBtn(centerX, 360, 300, 60, resolutions[currentResIndex].label, () => {
       this.input.enabled = false;
 
       // visual effect
@@ -81,15 +81,14 @@ export class SettingsScene extends Phaser.Scene {
     this.add.text(centerX, 440, 'DISPLAY MODE', labelStyle).setOrigin(0.5);
 
     const initialfslabel = this.scale.isFullscreen ? 'EXIT FULLSCREEN' : 'WINDOWED / FULLSCREEN';
-    let fullScreenBtn;
 
-    fullScreenBtn = this.createMetalBtn(centerX, 500, 300, 60, initialfslabel, () => {
+    const fullScreenBtn = this.createMetalBtn(centerX, 500, 300, 60, initialfslabel, () => {
       if (this.scale.isFullscreen) {
         this.scale.stopFullscreen();
-        fullScreenBtn.getAt(1).setText('WINDOWED / FULLSCREEN');
-    } else {
-        document.getElementById('game-container').requestFullscreen();
-        fullScreenBtn.getAt(1).setText('EXIT FULLSCREEN');
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('WINDOWED / FULLSCREEN');
+      } else {
+        document.getElementById('game-container')?.requestFullscreen();
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('EXIT FULLSCREEN');
       }
     });
 
@@ -99,7 +98,7 @@ export class SettingsScene extends Phaser.Scene {
     });
   }
 
-  updateVolume(val, textObj) {
+  updateVolume(val: number, textObj: Phaser.GameObjects.Text) {
     textObj.setText(`${Math.round(val * 100)}%`);
     localStorage.setItem('gameVolume', val.toString());
     // Aplicar el volumen globalmente en Phaser inmediatamente
@@ -107,11 +106,11 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   // metal button
-  createMetalBtn(x, y, w, h, label, callback) {
+  createMetalBtn(x: number, y: number, w: number, h: number, label: string, callback: () => void) {
     const container = this.add.container(x, y);
     const graphics = this.add.graphics();
-    
-    const draw = (pressed) => {
+
+    const draw = (pressed: boolean) => {
       graphics.clear();
       graphics.fillStyle(0x000000, 0.4);
       graphics.fillRoundedRect(-w/2 + 3, -h/2 + 3, w, h, 6);
@@ -125,7 +124,7 @@ export class SettingsScene extends Phaser.Scene {
 
     draw(false);
     const text = this.add.text(0, 0, label, {
-      fontFamily: 'Impact', fontSize: '22px', fill: '#fff',
+      fontFamily: 'Impact', fontSize: '22px', color: '#fff',
       stroke: '#000', strokeThickness: 4
     }).setOrigin(0.5);
 
