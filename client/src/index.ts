@@ -5,6 +5,7 @@ import { EvergladesScene } from './scenes/EvergladesScene';
 import { PlatformerScene } from './scenes/PlatformerScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { InstructionScene } from './scenes/InstructionScene';
+import { LoginScene } from './scenes/LoginScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
@@ -17,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [MenuScene, DuelScene, EvergladesScene, PlatformerScene, InstructionScene, SettingsScene],
+  scene: [MenuScene, DuelScene, EvergladesScene, PlatformerScene, InstructionScene, SettingsScene, LoginScene],
 };
 
 new Phaser.Game(config);
