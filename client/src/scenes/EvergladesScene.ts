@@ -30,7 +30,7 @@ const STAMINA_REGEN_DELAY = 10000;
 
 const ENEMY_SIZE      = 48;
 const ENEMY_SPEED     = 75;
-const ENEMY_DPS       = 20; // damage per second while touching
+const ENEMY_DPS       = 20;
 const ENEMY_HP        = 100;
 const ENEMY_COUNT_MIN = 3;
 const ENEMY_COUNT_MAX = 6;
@@ -54,7 +54,7 @@ const HEAL_PER_SEC = 12;
 const CAMERA_SCROLL_BASE = 30;
 const CAMERA_SCROLL_STEP = 5;
 
-const EVERGLADES_PER_CYCLE = 2; // 2 everglades stages then 1 duel = 1 cycle
+const EVERGLADES_PER_CYCLE = 2;
 const END_COL         = COLS - 5;
 const START_COLS      = 4;
 
@@ -72,9 +72,6 @@ const BASE_COINS          = 50;
 const TIME_BONUS_INTERVAL = 5;
 const TIME_BONUS_XP       = 10;
 const TIME_BONUS_COINS    = 5;
-
-// ── Physics helpers ──
-// Move these to customPhysics.ts if you want — they're pure math.
 
 function rectsOverlap(
   ax: number, ay: number, aw: number, ah: number,
@@ -96,8 +93,6 @@ function dist(x1: number, y1: number, x2: number, y2: number): number {
   const dy = y1 - y2;
   return Math.sqrt(dx * dx + dy * dy);
 }
-
-// ── A* pathfinding ──
 
 interface GridCell { row: number; col: number }
 
@@ -175,8 +170,6 @@ function astar(
   return path;
 }
 
-// ── Types ──
-
 interface Rect { x: number; y: number; w: number; h: number }
 
 interface Enemy {
@@ -203,7 +196,12 @@ interface Projectile {
 
 type DeathReason = 'hp' | 'hole' | 'camera';
 
-// ══════════════════════════════════════════════════════════════════
+export interface RunData {
+  level: number;
+  step: number;
+  totalCoins: number;
+  totalXp: number;
+}
 
 export class EvergladesScene extends Phaser.Scene {
 
@@ -216,7 +214,9 @@ export class EvergladesScene extends Phaser.Scene {
   private lastSprintTime = -STAMINA_REGEN_DELAY;
 
   private level = 0;
-  private step = 0; // which everglades stage in the current cycle (0 or 1)
+  private step = 0;
+  private totalCoins = 0;
+  private totalXp = 0;
   private leftStart = false;
   private done = false;
   private timer = 0;
@@ -250,9 +250,11 @@ export class EvergladesScene extends Phaser.Scene {
 
   constructor() { super({ key: 'EvergladesScene' }); }
 
-  init(data: { level?: number; step?: number }) {
+  init(data: Partial<RunData>) {
     this.level          = data.level ?? 0;
     this.step           = data.step ?? 0;
+    this.totalCoins     = data.totalCoins ?? 0;
+    this.totalXp        = data.totalXp ?? 0;
     this.done           = false;
     this.hp             = MAX_HP;
     this.stamina        = STAMINA_MAX;
@@ -304,6 +306,16 @@ export class EvergladesScene extends Phaser.Scene {
     this.checkEndZone();
     this.checkHoleDeath();
     this.refreshHud();
+  }
+
+  private getRunData(): RunData {
+    const { xp, coins } = this.calculateRewards();
+    return {
+      level: this.level,
+      step: this.step,
+      totalCoins: this.totalCoins + coins,
+      totalXp: this.totalXp + xp,
+    };
   }
 
   // ── Textures ──
@@ -506,8 +518,6 @@ export class EvergladesScene extends Phaser.Scene {
   }
 
   // ── HUD ──
-  // All positions are relative to (0,0) inside the container.
-  // To move the whole HUD: hudContainer.setPosition(newX, newY)
 
   private buildHud() {
     const BAR_X = 50;
@@ -560,7 +570,7 @@ export class EvergladesScene extends Phaser.Scene {
     this.staminaBar.fillStyle(stCol);
     this.staminaBar.fillRoundedRect(BAR_X, 40, BAR_W * stRatio, 8, 2);
 
-    this.coinText.setText(`Coins: ${this.coinsCollected}`);
+    this.coinText.setText(`Coins: ${this.totalCoins + this.coinsCollected}`);
   }
 
   // ── Input ──
@@ -718,7 +728,6 @@ export class EvergladesScene extends Phaser.Scene {
     const dt = delta / 1000;
     const startWall = START_COLS * TILE;
 
-    // Enemies idle until player leaves the start zone
     if (!this.leftStart) {
       for (const e of this.enemies) {
         e.img.setPosition(e.x, e.y);
@@ -757,7 +766,6 @@ export class EvergladesScene extends Phaser.Scene {
         }
       }
 
-      // Clamp: world edges + can't enter start zone
       e.x = clamp(e.x, startWall, WORLD_W - ENEMY_SIZE);
       e.y = clamp(e.y, 0, WORLD_H - ENEMY_SIZE);
 
@@ -774,7 +782,6 @@ export class EvergladesScene extends Phaser.Scene {
         else                  e.y = b.y + b.h;
       }
 
-      // Continuous damage while touching
       const touching = rectsOverlap(
         this.px, this.py, PLAYER_SIZE, PLAYER_SIZE,
         e.x, e.y, ENEMY_SIZE, ENEMY_SIZE
@@ -887,16 +894,14 @@ export class EvergladesScene extends Phaser.Scene {
   }
 
   // ── Stage progression ──
-  // Cycle: everglades × EVERGLADES_PER_CYCLE, then duel. Level increments after duel.
 
   private advanceStage() {
+    const run = this.getRunData();
     const nextStep = this.step + 1;
     if (nextStep >= EVERGLADES_PER_CYCLE) {
-      // Done with everglades stages, go to duel
-      this.scene.start('DuelScene', { level: this.level, step: nextStep });
+      this.scene.start('DuelScene', { ...run, step: nextStep });
     } else {
-      // Next everglades stage in the same cycle
-      this.scene.start('EvergladesScene', { level: this.level, step: nextStep });
+      this.scene.start('EvergladesScene', { ...run, step: nextStep });
     }
   }
 
@@ -935,6 +940,7 @@ export class EvergladesScene extends Phaser.Scene {
     if (this.done) return;
     this.done = true;
 
+    const run = this.getRunData();
     const w  = this.cameras.main.width;
     const h  = this.cameras.main.height;
     const cx = w / 2, cy = h / 2;
@@ -949,19 +955,21 @@ export class EvergladesScene extends Phaser.Scene {
       camera: 'Left Behind!',
     };
 
-    this.add.text(cx, cy - 80, reasons[this.deathReason], { fontSize: '48px', color: '#ff4444', fontStyle: 'bold' })
+    this.add.text(cx, cy - 100, reasons[this.deathReason], { fontSize: '48px', color: '#ff4444', fontStyle: 'bold' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21);
-    this.add.text(cx, cy - 20, `Level ${this.level + 1}`, { fontSize: '24px', color: '#ffffff' })
+    this.add.text(cx, cy - 40, `Level ${this.level + 1}`, { fontSize: '24px', color: '#ffffff' })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(21);
+    this.add.text(cx, cy, `Total Coins: ${run.totalCoins}  |  Total XP: ${run.totalXp}`, { fontSize: '18px', color: '#ffd700' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21);
 
-    const retry = this.add.text(cx, cy + 40, 'Try Again', { fontSize: '28px', color: '#ffffff' })
+    const retry = this.add.text(cx, cy + 50, 'Try Again', { fontSize: '28px', color: '#ffffff' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => retry.setColor('#00ff88'))
       .on('pointerout',  () => retry.setColor('#ffffff'))
-      .on('pointerdown', () => this.scene.start('EvergladesScene', { level: this.level, step: this.step }));
+      .on('pointerdown', () => this.scene.start('EvergladesScene', { level: this.level, step: this.step, totalCoins: run.totalCoins, totalXp: run.totalXp }));
 
-    const menu = this.add.text(cx, cy + 110, 'Menu', { fontSize: '24px', color: '#888888' })
+    const menu = this.add.text(cx, cy + 120, 'Menu', { fontSize: '24px', color: '#888888' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => menu.setColor('#ffffff'))

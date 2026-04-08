@@ -27,18 +27,14 @@ export class MenuScene extends Phaser.Scene {
             this.time.delayedCall(300, () => {
                 if (this.input) this.input.enabled = true;
             });
-        }, { once: true }); // Enable input after the welcome screen is dismissed
+        }, { once: true });
     } else {
         this.input.enabled = true;
     }
 
-    // Background
     this.add.image(centerX, centerY, 'title-background');
-
-    // Title logo
     this.add.image(centerX, 150, 'title-logo').setScale(0.5);
 
-    //text design
     const textStyle = {
       fontFamily: 'Impact, Arial black, sans-serif',
       fontSize: '40px',
@@ -49,7 +45,6 @@ export class MenuScene extends Phaser.Scene {
       letterSpacing: -1
     };
 
-    // Menu buttons
     const buttons = [
       { text: 'START', y: 320, action: () => this.startGame() },
       { text: 'MULTIPLAYER', y: 405, action: () => console.log('Multiplayer - coming soon') },
@@ -58,10 +53,8 @@ export class MenuScene extends Phaser.Scene {
       { text: 'LOG OUT', y: 660, action: () => this.showExit() }
     ];
 
-    //button for see instructions in menu
     const buttonInstructions = this.createButton(centerX + 410, 670, 280, 50, 'HOW TO PLAY', () => this.instruction(), textStyle);
 
-    //dimnesions for buttons
     const buttonWidth = 350;
     const buttonHeight = 70;
 
@@ -70,26 +63,19 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  // Custom button creation method
   createButton(x: number, y: number, width: number, height: number, label: string, callback: () => void, style: any) {
-    //container
     const container = this.add.container(x, y);
 
-    // Create button background
     const graphics = this.add.graphics();
-    this.drawMetalPlate(graphics, width, height, false); // false = normal state
+    this.drawMetalPlate(graphics, width, height, false);
 
-    //text
     const text = this.add.text(0, 0, label, style).setOrigin(0.5);
 
-    //add to container
     container.add([graphics, text]);
 
-    // Interactivity of container
     container.setSize(width, height);
     container.setInteractive({useHandCursor: true});
 
-    //events and animations
     container.on('pointerover',() => {
       text.setColor('#226d1b');
       this.tweens.add({ targets: container, scale: 1.03, duration: 100 });
@@ -103,8 +89,8 @@ export class MenuScene extends Phaser.Scene {
     });
 
     container.on('pointerdown', () => {
-      this.drawMetalPlate(graphics, width, height, true); // true = pressed state
-      text.y = 4; // button press effect
+      this.drawMetalPlate(graphics, width, height, true);
+      text.y = 4;
     });
 
     container.on('pointerup', () => {
@@ -123,38 +109,30 @@ export class MenuScene extends Phaser.Scene {
     const x = -w / 2;
     const y = -h / 2;
 
-    // Shadow and depth
     graphics.fillStyle(0x000000, 0.4);
     graphics.fillRoundedRect(x + 4, y + 4, w, h, 6);
 
-    // Plate base
     graphics.fillStyle(pressed ? 0x222222 : 0x444444, 1);
     graphics.fillRoundedRect(x, y, w, h, 4);
 
-    // 3. Gradients
     const topColor = pressed ? 0x333333 : 0x999999;
     const bottomColor = pressed ? 0x111111 : 0x666666;
     
-    // Light top half
     graphics.fillStyle(topColor, 1);
     graphics.fillRect(x + 4, y + 4, w - 8, (h / 2) - 4);
-    // Shadow bottom half
     graphics.fillStyle(bottomColor, 1);
     graphics.fillRect(x + 4, y + (h / 2), w - 8, (h / 2) - 4);
 
-    // Highlights
     if (!pressed) {
       graphics.lineStyle(2, 0xffffff, 0.3);
       graphics.lineBetween(x + 5, y + 5, x + w - 5, y + 5);
     }
 
-    // Rivets
     const rivetColor = pressed ? 0x000000 : 0x222222;
     const offset = 12;
     const rSize = 4;
     
     graphics.fillStyle(rivetColor, 1);
-    // Draw rivets at corners with a slight offset to avoid being too close to the edge
     [ [x+offset, y+offset], [x+w-offset, y+offset], [x+offset, y+h-offset], [x+w-offset, y+h-offset] ].forEach(pos => {
       graphics.fillCircle(pos[0], pos[1], rSize);
       if(!pressed) {
@@ -173,22 +151,18 @@ export class MenuScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
-    //overlay for modal background
     const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7)
       .setOrigin(0)
       .setDepth(200)
       .setInteractive();
 
-    //modal container
     const modal = this.add.container(centerX, centerY).setDepth(201);
 
-    //body of the modal
     const bgWidth = 450;
     const bgHeight = 400;
     const background = this.add.graphics();
     this.drawMetalPlate(background, bgWidth, bgHeight, false);
 
-    //design title of the modal
     const title = this.add.text(0, -150, 'LOGIN', {
       fontFamily: 'Impact, sans-serif',
       fontSize: '32px',
@@ -198,8 +172,6 @@ export class MenuScene extends Phaser.Scene {
       align: 'center'
     }).setOrigin(0.5);
 
-    // HTML elements for username and password
-    // Use add.dom for better styling and functionality of form elements
     const loginForm = this.add.dom(0, -20).createFromHTML(`
       <div style="display: flex; flex-direction: column; gap: 15px; width: 300px;">
         <input type="text" id="username" placeholder="Username" 
@@ -209,7 +181,6 @@ export class MenuScene extends Phaser.Scene {
       </div>
     `);
 
-    // text to buttons
     const textStyleBtn = {
       fontFamily: 'Impact, sans-serif',
       fontSize: '24px',
@@ -225,7 +196,7 @@ export class MenuScene extends Phaser.Scene {
 
       if (user.length > 0) {
         console.log('Login intent:', user);
-        this.scene.start('DuelScene'); // Simulate successful login and transition to the next scene
+        this.scene.start('EvergladesScene', { level: 0, step: 0 });
       } else {
          this.alertLogin();
          overlay.destroy();
@@ -238,10 +209,8 @@ export class MenuScene extends Phaser.Scene {
       modal.destroy();
     }, textStyleBtn);
 
-    // Add content to modal container
     modal.add([background, title, loginForm, loginBtn, cancelBtn]);
 
-    // Enter animation
     modal.setScale(0).setAlpha(0);
     this.tweens.add({
       targets: modal,
@@ -288,24 +257,21 @@ export class MenuScene extends Phaser.Scene {
   }
   
   exitGame() {
-    // Block input to prevent further interactions during the exit animation
      this.input.enabled = false;
 
-    // Overlay for fade-out effect
     const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 1);
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
     overlay.setAlpha(0);
     overlay.setDepth(100);
 
-    // Shutdown animation
     this.tweens.add({
       targets: overlay,
       alpha: 1,
       duration: 800,
-        ease: 'Power2', // desacelerate the fade for a more dramatic effect
+        ease: 'Power2',
         onComplete: () => {
-          window.location.reload(); // Simulate game exit by reloading the page
+          window.location.reload();
         }
     });
   }
@@ -314,21 +280,18 @@ export class MenuScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
-    // Overlay for modal background
     const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6)
         .setOrigin(0)
         .setDepth(90)
-        .setInteractive(); // Block interactions with the background
+        .setInteractive();
 
     const modal = this.add.container(centerX, centerY).setDepth(101);
     const width = 500;
     const height = 280;
 
-    // body of the modal
     const background = this.add.graphics();
     this.drawMetalPlate(background, width, height, false);
 
-    // Confirmation text
     const text = this.add.text(0, -50, 'ARE YOU SURE?', {
         fontFamily: 'Impact, Arial black, sans-serif',
         fontSize: '32px',
@@ -355,7 +318,6 @@ export class MenuScene extends Phaser.Scene {
 
     modal.add([background, text, yesBtn, noBtn]);
 
-    // Pop-up animation
     modal.setScale(0.5);
     modal.setAlpha(0);
     this.tweens.add({
