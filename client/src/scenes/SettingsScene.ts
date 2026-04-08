@@ -50,10 +50,10 @@ export class SettingsScene extends Phaser.Scene {
 
     //resolution section
     const resolutions = [
-    { label: 'Pequeña 1024x640', width: 1024, height: 640 },
-    { label: 'Normal 1200x750', width: 1200, height: 750 },
-    { label: 'Grande 1440x900', width: 1440, height: 900 }
-];
+      { label: 'Pequeña 1024x640', width: 1024, height: 640 },
+      { label: 'Normal 1200x750', width: 1200, height: 750 },
+      { label: 'Grande 1440x900', width: 1440, height: 900 }
+    ];
     
     let currentResIndex = parseInt(localStorage.getItem('gameResolution') || '1'); // Default to 1200x750
 
