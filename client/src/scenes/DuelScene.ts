@@ -74,8 +74,6 @@ export class DuelScene extends Phaser.Scene {
 
   private cardObjects: Phaser.GameObjects.Container[] = [];
   private currentTableCardObject?: Phaser.GameObjects.Container;
-  private drawButton?: Phaser.GameObjects.Text;
-
   private roundText!: Phaser.GameObjects.Text;
   private instructionText!: Phaser.GameObjects.Text;
   private battleMessageText!: Phaser.GameObjects.Text;
@@ -141,7 +139,7 @@ export class DuelScene extends Phaser.Scene {
     this.renderTableCard();
     this.renderCards();
     this.refreshHud();
-    this.updateInstruction();
+    // this.updateInstruction();
 
     const keyP = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P);
     keyP.on('down', () => this.advanceToNextCycle());
@@ -220,31 +218,34 @@ export class DuelScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2;
 
     this.roundText = this.add.text(centerX, 50, 'Round 1', {
-      fontSize: '36px', color: '#ffaa00', fontStyle: 'bold',
+      fontSize: '36px',
+      color: '#ffaa00',
+      fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.battleMessageText = this.add.text(centerX, 86, '', {
-      fontSize: '20px', color: '#ffffff', fontStyle: 'bold',
+      fontSize: '20px',
+      color: '#ffffff',
+      fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.tableCardLabel = this.add.text(centerX, 192, 'Table Card', {
-      fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
+      fontSize: '22px',
+      color: '#ffffff',
+      fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.instructionText = this.add.text(centerX, 540, 'Choose a valid card or right-click to discard.', {
-      fontSize: '22px', color: '#ffffff',
+      fontSize: '22px',
+      color: '#ffffff',
     }).setOrigin(0.5);
 
-    this.drawButton = this.add.text(centerX, 475, 'Draw', {
-      fontSize: '24px', color: '#ffffff', fontStyle: 'bold',
-      backgroundColor: '#245fdd',
-      padding: { left: 14, right: 14, top: 8, bottom: 8 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true })
-      .on('pointerover', () => this.drawButton?.setScale(1.05))
-      .on('pointerout', () => this.drawButton?.setScale(1))
-      .on('pointerdown', () => this.handlePlayerDrawAction());
+    this.add.text(48, 34, 'Player', {
+      fontSize: '22px',
+      color: '#00ff88',
+      fontStyle: 'bold',
+    });
 
-    this.add.text(48, 34, 'Player', { fontSize: '22px', color: '#00ff88', fontStyle: 'bold' });
     this.playerHpBar = this.add.graphics();
     this.playerHpText = this.add.text(48, 86, '', { fontSize: '16px', color: '#ffffff' });
     this.playerShieldText = this.add.text(48, 108, '', { fontSize: '15px', color: '#7fd7ff' });
@@ -253,34 +254,78 @@ export class DuelScene extends Phaser.Scene {
     this.add.text(48, 155, 'EI', { fontSize: '15px', color: '#69c0ff', fontStyle: 'bold' });
     this.playerEiBar = this.add.graphics();
 
-    this.totalXpText = this.add.text(48, 175, `XP: ${this.totalXp}`, { fontSize: '14px', color: '#66ccff' });
-    this.totalCoinsText = this.add.text(170, 175, `Coins: ${this.totalCoins}`, { fontSize: '14px', color: '#ffd700' });
+    this.totalXpText = this.add.text(48, 175, `XP: ${this.totalXp}`, {
+      fontSize: '14px',
+      color: '#66ccff',
+    });
 
-    this.add.text(this.cameras.main.width - 292, 34, 'Enemy', { fontSize: '22px', color: '#ff6666', fontStyle: 'bold' });
+    this.totalCoinsText = this.add.text(170, 175, `Coins: ${this.totalCoins}`, {
+      fontSize: '14px',
+      color: '#ffd700',
+    });
+
+    this.add.text(this.cameras.main.width - 292, 34, 'Enemy', {
+      fontSize: '22px',
+      color: '#ff6666',
+      fontStyle: 'bold',
+    });
+
     this.enemyHpBar = this.add.graphics();
-    this.enemyHpText = this.add.text(this.cameras.main.width - 292, 86, '', { fontSize: '16px', color: '#ffffff' });
-    this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 108, '', { fontSize: '15px', color: '#7fd7ff' });
-    this.add.text(this.cameras.main.width - 292, 125, 'EE', { fontSize: '15px', color: '#9ae66e', fontStyle: 'bold' });
+    this.enemyHpText = this.add.text(this.cameras.main.width - 292, 86, '', {
+      fontSize: '16px',
+      color: '#ffffff',
+    });
+
+    this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 108, '', {
+      fontSize: '15px',
+      color: '#7fd7ff',
+    });
+
+    this.add.text(this.cameras.main.width - 292, 125, 'EE', {
+      fontSize: '15px',
+      color: '#9ae66e',
+      fontStyle: 'bold',
+    });
+
     this.enemyEeBar = this.add.graphics();
-    this.add.text(this.cameras.main.width - 292, 155, 'EI', { fontSize: '15px', color: '#69c0ff', fontStyle: 'bold' });
+
+    this.add.text(this.cameras.main.width - 292, 155, 'EI', {
+      fontSize: '15px',
+      color: '#69c0ff',
+      fontStyle: 'bold',
+    });
+
     this.enemyEiBar = this.add.graphics();
 
     this.playerDamageText = this.add.text(215, 85, '', {
-      fontSize: '18px', color: '#ff6666', fontStyle: 'bold',
+      fontSize: '18px',
+      color: '#ff6666',
+      fontStyle: 'bold',
     });
+
     this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 85, '', {
-      fontSize: '18px', color: '#ff6666', fontStyle: 'bold',
+      fontSize: '18px',
+      color: '#ff6666',
+      fontStyle: 'bold',
     });
 
     this.deckCountText = this.add.text(centerX - 248, 466, '', {
-      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold',
     }).setOrigin(0.5);
+
     this.discardCountText = this.add.text(centerX + 245, 466, '', {
-      fontSize: '16px', color: '#ffffff', fontStyle: 'bold',
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.drawDeckPlaceholder(centerX - 135, 478, 'Deck');
-    this.drawDeckPlaceholder(centerX + 135, 478, 'Discard');
+
+    this.drawDeckPlaceholder(centerX + 135, 478, 'Discard', () => {
+      this.handlePlayerDrawAction();
+    });
   }
 
   private createCharacters() {
@@ -356,15 +401,38 @@ export class DuelScene extends Phaser.Scene {
     graphics.strokeRoundedRect(x, y, width, height, 6);
   }
 
-  private drawDeckPlaceholder(x: number, y: number, label: string) {
+  private drawDeckPlaceholder(
+    x: number,
+    y: number,
+    label: string,
+    onClick?: () => void
+  ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
     const bg = this.add.graphics();
+
     bg.fillStyle(0x1a1a1a, 0.9);
     bg.fillRoundedRect(-32, -42, 64, 84, 12);
     bg.lineStyle(2, 0xffffff, 0.85);
     bg.strokeRoundedRect(-32, -42, 64, 84, 12);
-    const text = this.add.text(0, 0, label, { fontSize: '13px', color: '#ffffff', fontStyle: 'bold', align: 'center' }).setOrigin(0.5);
+
+    const text = this.add.text(0, 0, label, {
+      fontSize: '13px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5);
+
     container.add([bg, text]);
+    container.setSize(64, 84);
+
+    if (onClick) {
+      container.setInteractive({ useHandCursor: true })
+        .on('pointerover', () => container.setScale(1.05))
+        .on('pointerout', () => container.setScale(1))
+        .on('pointerdown', onClick);
+    }
+
+    return container;
   }
 
   // ── Card rendering ──
@@ -376,6 +444,7 @@ export class DuelScene extends Phaser.Scene {
     const startX = centerX - 310;
     const y = this.cameras.main.height - 110;
     const spacing = 155;
+    
     this.playerHand.forEach((card, index) => {
       const x = startX + index * spacing;
       const isPlayable = this.isPlayerCardPlayable(card);
@@ -429,14 +498,21 @@ export class DuelScene extends Phaser.Scene {
 
   private handlePlayerDrawAction() {
     if (this.isAnimating) return;
-    const hasPlayable = this.playerHand.some((card) => this.isPlayerCardPlayable(card));
-    if (hasPlayable) { this.showBattleMessage('You already have a valid move.', '#ffaa00'); return; }
-    const drawn = this.drawUntilPlayable('player', this.tableCard, true);
-    if (drawn) { this.showBattleMessage(`Drawn: ${drawn.element.toUpperCase()} ${drawn.power ?? 'FX'}`, '#00d4ff'); }
-    else { this.showBattleMessage('No playable card found.', '#ff6666'); }
+    const drawn = this.drawOneAvailableCard();
+    
+    if (!drawn) {
+      this.showBattleMessage('No cards available to draw.', '#ff6666');
+      this.refreshHud();
+      this.renderCards();
+      return;
+    }
+
+    const source = this.playerDeck.length >= 0 ? 'deck' : 'discard';
+    this.showBattleMessage(`Drawn: ${drawn.element.toUpperCase()} ${drawn.power ?? 'FX'}`, '#00d4ff');
+
     this.refreshHud();
     this.renderCards();
-    this.updateInstruction();
+    // this.updateInstruction();
   }
 
   private playPlayerCard(card: Card) {
@@ -459,12 +535,14 @@ export class DuelScene extends Phaser.Scene {
   private handleEnemyTurn() {
     this.applyStartOfTurnStatusEffects('enemy');
     if (this.checkCombatEnded()) return;
+    
     if (this.enemyState.stunTurnCounter > 0) {
       this.enemyState.stunTurnCounter -= 1;
       this.showBattleMessage('Enemy is stunned!', '#7ed9ff');
       this.finishRound();
       return;
     }
+
     const enemyCard = this.getEnemyPlayableCard();
     if (!enemyCard) { this.showBattleMessage('Enemy cannot play.', '#ffaa00'); this.finishRound(); return; }
     this.discardPile.push(enemyCard);
@@ -480,16 +558,42 @@ export class DuelScene extends Phaser.Scene {
     });
   }
 
+  private refillHandFromDeckThenDiscard(
+    side: 'player' | 'enemy',
+    hand: Card[],
+    deck: Card[]
+  ) {
+    while (hand.length < this.HAND_SIZE) {
+      let nextCard: Card | null = null;
+
+      if (deck.length > 0) {
+        nextCard = drawOneCard(deck);
+      } 
+      
+      else if (this.discardPile.length > 0) {
+        nextCard = drawOneCard(this.discardPile);
+        if (nextCard) {
+          this.incrementDiscardFatigue(side);
+        }
+      }
+
+      if (!nextCard) break;
+      hand.push(nextCard);
+    }
+  }
+
   private finishRound() {
-    this.endOfRoundDraw(this.playerHand, this.playerDeck);
-    this.endOfRoundDraw(this.enemyHand, this.enemyDeck);
+    this.refillHandFromDeckThenDiscard('player', this.playerHand, this.playerDeck);
+    this.refillHandFromDeckThenDiscard('enemy', this.enemyHand, this.enemyDeck);
+
     this.applyStartOfTurnStatusEffects('player');
     if (this.checkCombatEnded()) return;
+
     this.tickEndOfTurnFlags(this.playerState);
     this.tickEndOfTurnFlags(this.enemyState);
     this.refreshHud();
     this.renderCards();
-    this.updateInstruction();
+    // this.updateInstruction();
     this.playerDamageText.setText('');
     this.enemyDamageText.setText('');
     this.isAnimating = false;
@@ -532,6 +636,28 @@ export class DuelScene extends Phaser.Scene {
     return null;
   }
 
+  private drawOneAvailableCard() {
+    let drawn: Card | null = null;
+
+    if (this.playerDeck.length > 0) {
+      drawn = drawOneCard(this.playerDeck);
+      if (!drawn) return null;
+
+      if(this.playerHand.length < this.HAND_SIZE) {
+        this.playerHand.push(drawn);
+      }
+
+      else {
+        this.playerHand[this.playerHand.length - 1] = drawn;
+      }
+
+      return drawn;
+    }
+
+    drawn = drawOneCard(this.discardPile);
+    if (!drawn) return null;
+  }
+
   private incrementDiscardFatigue(side: 'player' | 'enemy') {
     const state = side === 'player' ? this.playerState : this.enemyState;
     state.discardDrawTurnCounter += 1;
@@ -541,10 +667,10 @@ export class DuelScene extends Phaser.Scene {
     this.applyDirectDamage(side, damage, `${damage} fatigue`);
   }
 
-  private endOfRoundDraw(hand: Card[], deck: Card[]) {
-    const nextCard = drawOneCard(deck);
-    if (nextCard) hand.push(nextCard);
-  }
+  // private endOfRoundDraw(hand: Card[], deck: Card[]) {
+  //   const nextCard = drawOneCard(deck);
+  //   if (nextCard) hand.push(nextCard);
+  // }
 
   private applyCardEffects(card: Card, attacker: 'player' | 'enemy') {
     const isPlayer = attacker === 'player';
@@ -664,10 +790,10 @@ export class DuelScene extends Phaser.Scene {
     return card.element === previousTableCard.element && card.power !== null && previousTableCard.power !== null && card.power === previousTableCard.power;
   }
 
-  private updateInstruction() {
-    const hasPlayable = this.playerHand.some((card) => this.isPlayerCardPlayable(card));
-    this.instructionText.setText(hasPlayable ? 'Choose a valid card or right-click to discard.' : 'No valid move in hand. Press Draw or right-click to discard.');
-  }
+  // private updateInstruction() {
+  //   const hasPlayable = this.playerHand.some((card) => this.isPlayerCardPlayable(card));
+  //   this.instructionText.setText(hasPlayable ? 'Choose a valid card or right-click to discard.' : 'No valid move in hand. Press Draw or right-click to discard.');
+  // }
 
   private showBattleMessage(message: string, color = '#ffffff') {
     this.battleMessageText.setText(message);
@@ -690,11 +816,11 @@ export class DuelScene extends Phaser.Scene {
     if (this.isAnimating) return;
     this.playerHand = this.playerHand.filter((handCard) => handCard.id !== card.id);
     this.discardPile.push(card);
-    this.endOfRoundDraw(this.playerHand, this.playerDeck);
+    this.refillHandFromDeckThenDiscard('player', this.playerHand, this.playerDeck);
     this.showBattleMessage('Card discarded', '#ffaa00');
     this.refreshHud();
     this.renderCards();
-    this.updateInstruction();
+    // this.updateInstruction();
   }
 
   private checkCombatEnded(): boolean {
