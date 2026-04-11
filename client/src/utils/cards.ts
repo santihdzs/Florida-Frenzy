@@ -1,4 +1,12 @@
-import { create } from "domain";
+/*
+* Manuel Montero, Yael Ordaz & Santiago Hernandez
+* 
+* Script to define the structure of cards in the game, 
+* including their properties, effects, and how they are created and managed within the game. 
+* This includes defining types for elements, categories, rarities, and effects, as well as 
+* functions for creating base cards and special cards with unique abilities.
+*/ 
+
 
 // Element types, card categories, and rarities for the game
 export type Element = 'fire' | 'water' | 'swamp' | 'sand' | 'ice';
