@@ -80,15 +80,16 @@ export class SettingsScene extends Phaser.Scene {
     //full screen toggle
     this.add.text(centerX, 440, 'DISPLAY MODE', labelStyle).setOrigin(0.5);
 
-    const initialfslabel = this.scale.isFullscreen ? 'EXIT FULLSCREEN' : 'WINDOWED / FULLSCREEN';
+    const initialfslabel = this.scale.isFullscreen ? 'EXIT FULLSCREEN' : 'WINDOWED / FULLSCREEN'; // Set initial label based on current fullscreen state
 
+    // Fullscreen toggle button
     const fullScreenBtn = this.createMetalBtn(centerX, 500, 300, 60, initialfslabel, () => {
       if (this.scale.isFullscreen) {
         this.scale.stopFullscreen();
-        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('WINDOWED / FULLSCREEN');
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('WINDOWED / FULLSCREEN'); // Update label when exiting fullscreen
       } else {
         document.getElementById('game-container')?.requestFullscreen();
-        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('EXIT FULLSCREEN');
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('EXIT FULLSCREEN'); // Update label when entering fullscreen
       }
     });
 
@@ -101,7 +102,7 @@ export class SettingsScene extends Phaser.Scene {
   updateVolume(val: number, textObj: Phaser.GameObjects.Text) {
     textObj.setText(`${Math.round(val * 100)}%`);
     localStorage.setItem('gameVolume', val.toString());
-    // Aplicar el volumen globalmente en Phaser inmediatamente
+    // Update the global volume immediately
     this.sound.volume = val;
   }
 

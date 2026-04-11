@@ -20,6 +20,7 @@ export class MenuScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
+    // Check if we're coming from the welcome screen and disable input until the "game-start-click" event is fired
     const welcomeScreen = document.getElementById('welcome-screen');
     if (welcomeScreen) {
         this.input.enabled = false;
@@ -53,6 +54,7 @@ export class MenuScene extends Phaser.Scene {
       { text: 'LOG OUT', y: 660, action: () => this.showExit() }
     ];
 
+    // button apart from the main ones
     const buttonInstructions = this.createButton(centerX + 410, 670, 280, 50, 'HOW TO PLAY', () => this.instruction(), textStyle);
 
     const buttonWidth = 350;
@@ -63,6 +65,7 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  // Helper function to create styled buttons with hover and click effects
   createButton(x: number, y: number, width: number, height: number, label: string, callback: () => void, style: any) {
     const container = this.add.container(x, y);
 
@@ -102,6 +105,7 @@ export class MenuScene extends Phaser.Scene {
     return container;
   }
 
+  // Function to draw a stylized metal plate for buttons and modals
   drawMetalPlate(graphics: Phaser.GameObjects.Graphics, width: number, height: number, pressed: boolean) {
     graphics.clear();
     const w = width;
@@ -143,14 +147,17 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  // Start the game by showing the login modal
   startGame() {
     this.showLogin();
   }
 
+  // Show a login modal with username and password fields
   showLogin() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
+    // Create a semi-transparent overlay to block interaction with the background
     const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7)
       .setOrigin(0)
       .setDepth(200)
@@ -172,6 +179,8 @@ export class MenuScene extends Phaser.Scene {
       align: 'center'
     }).setOrigin(0.5);
 
+    // Create a DOM element for the login form, use createFromHTML to define the structure and styling of the form
+    // Will be change in future sprint
     const loginForm = this.add.dom(0, -20).createFromHTML(`
       <div style="display: flex; flex-direction: column; gap: 15px; width: 300px;">
         <input type="text" id="username" placeholder="Username" 
@@ -190,6 +199,7 @@ export class MenuScene extends Phaser.Scene {
       align: 'center'
     };
 
+    //buttons for login and cancel
     const loginBtn = this.createButton(0, 100, 200, 50, 'LOGIN', () => {
       const user = (document.getElementById('username') as HTMLInputElement).value;
       const pass = (document.getElementById('password') as HTMLInputElement).value;
@@ -221,6 +231,7 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  // Show an alert if the user tries to login without entering a username
   alertLogin() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
@@ -248,14 +259,17 @@ export class MenuScene extends Phaser.Scene {
     this.tweens.add({ targets: alertBox, scale: 1, alpha: 1, duration: 200, ease: 'Back.easeOut' });
   }
 
+  // Navigate to the settings scene
   settingsScene(){
     this.scene.start('SettingsScene');
   }
 
+  // Navigate to the instruction scene
   instruction(){
     this.scene.start('InstructionScene');
   }
   
+  // Exit the game by reloading the page with a fade-out effect
   exitGame() {
      this.input.enabled = false;
 
@@ -276,6 +290,7 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  // Show a confirmation modal when the user clicks "LOG OUT"
   showExit() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
