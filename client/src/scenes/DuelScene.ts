@@ -12,6 +12,13 @@ import {
 import type { RunData } from './EvergladesScene';
 
 import backgroundImg from '../assets/backgrounds/everglades.jpg';
+
+import christianIdle from '../assets/characters/christian/Christian_v4_resized.png';
+import christianAttack1 from '../assets/characters/christian/Christian_attack-1.png';
+import christianAttack2 from '../assets/characters/christian/Christian_attack-2.png';
+import christianDamage1 from '../assets/characters/christian/Christian_damage-1.png';
+import christianDamage2 from '../assets/characters/christian/Christian_damage-2.png';
+
 import enemyDefault from '../assets/characters/default/enemy-gator.png';
 import enemyAttack1 from '../assets/characters/default/attack-1.png';
 import enemyAttack2 from '../assets/characters/default/attack-2.png';
@@ -47,6 +54,15 @@ export class DuelScene extends Phaser.Scene {
   private readonly PLAYER_DECK_SIZE = 12;
   private readonly DISCARD_BASE_SIZE = 72;
 
+  private readonly PLAYER_IDLE_SCALE = 0.33;
+  private readonly PLAYER_ATTACK_SCALE = 0.33;
+  private readonly PLAYER_HURT_SCALE = 0.33;
+
+  private readonly ENEMY_IDLE_SCALE = 0.38;
+  private readonly ENEMY_ATTACK_SCALE = 0.38;
+  private readonly ENEMY_HURT1_SCALE = 0.38;
+  private readonly ENEMY_HURT2_SCALE = 0.38;
+
   private playerHp = this.MAX_HP;
   private enemyHp = this.MAX_HP;
 
@@ -75,6 +91,7 @@ export class DuelScene extends Phaser.Scene {
   private cardObjects: Phaser.GameObjects.Container[] = [];
   private currentTableCardObject?: Phaser.GameObjects.Container;
   private discardTopCardObject?: Phaser.GameObjects.Container;
+  private discardClickZone?: Phaser.GameObjects.Zone;
   private discardDrawHintText!: Phaser.GameObjects.Text; // the '!' stands for "definite assignment assertion" since this will be initialized in create() and we want to avoid it being possibly undefined in event handlers
   private roundText!: Phaser.GameObjects.Text;
   private instructionText!: Phaser.GameObjects.Text;
@@ -119,6 +136,11 @@ export class DuelScene extends Phaser.Scene {
 
   preload() {
     this.load.image('background',     backgroundImg);
+    this.load.image('christian-idle', christianIdle);
+    this.load.image('christian-attack-1', christianAttack1);
+    this.load.image('christian-attack-2', christianAttack2);
+    this.load.image('christian-damage-1', christianDamage1);
+    this.load.image('christian-damage-2', christianDamage2);
     this.load.image('enemy-default',  enemyDefault);
     this.load.image('enemy-attack-1', enemyAttack1);
     this.load.image('enemy-attack-2', enemyAttack2);
@@ -216,131 +238,134 @@ export class DuelScene extends Phaser.Scene {
     panels.fillRoundedRect(centerX - 430, height - 235, 860, 210, 24);
     panels.fillRoundedRect(centerX - 310, 440, 620, 78, 18);
   }
-private createHud() {
-  const centerX = this.cameras.main.width / 2;
 
-  this.roundText = this.add.text(centerX, 50, 'Round 1', {
-    fontSize: '36px',
-    color: '#ffaa00',
-    fontStyle: 'bold',
-  }).setOrigin(0.5);
+  private createHud() {
+    const centerX = this.cameras.main.width / 2;
 
-  this.battleMessageText = this.add.text(centerX, 86, '', {
-    fontSize: '20px',
-    color: '#ffffff',
-    fontStyle: 'bold',
-  }).setOrigin(0.5);
+    this.roundText = this.add.text(centerX, 50, 'Round 1', {
+      fontSize: '36px',
+      color: '#ffaa00',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-  this.tableCardLabel = this.add.text(centerX, 192, 'Table Card', {
-    fontSize: '22px',
-    color: '#ffffff',
-    fontStyle: 'bold',
-  }).setOrigin(0.5);
+    this.battleMessageText = this.add.text(centerX, 86, '', {
+      fontSize: '20px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-  this.instructionText = this.add.text(centerX, 540, 'Choose a valid card or right-click to discard.', {
-    fontSize: '22px',
-    color: '#ffffff',
-  }).setOrigin(0.5);
+    this.tableCardLabel = this.add.text(centerX, 192, 'Table Card', {
+      fontSize: '22px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-  this.add.text(48, 34, 'Player', {
-    fontSize: '22px',
-    color: '#00ff88',
-    fontStyle: 'bold',
-  });
+    this.instructionText = this.add.text(centerX, 540, 'Choose a valid card or right-click to discard.', {
+      fontSize: '22px',
+      color: '#ffffff',
+    }).setOrigin(0.5);
 
-  this.playerHpBar = this.add.graphics();
-  this.playerHpText = this.add.text(48, 86, '', { fontSize: '16px', color: '#ffffff' });
-  this.playerShieldText = this.add.text(48, 108, '', { fontSize: '15px', color: '#7fd7ff' });
-  this.add.text(48, 125, 'EE', { fontSize: '15px', color: '#9ae66e', fontStyle: 'bold' });
-  this.playerEeBar = this.add.graphics();
-  this.add.text(48, 155, 'EI', { fontSize: '15px', color: '#69c0ff', fontStyle: 'bold' });
-  this.playerEiBar = this.add.graphics();
+    this.add.text(48, 34, 'Player', {
+      fontSize: '22px',
+      color: '#00ff88',
+      fontStyle: 'bold',
+    });
 
-  this.totalXpText = this.add.text(48, 175, `XP: ${this.totalXp}`, {
-    fontSize: '14px',
-    color: '#66ccff',
-  });
+    this.playerHpBar = this.add.graphics();
+    this.playerHpText = this.add.text(48, 86, '', { fontSize: '16px', color: '#ffffff' });
+    this.playerShieldText = this.add.text(48, 108, '', { fontSize: '15px', color: '#7fd7ff' });
+    this.add.text(48, 125, 'EE', { fontSize: '15px', color: '#9ae66e', fontStyle: 'bold' });
+    this.playerEeBar = this.add.graphics();
+    this.add.text(48, 155, 'EI', { fontSize: '15px', color: '#69c0ff', fontStyle: 'bold' });
+    this.playerEiBar = this.add.graphics();
 
-  this.totalCoinsText = this.add.text(170, 175, `Coins: ${this.totalCoins}`, {
-    fontSize: '14px',
-    color: '#ffd700',
-  });
+    this.totalXpText = this.add.text(48, 175, `XP: ${this.totalXp}`, {
+      fontSize: '14px',
+      color: '#66ccff',
+    });
 
-  this.add.text(this.cameras.main.width - 292, 34, 'Enemy', {
-    fontSize: '22px',
-    color: '#ff6666',
-    fontStyle: 'bold',
-  });
+    this.totalCoinsText = this.add.text(170, 175, `Coins: ${this.totalCoins}`, {
+      fontSize: '14px',
+      color: '#ffd700',
+    });
 
-  this.enemyHpBar = this.add.graphics();
-  this.enemyHpText = this.add.text(this.cameras.main.width - 292, 86, '', {
-    fontSize: '16px',
-    color: '#ffffff',
-  });
+    this.add.text(this.cameras.main.width - 292, 34, 'Enemy', {
+      fontSize: '22px',
+      color: '#ff6666',
+      fontStyle: 'bold',
+    });
 
-  this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 108, '', {
-    fontSize: '15px',
-    color: '#7fd7ff',
-  });
+    this.enemyHpBar = this.add.graphics();
+    this.enemyHpText = this.add.text(this.cameras.main.width - 292, 86, '', {
+      fontSize: '16px',
+      color: '#ffffff',
+    });
 
-  this.add.text(this.cameras.main.width - 292, 125, 'EE', {
-    fontSize: '15px',
-    color: '#9ae66e',
-    fontStyle: 'bold',
-  });
+    this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 108, '', {
+      fontSize: '15px',
+      color: '#7fd7ff',
+    });
 
-  this.enemyEeBar = this.add.graphics();
+    this.add.text(this.cameras.main.width - 292, 125, 'EE', {
+      fontSize: '15px',
+      color: '#9ae66e',
+      fontStyle: 'bold',
+    });
 
-  this.add.text(this.cameras.main.width - 292, 155, 'EI', {
-    fontSize: '15px',
-    color: '#69c0ff',
-    fontStyle: 'bold',
-  });
+    this.enemyEeBar = this.add.graphics();
 
-  this.enemyEiBar = this.add.graphics();
+    this.add.text(this.cameras.main.width - 292, 155, 'EI', {
+      fontSize: '15px',
+      color: '#69c0ff',
+      fontStyle: 'bold',
+    });
 
-  this.playerDamageText = this.add.text(215, 85, '', {
-    fontSize: '18px',
-    color: '#ff6666',
-    fontStyle: 'bold',
-  });
+    this.enemyEiBar = this.add.graphics();
 
-  this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 85, '', {
-    fontSize: '18px',
-    color: '#ff6666',
-    fontStyle: 'bold',
-  });
+    this.playerDamageText = this.add.text(215, 85, '', {
+      fontSize: '18px',
+      color: '#ff6666',
+      fontStyle: 'bold',
+    });
 
-  this.deckCountText = this.add.text(centerX - 248, 466, '', {
-    fontSize: '16px',
-    color: '#ffffff',
-    fontStyle: 'bold',
-  }).setOrigin(0.5);
+    this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 85, '', {
+      fontSize: '18px',
+      color: '#ff6666',
+      fontStyle: 'bold',
+    });
 
-  this.discardCountText = this.add.text(centerX + 245, 466, '', {
-    fontSize: '16px',
-    color: '#ffffff',
-    fontStyle: 'bold',
-  }).setOrigin(0.5);
+    this.deckCountText = this.add.text(centerX - 248, 466, '', {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-  this.drawDeckPlaceholder(centerX - 135, 478, 'Deck');
+    this.discardCountText = this.add.text(centerX + 245, 466, '', {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-  this.discardDrawHintText = this.add.text(centerX + 135, 530, 'Click here to draw from discard', {
-    fontSize: '12px',
-    color: '#dddddd',
-  }).setOrigin(0.5);
-}
+    this.drawDeckPlaceholder(centerX - 135, 478, 'Deck');
+
+    this.discardDrawHintText = this.add.text(centerX + 245, 486, 'Click to draw', {
+      fontSize: '12px',
+      color: '#dddddd',
+    }).setOrigin(0.5);
+  }
 
   private createCharacters() {
     const centerY = 327;
     this.playerShadow = this.add.graphics();
     this.playerShadow.fillStyle(0x000000, 0.3);
-    this.playerShadow.fillEllipse(270, 417, 170, 28);
+    this.playerShadow.fillEllipse(185, 442, 210, 36);
+
     this.enemyShadow = this.add.graphics();
     this.enemyShadow.fillStyle(0x000000, 0.3);
-    this.enemyShadow.fillEllipse(1010, 417, 170, 28);
-    this.playerCharacter = this.add.image(270, centerY, 'enemy-default').setScale(-0.38, 0.38);
-    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(0.38);
+    this.enemyShadow.fillEllipse(1010, 430, 185, 32);
+
+    this.playerCharacter = this.add.image(185, centerY + 5, 'christian-idle').setScale(this.PLAYER_IDLE_SCALE);
+    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(-this.ENEMY_IDLE_SCALE, this.ENEMY_IDLE_SCALE);
   }
 
   private setupDecks() {
@@ -494,6 +519,7 @@ private createHud() {
 
   private renderDiscardTopCard() {
     this.discardTopCardObject?.destroy();
+    this.discardClickZone?.destroy();
 
     const centerX = this.cameras.main.width / 2;
     const discardX = centerX + 135;
@@ -509,18 +535,17 @@ private createHud() {
     this.discardTopCardObject = this.createCardContainer(discardX, discardY, topCard, true, true, 0xffffff);
     this.discardTopCardObject.setScale(0.55);
     
-    this.discardTopCardObject.setInteractive(new Phaser.Geom.Rectangle(-58, -78, 116, 156), Phaser.Geom.Rectangle.Contains)
+    this.discardClickZone = this.add.zone(discardX, discardY, 150, 110)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.handlePlayerDrawAction();
+      })
       .on('pointerover', () => {
         if (!this.isAnimating) this.discardTopCardObject?.setScale(0.60);
       })
-
       .on('pointerout', () => {
         this.discardTopCardObject?.setScale(0.55);
-      })
-      
-      .on('pointerdown', () => {
-        this.handlePlayerDrawAction();
-    });
+      });
   }
 
   private isPlayerCardPlayable(card: Card): boolean {
@@ -559,7 +584,7 @@ private createHud() {
     this.renderTableCard(0x00ff88);
     this.addEnergyFromCard(card, 'player', previousTableCard);
     this.applyCardEffects(card, 'player');
-    this.animateEnemyAttack();
+    this.animatePlayerAttack();
     this.time.delayedCall(550, () => {
       if (this.checkCombatEnded()) return;
       this.handleEnemyTurn();
@@ -584,8 +609,8 @@ private createHud() {
     this.tableCard = enemyCard;
     this.renderTableCard(0xff6666);
     this.addEnergyFromCard(enemyCard, 'enemy', previousTableCard);
+    this.animateEnemyAttack();
     this.applyCardEffects(enemyCard, 'enemy');
-    this.updateEnemyPose();
     this.time.delayedCall(700, () => {
       if (this.checkCombatEnded()) return;
       this.finishRound();
@@ -615,6 +640,8 @@ private createHud() {
     // this.updateInstruction();
     this.playerDamageText.setText('');
     this.enemyDamageText.setText('');
+    this.updatePlayerPose();
+    this.updateEnemyPose();
     this.isAnimating = false;
   }
 
@@ -739,14 +766,38 @@ private createHud() {
     const isPlayer = attacker === 'player';
     const defenderState = isPlayer ? this.enemyState : this.playerState;
     let remainingDamage = rawDamage;
-    if (defenderState.shield > 0) { const absorbed = Math.min(defenderState.shield, remainingDamage); defenderState.shield -= absorbed; remainingDamage -= absorbed; }
-    if (remainingDamage <= 0) { this.showBattleMessage('Shield blocked the attack!', '#7fd7ff'); return; }
-    if (isPlayer) { this.enemyHp = Math.max(0, this.enemyHp - remainingDamage); this.enemyDamageText.setText(`-${remainingDamage}`); this.showBattleMessage(`Player used ${element.toUpperCase()}`, '#00ff88'); }
-    else { this.playerHp = Math.max(0, this.playerHp - remainingDamage); this.playerDamageText.setText(`-${remainingDamage}`); this.showBattleMessage(`Enemy used ${element.toUpperCase()}`, '#ff6666'); }
+    if (defenderState.shield > 0) { 
+      const absorbed = Math.min(defenderState.shield, remainingDamage); defenderState.shield -= absorbed; remainingDamage -= absorbed; 
+    }
+    if (remainingDamage <= 0) { 
+      this.showBattleMessage('Shield blocked the attack!', '#7fd7ff'); return; 
+    }
+
+    if (isPlayer) { 
+      this.enemyHp = Math.max(0, this.enemyHp - remainingDamage); 
+      this.enemyDamageText.setText(`-${remainingDamage}`); 
+      this.showBattleMessage(`Player used ${element.toUpperCase()}`, '#00ff88'); 
+      this.updateEnemyPose();
+    }
+
+    else { 
+      this.playerHp = Math.max(0, this.playerHp - remainingDamage); 
+      this.playerDamageText.setText(`-${remainingDamage}`); 
+      this.showBattleMessage(`Enemy used ${element.toUpperCase()}`, '#ff6666'); 
+      this.updatePlayerPose();
+    }
+
     if (defenderState.reflectTurnCounter > 0) {
       const reflected = Math.max(1, Math.floor(remainingDamage * (defenderState.reflectPercent / 100)));
-      if (isPlayer) { this.playerHp = Math.max(0, this.playerHp - reflected); this.playerDamageText.setText(`-${reflected}`); }
-      else { this.enemyHp = Math.max(0, this.enemyHp - reflected); this.enemyDamageText.setText(`-${reflected}`); }
+      if (isPlayer) { 
+        this.playerHp = Math.max(0, this.playerHp - reflected); 
+        this.playerDamageText.setText(`-${reflected}`); 
+      }
+
+      else { 
+        this.enemyHp = Math.max(0, this.enemyHp - reflected); 
+        this.enemyDamageText.setText(`-${reflected}`); 
+      }
     }
   }
 
@@ -819,16 +870,27 @@ private createHud() {
     this.battleMessageText.setColor(color);
   }
 
+  private animatePlayerAttack() {
+    const attackImage = Math.random() < 0.5 ? 'christian-attack-1' : 'christian-attack-2';
+    this.playerCharacter.setTexture(attackImage).setScale(this.PLAYER_ATTACK_SCALE).setY(335);
+  }
+
   private animateEnemyAttack() {
     const attackImage = Math.random() < 0.5 ? 'enemy-attack-1' : 'enemy-attack-2';
-    this.enemyCharacter.setTexture(attackImage).setScale(0.42).setY(320);
+    this.enemyCharacter.setTexture(attackImage).setScale(-this.ENEMY_ATTACK_SCALE, this.ENEMY_ATTACK_SCALE).setY(327);
+  }
+
+  private updatePlayerPose() {
+    if (this.playerHp <= 25) { this.playerCharacter.setTexture('christian-damage-2').setScale(this.PLAYER_HURT_SCALE).setY(335); return; }
+    if (this.playerHp <= 50) { this.playerCharacter.setTexture('christian-damage-1').setScale(this.PLAYER_HURT_SCALE).setY(335); return; }
+    this.playerCharacter.setTexture('christian-idle').setScale(this.PLAYER_IDLE_SCALE).setY(335);
   }
 
   private updateEnemyPose() {
-    if (this.enemyHp <= 25) { this.currentEnemyImage = 'enemy-hurt-2'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(0.52).setY(340); return; }
-    if (this.enemyHp <= 50) { this.currentEnemyImage = 'enemy-hurt-1'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(0.42).setY(327); return; }
+    if (this.enemyHp <= 25) { this.currentEnemyImage = 'enemy-hurt-2'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(-this.ENEMY_HURT2_SCALE, this.ENEMY_HURT2_SCALE).setY(327); return; }
+    if (this.enemyHp <= 50) { this.currentEnemyImage = 'enemy-hurt-1'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(-this.ENEMY_HURT1_SCALE, this.ENEMY_HURT1_SCALE).setY(327); return; }
     this.currentEnemyImage = 'enemy-default';
-    this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(0.38).setY(327);
+    this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(-this.ENEMY_IDLE_SCALE, this.ENEMY_IDLE_SCALE).setY(327);
   }
 
   private discardPlayerCard(card: Card) {
