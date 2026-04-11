@@ -6,7 +6,7 @@
 * and contains all the logic for handling the player's and enemy's decks, hands, 
 * and the combat mechanics. It includes methods for initializing the scene, 
 * creating the user interface, rendering cards, handling player input, applying card effects, 
-* and managing the flow of combat rounds. 
+* and managing the flow of the levels themselves. 
 * The script also defines a CombatState interface to track various status effects and conditions 
 * for both the player and the enemy during combat.
 * 
@@ -89,7 +89,7 @@ export class DuelScene extends Phaser.Scene {
   private discardTopCardObject?: Phaser.GameObjects.Container; // rendered discard top card container
   private discardClickZone?: Phaser.GameObjects.Zone; // invisible click target for the discard pile
   private discardDrawHintText!: Phaser.GameObjects.Text; // initialized in create() for input guidance
-  private roundText!: Phaser.GameObjects.Text; // round indicator at the top
+  private levelText!: Phaser.GameObjects.Text; // level indicator at the top
   private instructionText!: Phaser.GameObjects.Text; // gameplay instruction text
   private battleMessageText!: Phaser.GameObjects.Text; // short combat feedback message
   private tableCardLabel!: Phaser.GameObjects.Text; // label above the table card
@@ -131,7 +131,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('background',     backgroundImg); // load duel background
+    this.load.image('background', backgroundImg); // load duel background
     this.load.image('christian-idle', christianIdle); // load player idle sprite
     this.load.image('christian-attack-1', christianAttack1); // load player attack sprite 1
     this.load.image('christian-attack-2', christianAttack2); // load player attack sprite 2
@@ -205,7 +205,7 @@ export class DuelScene extends Phaser.Scene {
     panels.fillStyle(0x000000, 0.72); // translucent black for readability
     panels.fillRoundedRect(25, 20, 315, 195, 18); // left player HUD panel
     panels.fillRoundedRect(width - 340, 20, 315, 195, 18); // right enemy HUD panel
-    panels.fillRoundedRect(centerX - 190, 24, 380, 90, 18); // top center round/message panel
+    panels.fillRoundedRect(centerX - 190, 24, 380, 90, 18); // top center level/message panel
     panels.fillRoundedRect(centerX - 210, 165, 420, 260, 24); // table card area panel
     panels.fillRoundedRect(centerX - 430, height - 235, 860, 210, 24); // deck/discard area panel
     panels.fillRoundedRect(centerX - 310, 440, 620, 78, 18); // instruction bar panel
@@ -214,11 +214,11 @@ export class DuelScene extends Phaser.Scene {
   private createHud() {
     const centerX = this.cameras.main.width / 2; // shared horizontal center for top HUD
 
-    this.roundText = this.add.text(centerX, 50, 'Round 1', {
+    this.levelText = this.add.text(centerX, 50, `Level ${this.level}`, {
       fontSize: '36px',
       color: '#ffaa00',
       fontStyle: 'bold',
-    }).setOrigin(0.5); // center the round title
+    }).setOrigin(0.5); // center the level title
 
     this.battleMessageText = this.add.text(centerX, 86, '', {
       fontSize: '20px',
@@ -244,19 +244,37 @@ export class DuelScene extends Phaser.Scene {
     }); // player panel label
 
     this.playerHpBar = this.add.graphics(); // player HP bar renderer
-    this.playerHpText = this.add.text(48, 86, '', { fontSize: '16px', color: '#ffffff' }); // player HP text
-    this.playerShieldText = this.add.text(48, 108, '', { fontSize: '15px', color: '#7fd7ff' }); // player shield text
-    this.add.text(48, 125, 'EE', { fontSize: '15px', color: '#9ae66e', fontStyle: 'bold' }); // elemental energy label
+    this.playerHpText = this.add.text(48, 86, '', { 
+      fontSize: '16px', 
+      color: '#ffffff' 
+    }); // player HP text
+
+    this.playerShieldText = this.add.text(48, 116, '', { 
+      fontSize: '15px', 
+      color: '#7fd7ff' 
+    }); // player shield text
+
+    this.add.text(48, 136, 'EE', { 
+      fontSize: '15px', 
+      color: '#9ae66e', 
+      fontStyle: 'bold' 
+    }); // elemental energy label
+
     this.playerEeBar = this.add.graphics(); // player elemental energy bar renderer
-    this.add.text(48, 155, 'EI', { fontSize: '15px', color: '#69c0ff', fontStyle: 'bold' }); // instinct energy label
+    this.add.text(48, 166, 'EI', { 
+      fontSize: '15px', 
+      color: '#69c0ff', 
+      fontStyle: 'bold' 
+    }); // instinct energy label
+
     this.playerEiBar = this.add.graphics(); // player instinct energy bar renderer
 
-    this.totalXpText = this.add.text(48, 175, `XP: ${this.totalXp}`, {
+    this.totalXpText = this.add.text(48, 188, `XP: ${this.totalXp}`, {
       fontSize: '14px',
       color: '#66ccff',
     }); // running XP total
 
-    this.totalCoinsText = this.add.text(170, 175, `Coins: ${this.totalCoins}`, {
+    this.totalCoinsText = this.add.text(170, 188, `Coins: ${this.totalCoins}`, {
       fontSize: '14px',
       color: '#ffd700',
     }); // running coin total
@@ -273,12 +291,12 @@ export class DuelScene extends Phaser.Scene {
       color: '#ffffff',
     }); // enemy HP text
 
-    this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 108, '', {
+    this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 116, '', {
       fontSize: '15px',
       color: '#7fd7ff',
     }); // enemy shield text
 
-    this.add.text(this.cameras.main.width - 292, 125, 'EE', {
+    this.add.text(this.cameras.main.width - 292, 136, 'EE', {
       fontSize: '15px',
       color: '#9ae66e',
       fontStyle: 'bold',
@@ -286,7 +304,7 @@ export class DuelScene extends Phaser.Scene {
 
     this.enemyEeBar = this.add.graphics(); // enemy elemental energy bar renderer
 
-    this.add.text(this.cameras.main.width - 292, 155, 'EI', {
+    this.add.text(this.cameras.main.width - 292, 166, 'EI', {
       fontSize: '15px',
       color: '#69c0ff',
       fontStyle: 'bold',
@@ -337,7 +355,7 @@ export class DuelScene extends Phaser.Scene {
     this.enemyShadow.fillEllipse(1010, 430, 185, 32); // enemy shadow shape
 
     this.playerCharacter = this.add.image(185, centerY + 5, 'christian-idle').setScale(this.PLAYER_IDLE_SCALE); // player sprite on the left
-    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(-this.ENEMY_IDLE_SCALE, this.ENEMY_IDLE_SCALE); // flipped enemy sprite on the right
+    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(this.ENEMY_IDLE_SCALE).setFlipX(true); // flipped enemy sprite on the right
   }
 
   private setupDecks() {
@@ -367,10 +385,10 @@ export class DuelScene extends Phaser.Scene {
   private refreshHud() {
     this.updateHpBar(this.playerHpBar, this.playerHp, 48, 58, this.playerHpText); // update player HP visuals
     this.updateHpBar(this.enemyHpBar, this.enemyHp, this.cameras.main.width - 292, 58, this.enemyHpText); // update enemy HP visuals
-    this.updateEnergyBar(this.playerEeBar, this.playerElementalEnergy, 82, 126, 220, 12, 0x7cd957); // update player elemental energy
-    this.updateEnergyBar(this.playerEiBar, this.playerInstinctEnergy, 82, 154, 220, 12, 0x4db8ff); // update player instinct energy
-    this.updateEnergyBar(this.enemyEeBar, this.enemyElementalEnergy, this.cameras.main.width - 258, 126, 220, 12, 0x7cd957); // update enemy elemental energy
-    this.updateEnergyBar(this.enemyEiBar, this.enemyInstinctEnergy, this.cameras.main.width - 258, 154, 220, 12, 0x4db8ff); // update enemy instinct energy
+    this.updateEnergyBar(this.playerEeBar, this.playerElementalEnergy, 82, 138, 220, 12, 0x7cd957); // update player elemental energy
+    this.updateEnergyBar(this.playerEiBar, this.playerInstinctEnergy, 82, 166, 220, 12, 0x4db8ff); // update player instinct energy
+    this.updateEnergyBar(this.enemyEeBar, this.enemyElementalEnergy, this.cameras.main.width - 258, 138, 220, 12, 0x7cd957); // update enemy elemental energy
+    this.updateEnergyBar(this.enemyEiBar, this.enemyInstinctEnergy, this.cameras.main.width - 258, 166, 220, 12, 0x4db8ff); // update enemy instinct energy
     this.playerShieldText.setText(`Shield: ${this.playerState.shield}`); // refresh player shield text
     this.enemyShieldText.setText(`Shield: ${this.enemyState.shield}`); // refresh enemy shield text
     this.deckCountText.setText(`Deck: ${this.playerDeck.length}`); // refresh player deck count
@@ -569,12 +587,12 @@ export class DuelScene extends Phaser.Scene {
     if (this.enemyState.stunTurnCounter > 0) {
       this.enemyState.stunTurnCounter -= 1; // consume one stun turn
       this.showBattleMessage('Enemy is stunned!', '#7ed9ff'); // explain why the enemy skipped its turn
-      this.finishRound(); // end the round without a play
+      this.finishLevel(); // end the level without a play
       return;
     }
 
     const enemyCard = this.getEnemyPlayableCard(); // select a legal enemy card
-    if (!enemyCard) { this.showBattleMessage('Enemy cannot play.', '#ffaa00'); this.finishRound(); return; } // no move available
+    if (!enemyCard) { this.showBattleMessage('Enemy cannot play.', '#ffaa00'); this.finishLevel(); return; } // no move available
     this.discardPile.push(enemyCard); // move the enemy card to discard
     const previousTableCard = this.tableCard; // preserve previous table card for energy gain
     this.tableCard = enemyCard; // set the enemy card as the current table card
@@ -582,9 +600,9 @@ export class DuelScene extends Phaser.Scene {
     this.addEnergyFromCard(enemyCard, 'enemy', previousTableCard); // award enemy energy gains
     this.animateEnemyAttack(); // play enemy attack pose
     this.applyCardEffects(enemyCard, 'enemy'); // resolve enemy card effects
-    this.time.delayedCall(700, () => { // delay before ending the round
+    this.time.delayedCall(700, () => { // delay before ending the level
       if (this.checkCombatEnded()) return; // stop if the duel ended
-      this.finishRound(); // continue back to round cleanup
+      this.finishLevel(); // continue back to level cleanup
     });
   }
 
@@ -596,7 +614,7 @@ export class DuelScene extends Phaser.Scene {
     }
   }
 
-  private finishRound() {
+  private finishLevel() {
     this.refillHandFromDeckOnly(this.playerHand, this.playerDeck); // refill the player's hand from deck only
     this.refillHandFromDeckOnly(this.enemyHand, this.enemyDeck); // refill the enemy's hand from deck only
 
@@ -684,7 +702,7 @@ export class DuelScene extends Phaser.Scene {
     return drawn; // return the drawn card
   }
 
-  // private endOfRoundDraw(hand: Card[], deck: Card[]) {
+  // private endOfLevelDraw(hand: Card[], deck: Card[]) {
   //   const nextCard = drawOneCard(deck);
   //   if (nextCard) hand.push(nextCard);
   // } // kept commented out as in your current code
@@ -851,20 +869,32 @@ export class DuelScene extends Phaser.Scene {
 
   private animateEnemyAttack() {
     const attackImage = Math.random() < 0.5 ? 'enemy-attack-1' : 'enemy-attack-2'; // randomize enemy attack pose
-    this.enemyCharacter.setTexture(attackImage).setScale(-this.ENEMY_ATTACK_SCALE, this.ENEMY_ATTACK_SCALE).setY(327); // switch to attack pose and keep flip
+    this.enemyCharacter.setTexture(attackImage).setScale(0.46).setFlipX(true).setY(327); // switch to attack pose and keep flip
   }
 
   private updatePlayerPose() {
-    if (this.playerHp <= 25) { this.playerCharacter.setTexture('christian-damage-2').setScale(this.PLAYER_HURT_SCALE).setY(335); return; } // critical HP pose
-    if (this.playerHp <= 50) { this.playerCharacter.setTexture('christian-damage-1').setScale(this.PLAYER_HURT_SCALE).setY(335); return; } // wounded pose
+    if (this.playerHp <= 25) { this.playerCharacter.setTexture('christian-damage-2').setScale(this.PLAYER_HURT_SCALE).setY(335); // critical HP pose
+      return; 
+    }
+
+    if (this.playerHp <= 50) { this.playerCharacter.setTexture('christian-damage-1').setScale(this.PLAYER_HURT_SCALE).setY(335); // wounded pose
+      return; 
+    }
+
     this.playerCharacter.setTexture('christian-idle').setScale(this.PLAYER_IDLE_SCALE).setY(335); // healthy idle pose
   }
 
   private updateEnemyPose() {
-    if (this.enemyHp <= 25) { this.currentEnemyImage = 'enemy-hurt-2'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(-this.ENEMY_HURT2_SCALE, this.ENEMY_HURT2_SCALE).setY(327); return; } // critical enemy pose
-    if (this.enemyHp <= 50) { this.currentEnemyImage = 'enemy-hurt-1'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(-this.ENEMY_HURT1_SCALE, this.ENEMY_HURT1_SCALE).setY(327); return; } // wounded enemy pose
+    if (this.enemyHp <= 25) { this.currentEnemyImage = 'enemy-hurt-2'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(0.42).setFlipX(true).setY(327); // critical enemy pose
+      return; 
+    }
+
+    if (this.enemyHp <= 50) { this.currentEnemyImage = 'enemy-hurt-1'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(0.42).setFlipX(true).setY(327); // wounded enemy pose
+      return; 
+    }
+
     this.currentEnemyImage = 'enemy-default'; // restore the default enemy texture
-    this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(-this.ENEMY_IDLE_SCALE, this.ENEMY_IDLE_SCALE).setY(327); // healthy idle pose
+    this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(this.ENEMY_IDLE_SCALE).setFlipX(true).setY(327); // healthy idle pose
   }
 
   private discardPlayerCard(card: Card) {
@@ -884,7 +914,7 @@ export class DuelScene extends Phaser.Scene {
   private checkCombatEnded(): boolean {
     this.refreshHud(); // make sure final values are visible before transition
     if (this.playerHp <= 0) { this.gameOver(); return true; } // player lost
-    if (this.enemyHp <= 0) { this.levelsWon += 1; this.roundText.setText(`Level ${this.levelsWon + 1}`); this.showVictoryCutscene(); return true; } // enemy lost
+    if (this.enemyHp <= 0) { this.levelsWon += 1; this.levelText.setText(`Level ${this.levelsWon + 1}`); this.showVictoryCutscene(); return true; } // enemy lost
     return false; // combat continues
   }
 
