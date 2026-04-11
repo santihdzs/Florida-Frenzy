@@ -4,6 +4,7 @@ import Phaser from 'phaser';
 // Estos errores se arreglarian con un d.ts file, pero funciona bien
 import titleBackground from '../assets/title-background.png'; 
 import titleLogo from '../assets/logos/logo.png';
+import music from '../assets/music/Tailgate_Troubles.mp3';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -13,12 +14,23 @@ export class MenuScene extends Phaser.Scene {
   preload() {
     this.load.image('title-background', titleBackground);
     this.load.image('title-logo', titleLogo);
+    this.load.audio('menu-music', music);
   }
 
   create() {
 
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
+
+    const savedVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
+    this.sound.volume = savedVolume;
+
+    let music = this.registry.get('music');
+    if(!music){
+      music = this.sound.add('menu-music', { loop: true, volume: 0.5 });
+      this.registry.set('music', music);
+      music.play();
+    }
 
     const welcomeScreen = document.getElementById('welcome-screen');
     if (welcomeScreen) {
@@ -144,6 +156,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   startGame() {
+    this.sound.stopByKey('menu-music');
     this.scene.start('LoginScene');
   }
 
@@ -156,6 +169,7 @@ export class MenuScene extends Phaser.Scene {
   }
   
   exitGame() {
+    this.sound.stopByKey('menu-music');
      this.input.enabled = false;
 
     const overlay = this.add.graphics();

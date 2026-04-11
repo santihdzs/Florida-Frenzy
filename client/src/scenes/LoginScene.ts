@@ -43,6 +43,8 @@ export class LoginScene extends Phaser.Scene {
             <div id="login-form-container" style="display: flex; flex-direction: column; gap: 15px; width: 300px;">
                 <input type="text" id="username" placeholder="Username" 
                     style="padding: 10px; font-size: 18px; border: 2px solid #999797; background: #222; color: white; font-family: Impact, sans-serif;">
+                <input type="text" id="email" placeholder="Email (optional)"
+                    style="padding: 10px; font-size: 18px; border: 2px solid #999797; background: #222; color: white; font-family: Impact, sans-serif;">
                 <input type="password" id="password" placeholder="Password" 
                     style="padding: 10px; font-size: 18px; border: 2px solid #999797; background: #222; color: white; font-family: Impact, sans-serif;">
             </div>

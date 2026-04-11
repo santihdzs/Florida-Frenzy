@@ -30,9 +30,11 @@ export class SettingsScene extends Phaser.Scene {
     this.add.text(centerX, 80, 'SETTINGS', titleStyle).setOrigin(0.5);
 
     // Volume Section
-    // Aun no se puede cambiar el volumen globalmente
     let currentVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
-    this.sound.volume = currentVolume;
+    const music = this.registry.get('music');
+    if (music) {
+      music.setVolume(currentVolume);
+    }
 
     this.add.text(centerX, 180, 'AUDIO VOLUME', labelStyle).setOrigin(0.5);
     const volDisplay = this.add.text(centerX, 230, `${Math.round(currentVolume * 100)}%`, labelStyle).setOrigin(0.5);
@@ -101,8 +103,12 @@ export class SettingsScene extends Phaser.Scene {
   updateVolume(val: number, textObj: Phaser.GameObjects.Text) {
     textObj.setText(`${Math.round(val * 100)}%`);
     localStorage.setItem('gameVolume', val.toString());
-    // Aplicar el volumen globalmente en Phaser inmediatamente
     this.sound.volume = val;
+
+    const music = this.registry.get('music');
+    if (music) {
+      music.setVolume(val);
+    }   
   }
 
   // metal button
