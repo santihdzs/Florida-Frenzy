@@ -55,7 +55,7 @@ export class DuelScene extends Phaser.Scene {
   private enemyElementalEnergy = 0;
   private enemyInstinctEnergy = 0;
 
-  private roundsWon = 0;
+  private levelsWon = 0;
   private level = 0;
   private totalCoins = 0;
   private totalXp = 0;
@@ -74,6 +74,8 @@ export class DuelScene extends Phaser.Scene {
 
   private cardObjects: Phaser.GameObjects.Container[] = [];
   private currentTableCardObject?: Phaser.GameObjects.Container;
+  private discardTopCardObject?: Phaser.GameObjects.Container;
+  private discardDrawHintText!: Phaser.GameObjects.Text; // the '!' stands for "definite assignment assertion" since this will be initialized in create() and we want to avoid it being possibly undefined in event handlers
   private roundText!: Phaser.GameObjects.Text;
   private instructionText!: Phaser.GameObjects.Text;
   private battleMessageText!: Phaser.GameObjects.Text;
@@ -137,6 +139,7 @@ export class DuelScene extends Phaser.Scene {
     this.createCharacters();
     this.setupDecks();
     this.renderTableCard();
+    this.renderDiscardTopCard();
     this.renderCards();
     this.refreshHud();
     // this.updateInstruction();
@@ -185,7 +188,7 @@ export class DuelScene extends Phaser.Scene {
     this.playerInstinctEnergy = 0;
     this.enemyElementalEnergy = 0;
     this.enemyInstinctEnergy = 0;
-    this.roundsWon = 0;
+    this.levelsWon = 0;
     this.duelCoins = 0;
     this.duelXp = 0;
     this.playerDeck = [];
@@ -206,127 +209,127 @@ export class DuelScene extends Phaser.Scene {
     const centerX = width / 2;
     const panels = this.add.graphics();
     panels.fillStyle(0x000000, 0.72);
-    panels.fillRoundedRect(25, 20, 315, 160, 18);
-    panels.fillRoundedRect(width - 340, 20, 315, 160, 18);
+    panels.fillRoundedRect(25, 20, 315, 195, 18);
+    panels.fillRoundedRect(width - 340, 20, 315, 195, 18);
     panels.fillRoundedRect(centerX - 190, 24, 380, 90, 18);
     panels.fillRoundedRect(centerX - 210, 165, 420, 260, 24);
     panels.fillRoundedRect(centerX - 430, height - 235, 860, 210, 24);
     panels.fillRoundedRect(centerX - 310, 440, 620, 78, 18);
   }
+private createHud() {
+  const centerX = this.cameras.main.width / 2;
 
-  private createHud() {
-    const centerX = this.cameras.main.width / 2;
+  this.roundText = this.add.text(centerX, 50, 'Round 1', {
+    fontSize: '36px',
+    color: '#ffaa00',
+    fontStyle: 'bold',
+  }).setOrigin(0.5);
 
-    this.roundText = this.add.text(centerX, 50, 'Round 1', {
-      fontSize: '36px',
-      color: '#ffaa00',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+  this.battleMessageText = this.add.text(centerX, 86, '', {
+    fontSize: '20px',
+    color: '#ffffff',
+    fontStyle: 'bold',
+  }).setOrigin(0.5);
 
-    this.battleMessageText = this.add.text(centerX, 86, '', {
-      fontSize: '20px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+  this.tableCardLabel = this.add.text(centerX, 192, 'Table Card', {
+    fontSize: '22px',
+    color: '#ffffff',
+    fontStyle: 'bold',
+  }).setOrigin(0.5);
 
-    this.tableCardLabel = this.add.text(centerX, 192, 'Table Card', {
-      fontSize: '22px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+  this.instructionText = this.add.text(centerX, 540, 'Choose a valid card or right-click to discard.', {
+    fontSize: '22px',
+    color: '#ffffff',
+  }).setOrigin(0.5);
 
-    this.instructionText = this.add.text(centerX, 540, 'Choose a valid card or right-click to discard.', {
-      fontSize: '22px',
-      color: '#ffffff',
-    }).setOrigin(0.5);
+  this.add.text(48, 34, 'Player', {
+    fontSize: '22px',
+    color: '#00ff88',
+    fontStyle: 'bold',
+  });
 
-    this.add.text(48, 34, 'Player', {
-      fontSize: '22px',
-      color: '#00ff88',
-      fontStyle: 'bold',
-    });
+  this.playerHpBar = this.add.graphics();
+  this.playerHpText = this.add.text(48, 86, '', { fontSize: '16px', color: '#ffffff' });
+  this.playerShieldText = this.add.text(48, 108, '', { fontSize: '15px', color: '#7fd7ff' });
+  this.add.text(48, 125, 'EE', { fontSize: '15px', color: '#9ae66e', fontStyle: 'bold' });
+  this.playerEeBar = this.add.graphics();
+  this.add.text(48, 155, 'EI', { fontSize: '15px', color: '#69c0ff', fontStyle: 'bold' });
+  this.playerEiBar = this.add.graphics();
 
-    this.playerHpBar = this.add.graphics();
-    this.playerHpText = this.add.text(48, 86, '', { fontSize: '16px', color: '#ffffff' });
-    this.playerShieldText = this.add.text(48, 108, '', { fontSize: '15px', color: '#7fd7ff' });
-    this.add.text(48, 125, 'EE', { fontSize: '15px', color: '#9ae66e', fontStyle: 'bold' });
-    this.playerEeBar = this.add.graphics();
-    this.add.text(48, 155, 'EI', { fontSize: '15px', color: '#69c0ff', fontStyle: 'bold' });
-    this.playerEiBar = this.add.graphics();
+  this.totalXpText = this.add.text(48, 175, `XP: ${this.totalXp}`, {
+    fontSize: '14px',
+    color: '#66ccff',
+  });
 
-    this.totalXpText = this.add.text(48, 175, `XP: ${this.totalXp}`, {
-      fontSize: '14px',
-      color: '#66ccff',
-    });
+  this.totalCoinsText = this.add.text(170, 175, `Coins: ${this.totalCoins}`, {
+    fontSize: '14px',
+    color: '#ffd700',
+  });
 
-    this.totalCoinsText = this.add.text(170, 175, `Coins: ${this.totalCoins}`, {
-      fontSize: '14px',
-      color: '#ffd700',
-    });
+  this.add.text(this.cameras.main.width - 292, 34, 'Enemy', {
+    fontSize: '22px',
+    color: '#ff6666',
+    fontStyle: 'bold',
+  });
 
-    this.add.text(this.cameras.main.width - 292, 34, 'Enemy', {
-      fontSize: '22px',
-      color: '#ff6666',
-      fontStyle: 'bold',
-    });
+  this.enemyHpBar = this.add.graphics();
+  this.enemyHpText = this.add.text(this.cameras.main.width - 292, 86, '', {
+    fontSize: '16px',
+    color: '#ffffff',
+  });
 
-    this.enemyHpBar = this.add.graphics();
-    this.enemyHpText = this.add.text(this.cameras.main.width - 292, 86, '', {
-      fontSize: '16px',
-      color: '#ffffff',
-    });
+  this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 108, '', {
+    fontSize: '15px',
+    color: '#7fd7ff',
+  });
 
-    this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 108, '', {
-      fontSize: '15px',
-      color: '#7fd7ff',
-    });
+  this.add.text(this.cameras.main.width - 292, 125, 'EE', {
+    fontSize: '15px',
+    color: '#9ae66e',
+    fontStyle: 'bold',
+  });
 
-    this.add.text(this.cameras.main.width - 292, 125, 'EE', {
-      fontSize: '15px',
-      color: '#9ae66e',
-      fontStyle: 'bold',
-    });
+  this.enemyEeBar = this.add.graphics();
 
-    this.enemyEeBar = this.add.graphics();
+  this.add.text(this.cameras.main.width - 292, 155, 'EI', {
+    fontSize: '15px',
+    color: '#69c0ff',
+    fontStyle: 'bold',
+  });
 
-    this.add.text(this.cameras.main.width - 292, 155, 'EI', {
-      fontSize: '15px',
-      color: '#69c0ff',
-      fontStyle: 'bold',
-    });
+  this.enemyEiBar = this.add.graphics();
 
-    this.enemyEiBar = this.add.graphics();
+  this.playerDamageText = this.add.text(215, 85, '', {
+    fontSize: '18px',
+    color: '#ff6666',
+    fontStyle: 'bold',
+  });
 
-    this.playerDamageText = this.add.text(215, 85, '', {
-      fontSize: '18px',
-      color: '#ff6666',
-      fontStyle: 'bold',
-    });
+  this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 85, '', {
+    fontSize: '18px',
+    color: '#ff6666',
+    fontStyle: 'bold',
+  });
 
-    this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 85, '', {
-      fontSize: '18px',
-      color: '#ff6666',
-      fontStyle: 'bold',
-    });
+  this.deckCountText = this.add.text(centerX - 248, 466, '', {
+    fontSize: '16px',
+    color: '#ffffff',
+    fontStyle: 'bold',
+  }).setOrigin(0.5);
 
-    this.deckCountText = this.add.text(centerX - 248, 466, '', {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+  this.discardCountText = this.add.text(centerX + 245, 466, '', {
+    fontSize: '16px',
+    color: '#ffffff',
+    fontStyle: 'bold',
+  }).setOrigin(0.5);
 
-    this.discardCountText = this.add.text(centerX + 245, 466, '', {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+  this.drawDeckPlaceholder(centerX - 135, 478, 'Deck');
 
-    this.drawDeckPlaceholder(centerX - 135, 478, 'Deck');
-
-    this.drawDeckPlaceholder(centerX + 135, 478, 'Discard', () => {
-      this.handlePlayerDrawAction();
-    });
-  }
+  this.discardDrawHintText = this.add.text(centerX + 135, 530, 'Click here to draw from discard', {
+    fontSize: '12px',
+    color: '#dddddd',
+  }).setOrigin(0.5);
+}
 
   private createCharacters() {
     const centerY = 327;
@@ -435,7 +438,6 @@ export class DuelScene extends Phaser.Scene {
     return container;
   }
 
-  // ── Card rendering ──
 
   private renderCards() {
     this.cardObjects.forEach((cardObject) => cardObject.destroy());
@@ -490,6 +492,37 @@ export class DuelScene extends Phaser.Scene {
     return container;
   }
 
+  private renderDiscardTopCard() {
+    this.discardTopCardObject?.destroy();
+
+    const centerX = this.cameras.main.width / 2;
+    const discardX = centerX + 135;
+    const discardY = 478;
+
+    const topCard = this.discardPile[0];
+
+    if (!topCard) {
+      this.discardTopCardObject = this.drawDeckPlaceholder(discardX, discardY, 'Empty');
+      return;
+    }
+
+    this.discardTopCardObject = this.createCardContainer(discardX, discardY, topCard, true, true, 0xffffff);
+    this.discardTopCardObject.setScale(0.55);
+    
+    this.discardTopCardObject.setInteractive(new Phaser.Geom.Rectangle(-58, -78, 116, 156), Phaser.Geom.Rectangle.Contains)
+      .on('pointerover', () => {
+        if (!this.isAnimating) this.discardTopCardObject?.setScale(0.60);
+      })
+
+      .on('pointerout', () => {
+        this.discardTopCardObject?.setScale(0.55);
+      })
+      
+      .on('pointerdown', () => {
+        this.handlePlayerDrawAction();
+    });
+  }
+
   private isPlayerCardPlayable(card: Card): boolean {
     if (!canPlayCard(card, this.tableCard)) return false;
     if (this.playerState.blockedNumberTurnCounter !== null && card.power === this.playerState.blockedNumberTurnCounter) return false;
@@ -498,21 +531,22 @@ export class DuelScene extends Phaser.Scene {
 
   private handlePlayerDrawAction() {
     if (this.isAnimating) return;
+
     const drawn = this.drawOneAvailableCard();
     
     if (!drawn) {
-      this.showBattleMessage('No cards available to draw.', '#ff6666');
       this.refreshHud();
+      this.renderDiscardTopCard();
       this.renderCards();
       return;
     }
 
-    const source = this.playerDeck.length >= 0 ? 'deck' : 'discard';
     this.showBattleMessage(`Drawn: ${drawn.element.toUpperCase()} ${drawn.power ?? 'FX'}`, '#00d4ff');
+    // this.updateInstruction();
 
     this.refreshHud();
+    this.renderDiscardTopCard();
     this.renderCards();
-    // this.updateInstruction();
   }
 
   private playPlayerCard(card: Card) {
@@ -558,33 +592,17 @@ export class DuelScene extends Phaser.Scene {
     });
   }
 
-  private refillHandFromDeckThenDiscard(
-    side: 'player' | 'enemy',
-    hand: Card[],
-    deck: Card[]
-  ) {
-    while (hand.length < this.HAND_SIZE) {
-      let nextCard: Card | null = null;
-
-      if (deck.length > 0) {
-        nextCard = drawOneCard(deck);
-      } 
-      
-      else if (this.discardPile.length > 0) {
-        nextCard = drawOneCard(this.discardPile);
-        if (nextCard) {
-          this.incrementDiscardFatigue(side);
-        }
-      }
-
+  private refillHandFromDeckOnly(hand: Card[], deck: Card[]) {
+    while (hand.length < this.HAND_SIZE && deck.length > 0) {
+      const nextCard = drawOneCard(deck);
       if (!nextCard) break;
       hand.push(nextCard);
     }
   }
 
   private finishRound() {
-    this.refillHandFromDeckThenDiscard('player', this.playerHand, this.playerDeck);
-    this.refillHandFromDeckThenDiscard('enemy', this.enemyHand, this.enemyDeck);
+    this.refillHandFromDeckOnly(this.playerHand, this.playerDeck);
+    this.refillHandFromDeckOnly(this.enemyHand, this.enemyDeck);
 
     this.applyStartOfTurnStatusEffects('player');
     if (this.checkCombatEnded()) return;
@@ -592,6 +610,7 @@ export class DuelScene extends Phaser.Scene {
     this.tickEndOfTurnFlags(this.playerState);
     this.tickEndOfTurnFlags(this.enemyState);
     this.refreshHud();
+    this.renderDiscardTopCard();
     this.renderCards();
     // this.updateInstruction();
     this.playerDamageText.setText('');
@@ -615,6 +634,19 @@ export class DuelScene extends Phaser.Scene {
     return true;
   }
 
+  private incrementDiscardFatigue(side: 'player' | 'enemy') {
+    const state = side === 'player' ? this.playerState : this.enemyState;
+
+    state.discardDrawTurnCounter += 1;
+
+    if (state.discardDrawTurnCounter % 10 !== 0) return;
+
+    const threshold = state.discardDrawTurnCounter;
+    const damage = threshold >= 30 ? 9 : threshold >= 20 ? 7 : 5;
+
+    this.applyDirectDamage(side, damage, `${damage} fatigue`);
+  }
+
   private drawUntilPlayable(side: 'player' | 'enemy', tableCard: Card, addToHand: boolean): Card | null {
     const deck = side === 'player' ? this.playerDeck : this.enemyDeck;
     const hand = side === 'player' ? this.playerHand : this.enemyHand;
@@ -636,35 +668,22 @@ export class DuelScene extends Phaser.Scene {
     return null;
   }
 
-  private drawOneAvailableCard() {
-    let drawn: Card | null = null;
-
+  private drawOneAvailableCard(): Card | null {
     if (this.playerDeck.length > 0) {
-      drawn = drawOneCard(this.playerDeck);
-      if (!drawn) return null;
-
-      if(this.playerHand.length < this.HAND_SIZE) {
-        this.playerHand.push(drawn);
-      }
-
-      else {
-        this.playerHand[this.playerHand.length - 1] = drawn;
-      }
-
-      return drawn;
+      return null; 
     }
 
-    drawn = drawOneCard(this.discardPile);
-    if (!drawn) return null;
-  }
+    if (this.playerHand.length >= this.HAND_SIZE) {
+      this.showBattleMessage('Discard or play a card before drawing!', '#ffaa00');
+      return null;
+    }
 
-  private incrementDiscardFatigue(side: 'player' | 'enemy') {
-    const state = side === 'player' ? this.playerState : this.enemyState;
-    state.discardDrawTurnCounter += 1;
-    if (state.discardDrawTurnCounter % 10 !== 0) return;
-    const threshold = state.discardDrawTurnCounter;
-    const damage = threshold >= 30 ? 9 : threshold >= 20 ? 7 : 5;
-    this.applyDirectDamage(side, damage, `${damage} fatigue`);
+    const drawn = drawOneCard(this.discardPile);
+    if (!drawn) return null;
+
+    this.incrementDiscardFatigue('player');
+    this.playerHand.push(drawn);
+    return drawn;
   }
 
   // private endOfRoundDraw(hand: Card[], deck: Card[]) {
@@ -814,11 +833,14 @@ export class DuelScene extends Phaser.Scene {
 
   private discardPlayerCard(card: Card) {
     if (this.isAnimating) return;
+    
     this.playerHand = this.playerHand.filter((handCard) => handCard.id !== card.id);
     this.discardPile.push(card);
-    this.refillHandFromDeckThenDiscard('player', this.playerHand, this.playerDeck);
+
+    this.refillHandFromDeckOnly(this.playerHand, this.playerDeck);
     this.showBattleMessage('Card discarded', '#ffaa00');
     this.refreshHud();
+    this.renderDiscardTopCard();
     this.renderCards();
     // this.updateInstruction();
   }
@@ -826,11 +848,9 @@ export class DuelScene extends Phaser.Scene {
   private checkCombatEnded(): boolean {
     this.refreshHud();
     if (this.playerHp <= 0) { this.gameOver(); return true; }
-    if (this.enemyHp <= 0) { this.roundsWon += 1; this.roundText.setText(`Round ${this.roundsWon + 1}`); this.showVictoryCutscene(); return true; }
+    if (this.enemyHp <= 0) { this.levelsWon += 1; this.roundText.setText(`Level ${this.levelsWon + 1}`); this.showVictoryCutscene(); return true; }
     return false;
   }
-
-  // ── Victory ──
 
   private showVictoryCutscene() {
     const centerX = this.cameras.main.width / 2;
@@ -855,8 +875,6 @@ export class DuelScene extends Phaser.Scene {
       .on('pointerdown', () => this.advanceToNextCycle());
   }
 
-  // ── Game over ──
-
   private gameOver() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
@@ -868,7 +886,7 @@ export class DuelScene extends Phaser.Scene {
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
 
     this.add.text(centerX, centerY - 100, 'Game Over', { fontSize: '64px', color: '#ff4444', fontStyle: 'bold' }).setOrigin(0.5);
-    this.add.text(centerX, centerY - 20, `Rounds Won: ${this.roundsWon}`, { fontSize: '32px', color: '#ffffff' }).setOrigin(0.5);
+    this.add.text(centerX, centerY - 20, `Levels Won: ${this.levelsWon}`, { fontSize: '32px', color: '#ffffff' }).setOrigin(0.5);
     this.add.text(centerX, centerY + 20, `Total XP: ${grandXp}  |  Total Coins: ${grandCoins}`, { fontSize: '24px', color: '#ffd700' }).setOrigin(0.5);
 
     const restartBtn = this.add.text(centerX, centerY + 90, 'Play Again', { fontSize: '32px', color: '#ffffff' })
