@@ -27,7 +27,7 @@ export interface CombatState {
   blockedNumberTurnCounter: number | null;
 }
 
-export function createEmptyCombatState(): CombatState {
+export function createEmptyCombatState(): CombatState { // factory function to create a new combat state with default values
   return {
     shield: 0,
     poisonTurnCounter: 0,

@@ -21,9 +21,26 @@ import {
   drawOneCard, // utility for drawing a single card from a pile
   ELEMENT_COLORS, // element-to-color map used when rendering cards
   generateDeck, // utility for creating a shuffled deck
-  getBaseCardPool, // base card list used to seed discard piles
-  shuffleCards, // utility for randomizing card order
 } from '../utils/cards'; // from cards.ts module
+
+import {
+  MAX_HP,
+  MAX_ENERGY,
+  HAND_SIZE,
+  PLAYER_DECK_SIZE,
+  DISCARD_BASE_SIZE,
+  PLAYER_IDLE_SCALE,
+  PLAYER_ATTACK_SCALE,
+  PLAYER_HURT_SCALE,
+  ENEMY_IDLE_SCALE,
+  ENEMY_ATTACK_SCALE,
+  ENEMY_HURT1_SCALE,
+  ENEMY_HURT2_SCALE,
+} from '../utils/duelConfig'; // constants for duel mechanics and rendering parameters
+
+import { createBaseDiscardPile } from '../utils/duelSetup';
+
+import { updateHpBar, updateEnergyBar } from '../utils/duelUi'; // reusable UI rendering functions for HP and energy bars
 
 import { CombatState, createEmptyCombatState } from '../utils/combatState'; // combat status container and reset helper
 
@@ -51,23 +68,8 @@ import skawlDamage2 from '../assets/characters/skawl/Skawl_damage-2.png'; // Ska
 import skawlDefeated from '../assets/characters/skawl/Skawl_defeated.png'; // Skawl defeated sprite
 
 export class DuelScene extends Phaser.Scene {
-  private readonly MAX_HP = 100; // shared HP cap for both combatants
-  private readonly MAX_ENERGY = 20; // maximum value for each energy bar
-  private readonly HAND_SIZE = 5; // number of cards each side starts with
-  private readonly PLAYER_DECK_SIZE = 12; // number of cards in the player's deck
-  private readonly DISCARD_BASE_SIZE = 72; // discard pile seed size
-
-  private readonly PLAYER_IDLE_SCALE = 0.33; // player idle sprite scale
-  private readonly PLAYER_ATTACK_SCALE = 0.33; // player attack sprite scale
-  private readonly PLAYER_HURT_SCALE = 0.33; // player hurt sprite scale
-
-  private readonly ENEMY_IDLE_SCALE = 0.34; // enemy idle sprite scale
-  private readonly ENEMY_ATTACK_SCALE = 0.36; // enemy attack sprite scale
-  private readonly ENEMY_HURT1_SCALE = 0.35; // enemy hurt sprite scale for mid HP
-  private readonly ENEMY_HURT2_SCALE = 0.35; // enemy hurt sprite scale for low HP
-
-  private playerHp = this.MAX_HP; // player current HP
-  private enemyHp = this.MAX_HP; // enemy current HP
+  private playerHp = MAX_HP; // player current HP
+  private enemyHp = MAX_HP; // enemy current HP
 
   private playerElementalEnergy = 0; // player elemental energy meter
   private playerInstinctEnergy = 0; // player instinct energy meter
@@ -189,8 +191,8 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private resetDuelState() {
-    this.playerHp = this.MAX_HP; // restore player HP
-    this.enemyHp = this.MAX_HP; // restore enemy HP
+    this.playerHp = MAX_HP; // restore player HP
+    this.enemyHp = MAX_HP; // restore enemy HP
     this.playerElementalEnergy = 0; // reset player elemental energy
     this.playerInstinctEnergy = 0; // reset player instinct energy
     this.enemyElementalEnergy = 0; // reset enemy elemental energy
@@ -220,7 +222,7 @@ export class DuelScene extends Phaser.Scene {
     panels.fillRoundedRect(25, 20, 315, 195, 18); // left player HUD panel
     panels.fillRoundedRect(width - 340, 20, 315, 195, 18); // right enemy HUD panel
     panels.fillRoundedRect(centerX - 190, 24, 380, 90, 18); // top center level/message panel
-    panels.fillRoundedRect(centerX - 210, 165, 420, 260, 24); // table card area panel
+    panels.fillRoundedRect(centerX - 120, 165, 240, 260, 24); // table card area panel
     panels.fillRoundedRect(centerX - 430, height - 235, 860, 210, 24); // deck/discard area panel
     panels.fillRoundedRect(centerX - 310, 440, 620, 78, 18); // instruction bar panel
   }
@@ -249,6 +251,7 @@ export class DuelScene extends Phaser.Scene {
     this.instructionText = this.add.text(centerX, 540, 'Choose a valid card or right-click to discard.', {
       fontSize: '22px',
       color: '#ffffff',
+      fontStyle: 'bold',
     }).setOrigin(0.5); // player guidance text
 
     this.add.text(48, 34, 'Player', {
@@ -352,9 +355,10 @@ export class DuelScene extends Phaser.Scene {
 
     this.drawDeckPlaceholder(centerX - 135, 478, 'Deck'); // visual placeholder for the deck pile
 
-    this.discardDrawHintText = this.add.text(centerX + 245, 486, 'Click to draw', {
+    this.discardDrawHintText = this.add.text(centerX + 243, 486, '<- Click to draw', {
       fontSize: '12px',
-      color: '#dddddd',
+      color: '#eed112',
+      fontStyle: 'bold',
     }).setOrigin(0.5); // hint under the discard pile
   }
 
@@ -370,69 +374,34 @@ export class DuelScene extends Phaser.Scene {
     this.enemyShadow.fillEllipse(1010, 430, 185, 32); // enemy shadow shape
     // this.enemyShadow.setDepth(5); // ensure shadows are behind the characters but above the background
 
-    this.playerCharacter = this.add.image(185, centerY + 5, 'christian-idle').setScale(this.PLAYER_IDLE_SCALE); // player sprite on the left
-    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(this.ENEMY_IDLE_SCALE).setFlipX(true); // flipped enemy sprite on the right
+    this.playerCharacter = this.add.image(185, centerY + 5, 'christian-idle').setScale(PLAYER_IDLE_SCALE); // player sprite on the left
+    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(true); // flipped enemy sprite on the right
   }
 
   private setupDecks() {
-    this.playerDeck = generateDeck(this.PLAYER_DECK_SIZE); // build the player's starting deck
-    this.enemyDeck = generateDeck(this.PLAYER_DECK_SIZE); // build the enemy's starting deck
-    this.playerHand = buildHand(this.playerDeck, this.HAND_SIZE); // draw the player's starting hand
-    this.enemyHand = buildHand(this.enemyDeck, this.HAND_SIZE); // draw the enemy's starting hand
-    this.discardPile = this.createBaseDiscardPile(this.DISCARD_BASE_SIZE); // seed the discard pile from the base card pool
-    const openingCard = this.createBaseDiscardPile(1)[0]; // generate the first table card
+    this.playerDeck = generateDeck(PLAYER_DECK_SIZE); // build the player's starting deck
+    this.enemyDeck = generateDeck(PLAYER_DECK_SIZE); // build the enemy's starting deck
+    this.playerHand = buildHand(this.playerDeck, HAND_SIZE); // draw the player's starting hand
+    this.enemyHand = buildHand(this.enemyDeck, HAND_SIZE); // draw the enemy's starting hand
+    this.discardPile = createBaseDiscardPile(DISCARD_BASE_SIZE); // seed the discard pile from the base card pool
+    const openingCard = createBaseDiscardPile(1)[0]; // generate the first table card
     if (!openingCard) throw new Error('Could not generate initial table card.'); // fail early if setup data is invalid
     this.tableCard = openingCard; // place the opening card on the table
   }
 
-  private createBaseDiscardPile(size: number): Card[] {
-    const basePool = getBaseCardPool(); // source pool for discard pile cards
-    const cards: Card[] = []; // discard pile to build and shuffle
-    for (let i = 0; i < size; i += 1) {
-      const source = basePool[i % basePool.length]; // cycle through the base card pool if needed
-      cards.push({
-        ...source, // copy the base card data
-        id: `${source.id}-discard-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, // generate a unique id for each duplicate card
-      });
-    }
-    return shuffleCards(cards); // randomize the discard pile order
-  }
-
   private refreshHud() {
-    this.updateHpBar(this.playerHpBar, this.playerHp, 48, 58, this.playerHpText); // update player HP visuals
-    this.updateHpBar(this.enemyHpBar, this.enemyHp, this.cameras.main.width - 292, 58, this.enemyHpText); // update enemy HP visuals
-    this.updateEnergyBar(this.playerEeBar, this.playerElementalEnergy, 82, 138, 220, 12, 0x7cd957); // update player elemental energy
-    this.updateEnergyBar(this.playerEiBar, this.playerInstinctEnergy, 82, 166, 220, 12, 0x4db8ff); // update player instinct energy
-    this.updateEnergyBar(this.enemyEeBar, this.enemyElementalEnergy, this.cameras.main.width - 258, 138, 220, 12, 0x7cd957); // update enemy elemental energy
-    this.updateEnergyBar(this.enemyEiBar, this.enemyInstinctEnergy, this.cameras.main.width - 258, 166, 220, 12, 0x4db8ff); // update enemy instinct energy
+    updateHpBar(this.playerHpBar, this.playerHp, 48, 58, this.playerHpText); // update player HP visuals
+    updateHpBar(this.enemyHpBar, this.enemyHp, this.cameras.main.width - 292, 58, this.enemyHpText); // update enemy HP visuals
+    updateEnergyBar(this.playerEeBar, this.playerElementalEnergy, 82, 138, 220, 12, 0x7cd957); // update player elemental energy
+    updateEnergyBar(this.playerEiBar, this.playerInstinctEnergy, 82, 166, 220, 12, 0x4db8ff); // update player instinct energy
+    updateEnergyBar(this.enemyEeBar, this.enemyElementalEnergy, this.cameras.main.width - 258, 138, 220, 12, 0x7cd957); // update enemy elemental energy
+    updateEnergyBar(this.enemyEiBar, this.enemyInstinctEnergy, this.cameras.main.width - 258, 166, 220, 12, 0x4db8ff); // update enemy instinct energy
     this.playerShieldText.setText(`Shield: ${this.playerState.shield}`); // refresh player shield text
     this.enemyShieldText.setText(`Shield: ${this.enemyState.shield}`); // refresh enemy shield text
     this.deckCountText.setText(`Deck: ${this.playerDeck.length}`); // refresh player deck count
     this.discardCountText.setText(`Discard: ${this.discardPile.length}`); // refresh discard count
     this.totalXpText.setText(`XP: ${this.totalXp + this.duelXp}`); // refresh total XP display
     this.totalCoinsText.setText(`Coins: ${this.totalCoins + this.duelCoins}`); // refresh total coin display
-  }
-
-  private updateHpBar(graphics: Phaser.GameObjects.Graphics, hp: number, x: number, y: number, hpText: Phaser.GameObjects.Text) {
-    graphics.clear(); // remove the previous frame's bar
-    graphics.fillStyle(0x333333, 0.95); // dark bar background
-    graphics.fillRoundedRect(x, y, 240, 20, 8); // draw the bar track
-    const color = hp > 50 ? 0x00ff88 : hp > 25 ? 0xffaa00 : 0xff4444; // choose color based on current HP
-    graphics.fillStyle(color, 1); // fill color for the actual HP amount
-    graphics.fillRoundedRect(x, y, (Math.max(0, Math.min(hp, this.MAX_HP)) / this.MAX_HP) * 240, 20, 8); // clamp and scale HP to the bar width
-    graphics.lineStyle(2, 0xffffff, 1); // white border for readability
-    graphics.strokeRoundedRect(x, y, 240, 20, 8); // outline the HP bar
-    hpText.setText(`${Math.max(0, hp)}/${this.MAX_HP} HP`); // show numeric HP value
-  }
-
-  private updateEnergyBar(graphics: Phaser.GameObjects.Graphics, value: number, x: number, y: number, width: number, height: number, fillColor: number) {
-    graphics.clear(); // clear previous fill
-    graphics.fillStyle(0x2b2b2b, 0.95); // dark background track
-    graphics.fillRoundedRect(x, y, width, height, 6); // draw the bar track
-    graphics.fillStyle(fillColor, 1); // use the supplied color for energy type
-    graphics.fillRoundedRect(x, y, (Math.max(0, Math.min(value, this.MAX_ENERGY)) / this.MAX_ENERGY) * width, height, 6); // scale current energy to the bar width
-    graphics.lineStyle(2, 0xffffff, 1); // white border
-    graphics.strokeRoundedRect(x, y, width, height, 6); // draw the outline
   }
 
   private drawDeckPlaceholder(
@@ -514,8 +483,16 @@ export class DuelScene extends Phaser.Scene {
         .on('pointerover', () => { if (!this.isAnimating) container.setScale(isPlayable ? 1.08 : 1.03); }) // subtle hover effect
         .on('pointerout', () => { container.setScale(1); }) // restore size after hover
         .on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-          if (pointer.rightButtonDown()) { this.discardPlayerCard(card); return; } // right-click discards the card
-          if (!this.isPlayerCardPlayable(card)) { this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666'); return; } // block illegal plays
+          if (pointer.rightButtonDown()) { 
+            this.discardPlayerCard(card); 
+            return; 
+          } // right-click discards the card
+
+          if (!this.isPlayerCardPlayable(card)) { 
+            this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666'); 
+            return; 
+          } // block illegal plays
+
           this.playPlayerCard(card); // play legal card
         });
     }
@@ -608,7 +585,12 @@ export class DuelScene extends Phaser.Scene {
     }
 
     const enemyCard = this.getEnemyPlayableCard(); // select a legal enemy card
-    if (!enemyCard) { this.showBattleMessage('Enemy cannot play.', '#ffaa00'); this.finishLevel(); return; } // no move available
+
+    if (!enemyCard) { 
+      this.showBattleMessage('Enemy cannot play.', '#ffaa00'); 
+      this.finishLevel(); return; 
+    } // no move available
+
     this.discardPile.push(enemyCard); // move the enemy card to discard
     const previousTableCard = this.tableCard; // preserve previous table card for energy gain
     this.tableCard = enemyCard; // set the enemy card as the current table card
@@ -623,7 +605,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private refillHandFromDeckOnly(hand: Card[], deck: Card[]) {
-    while (hand.length < this.HAND_SIZE && deck.length > 0) { // refill until hand is full or deck is empty
+    while (hand.length < HAND_SIZE && deck.length > 0) { // refill until hand is full or deck is empty
       const nextCard = drawOneCard(deck); // draw the next card from the deck
       if (!nextCard) break; // stop if the deck draw failed
       hand.push(nextCard); // add the drawn card to the hand
@@ -694,7 +676,12 @@ export class DuelScene extends Phaser.Scene {
       if (!candidate) break; // stop if discard draw fails
       this.incrementDiscardFatigue(side); // repeated discard draws build fatigue
       const isPlayable = side === 'player' ? this.isPlayerCardPlayable(candidate) : this.isEnemyCardPlayable(candidate); // check side-specific legality
-      if (isPlayable && canPlayCard(candidate, tableCard)) { if (addToHand) hand.push(candidate); return candidate; } // keep the first usable card
+
+      if (isPlayable && canPlayCard(candidate, tableCard)) { 
+        if (addToHand) hand.push(candidate); 
+        return candidate; 
+      } // keep the first usable card
+
       this.discardPile.push(candidate); // return unusable cards to discard
     }
     return null; // no playable card was found
@@ -705,7 +692,7 @@ export class DuelScene extends Phaser.Scene {
       return null; // drawing from discard is disabled while deck cards remain
     }
 
-    if (this.playerHand.length >= this.HAND_SIZE) {
+    if (this.playerHand.length >= HAND_SIZE) {
       this.showBattleMessage('Discard or play a card before drawing!', '#ffaa00'); // explain why drawing is blocked
       return null;
     }
@@ -730,7 +717,12 @@ export class DuelScene extends Phaser.Scene {
     let damage = card.baseDamage; // start with base damage
     let selfDamage = 0; // recoil damage is tracked separately
     if (attackerState.weakenTurnCounter > 0) damage = Math.max(0, damage - attackerState.weakenEffectValue); // weaken reduces damage
-    if (attackerState.chainFireBonus > 0 && card.element === 'fire') { damage += attackerState.chainFireBonus; attackerState.chainFireBonus = 0; } // chain bonus is consumed on fire attacks
+
+    if (attackerState.chainFireBonus > 0 && card.element === 'fire') { 
+      damage += attackerState.chainFireBonus; 
+      attackerState.chainFireBonus = 0; 
+    } // chain bonus is consumed on fire attacks
+    
     if (attackerState.sandBuffTurnCounter > 0 && card.element === 'sand') damage += Math.ceil(damage * attackerState.sandBuffPercent / 100); // sand buff increases damage for sand cards
     switch (card.effect) {
       case 'DAMAGE': break; // raw damage card, no extra effect handling
@@ -739,7 +731,7 @@ export class DuelScene extends Phaser.Scene {
       case 'WEAKEN': defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, card.effectDuration || 1); defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, card.effectValue); damage = 0; break; // apply weaken debuff
       case 'BURN': defenderState.burnTurnCounter = Math.max(defenderState.burnTurnCounter, card.effectDuration); defenderState.burnDamage = Math.max(defenderState.burnDamage, card.effectValue); break; // apply burn over time
       case 'BLOCK_FIRE': defenderState.blockFireTurnCounter = Math.max(defenderState.blockFireTurnCounter, card.effectDuration || 1); break; // prevent fire cards for a short time
-      case 'RAGE': if ((isPlayer ? this.playerHp : this.enemyHp) <= this.MAX_HP / 2) damage *= 2; break; // double damage when under half HP
+      case 'RAGE': if ((isPlayer ? this.playerHp : this.enemyHp) <= MAX_HP / 2) damage *= 2; break; // double damage when under half HP
       case 'EXPLOSION': selfDamage = card.effectValue; break; // explosion damages the attacker too
       case 'CHAIN': attackerState.chainFireBonus = Math.max(attackerState.chainFireBonus, card.effectValue); break; // store a future fire bonus
       case 'HEAL': attackerState.shield += card.shieldValue; this.healSide(attacker, Math.ceil(card.shieldValue * (card.effectValue / 100))); damage = 0; break; // heal and grant shield
@@ -813,18 +805,34 @@ export class DuelScene extends Phaser.Scene {
     if (amount <= 0) return; // ignore invalid damage values
     const state = side === 'player' ? this.playerState : this.enemyState; // pick the correct side state
     let remaining = amount; // damage that still needs to pass through shield
-    if (state.shield > 0) { const absorbed = Math.min(state.shield, remaining); state.shield -= absorbed; remaining -= absorbed; } // shield also blocks direct damage
+
+    if (state.shield > 0) { 
+      const absorbed = Math.min(state.shield, remaining); 
+      state.shield -= absorbed; remaining -= absorbed; 
+    } // shield also blocks direct damage
+
     if (remaining <= 0) return; // shield absorbed everything
-    if (side === 'player') { this.playerHp = Math.max(0, this.playerHp - remaining); this.playerDamageText.setText(`-${remaining}`); }
-    else { this.enemyHp = Math.max(0, this.enemyHp - remaining); this.enemyDamageText.setText(`-${remaining}`); }
+
+    // apply the leftover damage to HP and show the appropriate popup and message
+    if (side === 'player') { 
+      this.playerHp = Math.max(0, this.playerHp - remaining); 
+      this.playerDamageText.setText(`-${remaining}`); 
+    }
+
+    else { 
+      this.enemyHp = Math.max(0, this.enemyHp - remaining); 
+      this.enemyDamageText.setText(`-${remaining}`); 
+    }
+
     this.showBattleMessage(reason, '#ffaa00'); // explain the source of the damage
     this.refreshHud(); // keep the HUD in sync
   }
 
   private healSide(side: 'player' | 'enemy', amount: number) {
     if (amount <= 0) return; // ignore invalid healing values
-    if (side === 'player') this.playerHp = Math.min(this.MAX_HP, this.playerHp + amount); // heal player up to max HP
-    else this.enemyHp = Math.min(this.MAX_HP, this.enemyHp + amount); // heal enemy up to max HP
+
+    if (side === 'player') this.playerHp = Math.min(MAX_HP, this.playerHp + amount); // heal player up to max HP
+    else this.enemyHp = Math.min(MAX_HP, this.enemyHp + amount); // heal enemy up to max HP
   }
 
   private cleanseNegative(state: CombatState) {
@@ -836,8 +844,15 @@ export class DuelScene extends Phaser.Scene {
 
   private applyStartOfTurnStatusEffects(side: 'player' | 'enemy') {
     const state = side === 'player' ? this.playerState : this.enemyState; // get the combat state for this side
-    if (state.poisonTurnCounter > 0) { this.applyDirectDamage(side, state.poisonDamage, `${state.poisonDamage} poison`); state.poisonTurnCounter -= 1; } // apply poison tick
-    if (state.burnTurnCounter > 0) { this.applyDirectDamage(side, state.burnDamage, `${state.burnDamage} burn`); state.burnTurnCounter -= 1; } // apply burn tick
+    if (state.poisonTurnCounter > 0) { 
+      this.applyDirectDamage(side, state.poisonDamage, `${state.poisonDamage} poison`); 
+      state.poisonTurnCounter -= 1; 
+    } // apply poison tick
+
+    if (state.burnTurnCounter > 0) { 
+      this.applyDirectDamage(side, state.burnDamage, `${state.burnDamage} burn`); 
+      state.burnTurnCounter -= 1; 
+    } // apply burn tick
   }
 
   private tickEndOfTurnFlags(state: CombatState) {
@@ -860,8 +875,16 @@ export class DuelScene extends Phaser.Scene {
     const bonusMultiplier = state.energyBoostTurnCounter > 0 ? (1 + state.energyBoostPercent / 100) : 1; // energy boost modifies gain
     const elementalGain = Math.ceil((doubleMatch ? card.energyEGain + 1 : card.energyEGain) * bonusMultiplier); // calculate elemental gain
     const instinctGain = Math.ceil((doubleMatch ? card.energyIGain + 1 : card.energyIGain) * bonusMultiplier); // calculate instinct gain
-    if (side === 'player') { this.playerElementalEnergy = Math.min(this.MAX_ENERGY, this.playerElementalEnergy + elementalGain); this.playerInstinctEnergy = Math.min(this.MAX_ENERGY, this.playerInstinctEnergy + instinctGain); }
-    else { this.enemyElementalEnergy = Math.min(this.MAX_ENERGY, this.enemyElementalEnergy + elementalGain); this.enemyInstinctEnergy = Math.min(this.MAX_ENERGY, this.enemyInstinctEnergy + instinctGain); }
+
+    if (side === 'player') { 
+      this.playerElementalEnergy = Math.min(MAX_ENERGY, this.playerElementalEnergy + elementalGain); 
+      this.playerInstinctEnergy = Math.min(MAX_ENERGY, this.playerInstinctEnergy + instinctGain); 
+    }
+
+    else { 
+      this.enemyElementalEnergy = Math.min(MAX_ENERGY, this.enemyElementalEnergy + elementalGain); 
+      this.enemyInstinctEnergy = Math.min(MAX_ENERGY, this.enemyInstinctEnergy + instinctGain); 
+    }
   }
 
   private isDoubleMatch(card: Card, previousTableCard: Card): boolean {
@@ -880,49 +903,49 @@ export class DuelScene extends Phaser.Scene {
 
   private animatePlayerAttack() {
     const attackImage = Math.random() < 0.5 ? 'christian-attack-1' : 'christian-attack-2'; // randomize attack pose
-    this.playerCharacter.setTexture(attackImage).setScale(this.PLAYER_ATTACK_SCALE).setY(335); // switch to attack pose
+    this.playerCharacter.setTexture(attackImage).setScale(PLAYER_ATTACK_SCALE).setY(335); // switch to attack pose
   }
 
   private animateEnemyAttack() {
     const attackImage = Math.random() < 0.5 ? 'enemy-attack-1' : 'enemy-attack-2'; // randomize enemy attack pose
-    this.enemyCharacter.setTexture(attackImage).setScale(this.ENEMY_ATTACK_SCALE).setFlipX(true).setY(327); // switch to attack pose and keep flip
+    this.enemyCharacter.setTexture(attackImage).setScale(ENEMY_ATTACK_SCALE).setFlipX(true).setY(327); // switch to attack pose and keep flip
   }
 
   private updatePlayerPose() {
     if (this.playerHp <= 25) { 
-      this.playerCharacter.setTexture('christian-damage-2').setScale(this.PLAYER_HURT_SCALE).setY(335); // critical HP pose
+      this.playerCharacter.setTexture('christian-damage-2').setScale(PLAYER_HURT_SCALE).setY(335); // critical HP pose
       return; 
     }
 
     if (this.playerHp <= 50) { 
-      this.playerCharacter.setTexture('christian-damage-1').setScale(this.PLAYER_HURT_SCALE).setY(335); // wounded pose
+      this.playerCharacter.setTexture('christian-damage-1').setScale(PLAYER_HURT_SCALE).setY(335); // wounded pose
       return; 
     }
 
-    this.playerCharacter.setTexture('christian-idle').setScale(this.PLAYER_IDLE_SCALE).setY(335); // healthy idle pose
+    this.playerCharacter.setTexture('christian-idle').setScale(PLAYER_IDLE_SCALE).setY(335); // healthy idle pose
   }
 
   private updateEnemyPose() {
     if (this.enemyHp <= 0) { 
       this.currentEnemyImage = 'enemy-defeated'; 
-      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(this.ENEMY_IDLE_SCALE).setFlipX(true).setY(340); // defeated pose with slight position adjustment
+      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(true).setY(340); // defeated pose with slight position adjustment
       return; 
     } // defeated pose
 
     if (this.enemyHp <= 25) { 
       this.currentEnemyImage = 'enemy-hurt-2'; 
-      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(this.ENEMY_HURT2_SCALE).setFlipX(true).setY(327); // critical enemy pose
+      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_HURT2_SCALE).setFlipX(true).setY(327); // critical enemy pose
       return; 
     }
 
     if (this.enemyHp <= 50) { 
       this.currentEnemyImage = 'enemy-hurt-1'; 
-      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(this.ENEMY_HURT1_SCALE).setFlipX(true).setY(327); // wounded enemy pose
+      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_HURT1_SCALE).setFlipX(true).setY(327); // wounded enemy pose
       return; 
     }
 
     this.currentEnemyImage = 'enemy-default'; // restore the default enemy texture
-    this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(this.ENEMY_IDLE_SCALE).setFlipX(true).setY(327); // healthy idle pose
+    this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(true).setY(327); // healthy idle pose
   }
 
   private discardPlayerCard(card: Card) {
