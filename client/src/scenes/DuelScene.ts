@@ -31,17 +31,24 @@ import type { RunData } from './EvergladesScene'; // run-progress data passed in
 
 import backgroundImg from '../assets/backgrounds/everglades.jpg'; // duel background image
 
-import christianIdle from '../assets/characters/christian/Christian_v4_resized.png'; // player idle sprite
-import christianAttack1 from '../assets/characters/christian/Christian_attack-1.png'; // player attack animation frame 1
-import christianAttack2 from '../assets/characters/christian/Christian_attack-2.png'; // player attack animation frame 2
-import christianDamage1 from '../assets/characters/christian/Christian_damage-1.png'; // player hurt sprite 1
-import christianDamage2 from '../assets/characters/christian/Christian_damage-2.png'; // player hurt sprite 2
+import christianIdle from '../assets/characters/christian/Christian_v4_resized.png'; // Christian idle sprite
+import christianAttack1 from '../assets/characters/christian/Christian_attack-1.png'; // Christian attack animation frame 1
+import christianAttack2 from '../assets/characters/christian/Christian_attack-2.png'; // Christian attack animation frame 2
+import christianDamage1 from '../assets/characters/christian/Christian_damage-1.png'; // Christian hurt sprite 1
+import christianDamage2 from '../assets/characters/christian/Christian_damage-2.png'; // Christian hurt sprite 2
 
-import enemyDefault from '../assets/characters/default/enemy-gator.png'; // enemy idle sprite
-import enemyAttack1 from '../assets/characters/default/attack-1.png'; // enemy attack animation frame 1
-import enemyAttack2 from '../assets/characters/default/attack-2.png'; // enemy attack animation frame 2
-import enemyHurt1 from '../assets/characters/default/hurt-1.png'; // enemy hurt sprite 1
-import enemyHurt2 from '../assets/characters/default/hurt-2.png'; // enemy hurt sprite 2
+// import enemyDefault from '../assets/characters/default/enemy-gator.png'; // enemy idle sprite
+// import enemyAttack1 from '../assets/characters/default/attack-1.png'; // enemy attack animation frame 1
+// import enemyAttack2 from '../assets/characters/default/attack-2.png'; // enemy attack animation frame 2
+// import enemyHurt1 from '../assets/characters/default/hurt-1.png'; // enemy hurt sprite 1
+// import enemyHurt2 from '../assets/characters/default/hurt-2.png'; // enemy hurt sprite 2
+
+import skawlIdle from '../assets/characters/skawl/Skawl_resized.png'; // Skawl idle sprite
+import skawlAttack1 from '../assets/characters/skawl/Skawl_attack-1.png'; // Skawl attack animation frame 1
+import skawlAttack2 from '../assets/characters/skawl/Skawl_attack-2.png'; // Skawl attack animation frame 2
+import skawlDamage1 from '../assets/characters/skawl/Skawl_damage-1.png'; // Skawl hurt sprite 1
+import skawlDamage2 from '../assets/characters/skawl/Skawl_damage-2.png'; // Skawl hurt sprite 2
+import skawlDefeated from '../assets/characters/skawl/Skawl_defeated.png'; // Skawl defeated sprite
 
 export class DuelScene extends Phaser.Scene {
   private readonly MAX_HP = 100; // shared HP cap for both combatants
@@ -54,10 +61,10 @@ export class DuelScene extends Phaser.Scene {
   private readonly PLAYER_ATTACK_SCALE = 0.33; // player attack sprite scale
   private readonly PLAYER_HURT_SCALE = 0.33; // player hurt sprite scale
 
-  private readonly ENEMY_IDLE_SCALE = 0.38; // enemy idle sprite scale
-  private readonly ENEMY_ATTACK_SCALE = 0.38; // enemy attack sprite scale
-  private readonly ENEMY_HURT1_SCALE = 0.38; // enemy hurt sprite scale for mid HP
-  private readonly ENEMY_HURT2_SCALE = 0.38; // enemy hurt sprite scale for low HP
+  private readonly ENEMY_IDLE_SCALE = 0.34; // enemy idle sprite scale
+  private readonly ENEMY_ATTACK_SCALE = 0.36; // enemy attack sprite scale
+  private readonly ENEMY_HURT1_SCALE = 0.35; // enemy hurt sprite scale for mid HP
+  private readonly ENEMY_HURT2_SCALE = 0.35; // enemy hurt sprite scale for low HP
 
   private playerHp = this.MAX_HP; // player current HP
   private enemyHp = this.MAX_HP; // enemy current HP
@@ -132,16 +139,22 @@ export class DuelScene extends Phaser.Scene {
 
   preload() {
     this.load.image('background', backgroundImg); // load duel background
-    this.load.image('christian-idle', christianIdle); // load player idle sprite
-    this.load.image('christian-attack-1', christianAttack1); // load player attack sprite 1
-    this.load.image('christian-attack-2', christianAttack2); // load player attack sprite 2
-    this.load.image('christian-damage-1', christianDamage1); // load player hurt sprite 1
-    this.load.image('christian-damage-2', christianDamage2); // load player hurt sprite 2
-    this.load.image('enemy-default',  enemyDefault); // load enemy idle sprite
-    this.load.image('enemy-attack-1', enemyAttack1); // load enemy attack sprite 1
-    this.load.image('enemy-attack-2', enemyAttack2); // load enemy attack sprite 2
-    this.load.image('enemy-hurt-1',   enemyHurt1); // load enemy hurt sprite 1
-    this.load.image('enemy-hurt-2',   enemyHurt2); // load enemy hurt sprite 2
+    this.load.image('christian-idle', christianIdle); // load Christian idle sprite
+    this.load.image('christian-attack-1', christianAttack1); // load Christian attack sprite 1
+    this.load.image('christian-attack-2', christianAttack2); // load Christian attack sprite 2
+    this.load.image('christian-damage-1', christianDamage1); // load Christian hurt sprite 1
+    this.load.image('christian-damage-2', christianDamage2); // load Christian hurt sprite 2
+    // this.load.image('enemy-default',  enemyDefault); // load enemy idle sprite
+    // this.load.image('enemy-attack-1', enemyAttack1); // load enemy attack sprite 1
+    // this.load.image('enemy-attack-2', enemyAttack2); // load enemy attack sprite 2
+    // this.load.image('enemy-hurt-1',   enemyHurt1); // load enemy hurt sprite 1
+    // this.load.image('enemy-hurt-2',   enemyHurt2); // load enemy hurt sprite 2
+    this.load.image('enemy-default', skawlIdle); // load Skawl idle sprite
+    this.load.image('enemy-attack-1', skawlAttack1); // load Skawl attack sprite 1
+    this.load.image('enemy-attack-2', skawlAttack2); // load Skawl attack sprite 2
+    this.load.image('enemy-hurt-1', skawlDamage1); // load Skawl hurt sprite 1
+    this.load.image('enemy-hurt-2', skawlDamage2); // load Skawl hurt sprite 2
+    this.load.image('enemy-defeated', skawlDefeated); // load Skawl defeated sprite
   }
 
   create() {
@@ -150,11 +163,11 @@ export class DuelScene extends Phaser.Scene {
 
     this.resetDuelState(); // clear all duel state before building the scene
 
-    this.add.image(centerX, height / 2, 'background'); // place the background in the center
+    this.add.image(centerX, height / 2, 'background').setDepth(0); // place the background in the center
 
+    this.createCharacters(); // place player and enemy sprites
     this.drawHudPanels(); // draw the dark HUD containers behind the UI
     this.createHud(); // build the text bars and labels
-    this.createCharacters(); // place player and enemy sprites
     this.setupDecks(); // create and populate decks, hands, and discard pile
     this.renderTableCard(); // render the initial table card
     this.renderDiscardTopCard(); // render the top discard card
@@ -202,6 +215,7 @@ export class DuelScene extends Phaser.Scene {
     const { width, height } = this.cameras.main; // use camera size so UI scales with the scene
     const centerX = width / 2; // center point for symmetric panels
     const panels = this.add.graphics(); // graphics object used to draw HUD boxes
+    // panels.setDepth(20); // ensure panels are on top of the sprites but behind the text and cards
     panels.fillStyle(0x000000, 0.72); // translucent black for readability
     panels.fillRoundedRect(25, 20, 315, 195, 18); // left player HUD panel
     panels.fillRoundedRect(width - 340, 20, 315, 195, 18); // right enemy HUD panel
@@ -349,10 +363,12 @@ export class DuelScene extends Phaser.Scene {
     this.playerShadow = this.add.graphics(); // shadow under the player sprite
     this.playerShadow.fillStyle(0x000000, 0.3); // subtle shadow opacity
     this.playerShadow.fillEllipse(185, 442, 210, 36); // player shadow shape
+    // this.playerShadow.setDepth(5); // ensure shadows are behind the characters but above the background
 
     this.enemyShadow = this.add.graphics(); // shadow under the enemy sprite
     this.enemyShadow.fillStyle(0x000000, 0.3); // subtle shadow opacity
     this.enemyShadow.fillEllipse(1010, 430, 185, 32); // enemy shadow shape
+    // this.enemyShadow.setDepth(5); // ensure shadows are behind the characters but above the background
 
     this.playerCharacter = this.add.image(185, centerY + 5, 'christian-idle').setScale(this.PLAYER_IDLE_SCALE); // player sprite on the left
     this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(this.ENEMY_IDLE_SCALE).setFlipX(true); // flipped enemy sprite on the right
@@ -869,15 +885,17 @@ export class DuelScene extends Phaser.Scene {
 
   private animateEnemyAttack() {
     const attackImage = Math.random() < 0.5 ? 'enemy-attack-1' : 'enemy-attack-2'; // randomize enemy attack pose
-    this.enemyCharacter.setTexture(attackImage).setScale(0.46).setFlipX(true).setY(327); // switch to attack pose and keep flip
+    this.enemyCharacter.setTexture(attackImage).setScale(this.ENEMY_ATTACK_SCALE).setFlipX(true).setY(327); // switch to attack pose and keep flip
   }
 
   private updatePlayerPose() {
-    if (this.playerHp <= 25) { this.playerCharacter.setTexture('christian-damage-2').setScale(this.PLAYER_HURT_SCALE).setY(335); // critical HP pose
+    if (this.playerHp <= 25) { 
+      this.playerCharacter.setTexture('christian-damage-2').setScale(this.PLAYER_HURT_SCALE).setY(335); // critical HP pose
       return; 
     }
 
-    if (this.playerHp <= 50) { this.playerCharacter.setTexture('christian-damage-1').setScale(this.PLAYER_HURT_SCALE).setY(335); // wounded pose
+    if (this.playerHp <= 50) { 
+      this.playerCharacter.setTexture('christian-damage-1').setScale(this.PLAYER_HURT_SCALE).setY(335); // wounded pose
       return; 
     }
 
@@ -885,11 +903,21 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private updateEnemyPose() {
-    if (this.enemyHp <= 25) { this.currentEnemyImage = 'enemy-hurt-2'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(0.42).setFlipX(true).setY(327); // critical enemy pose
+    if (this.enemyHp <= 0) { 
+      this.currentEnemyImage = 'enemy-defeated'; 
+      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(this.ENEMY_IDLE_SCALE).setFlipX(true).setY(340); // defeated pose with slight position adjustment
+      return; 
+    } // defeated pose
+
+    if (this.enemyHp <= 25) { 
+      this.currentEnemyImage = 'enemy-hurt-2'; 
+      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(this.ENEMY_HURT2_SCALE).setFlipX(true).setY(327); // critical enemy pose
       return; 
     }
 
-    if (this.enemyHp <= 50) { this.currentEnemyImage = 'enemy-hurt-1'; this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(0.42).setFlipX(true).setY(327); // wounded enemy pose
+    if (this.enemyHp <= 50) { 
+      this.currentEnemyImage = 'enemy-hurt-1'; 
+      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(this.ENEMY_HURT1_SCALE).setFlipX(true).setY(327); // wounded enemy pose
       return; 
     }
 
@@ -913,8 +941,22 @@ export class DuelScene extends Phaser.Scene {
 
   private checkCombatEnded(): boolean {
     this.refreshHud(); // make sure final values are visible before transition
-    if (this.playerHp <= 0) { this.gameOver(); return true; } // player lost
-    if (this.enemyHp <= 0) { this.levelsWon += 1; this.levelText.setText(`Level ${this.levelsWon + 1}`); this.showVictoryCutscene(); return true; } // enemy lost
+    if (this.playerHp <= 0) { 
+      this.gameOver(); 
+      return true; 
+    } // player lost
+
+    if (this.enemyHp <= 0) { 
+      this.updateEnemyPose(); // show the defeated enemy pose before transitioning
+      this.levelsWon += 1; 
+      this.levelText.setText(`Level ${this.levelsWon + 1}`); 
+      this.time.delayedCall(500, () => { // brief pause to let the defeated pose register before showing the victory screen
+        this.showVictoryCutscene(); 
+      });
+
+      return true; 
+    } // enemy lost
+
     return false; // combat continues
   }
 
