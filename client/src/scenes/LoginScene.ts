@@ -60,7 +60,7 @@ export class LoginScene extends Phaser.Scene {
             const user = (document.getElementById('username') as HTMLInputElement).value;
             if (user.length > 0) {
                 this.scene.stop('MenuScene');
-                this.scene.start('EvergladesScene', { level: 0, step: 0 });
+                this.scene.start('TutorialScene', { level: 0, step: 0 });
             } else {
                 this.alertLogin();
             }
@@ -121,7 +121,7 @@ export class LoginScene extends Phaser.Scene {
     }
 
     //viual button effects and styling
-    createButton(x, y, width, height, label, callback, style) {
+    createButton(x: number, y: number, width: number, height: number, label: string, callback: () => void, style: any) {
         const container = this.add.container(x, y);
         const graphics = this.add.graphics();
         this.drawMetalPlate(graphics, width, height, false);
@@ -136,7 +136,7 @@ export class LoginScene extends Phaser.Scene {
         return container;
     }
 
-    drawMetalPlate(graphics, width, height, pressed) {
+    drawMetalPlate(graphics: Phaser.GameObjects.Graphics, width: number, height: number, pressed: boolean) {
         graphics.clear();
         const w = width; const h = height; const x = -w / 2; const y = -h / 2;
         graphics.fillStyle(0x000000, 0.4);

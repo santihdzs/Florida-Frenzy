@@ -129,8 +129,8 @@ export class DuelScene extends Phaser.Scene {
   private isAnimating = false; // locks input while a turn animation is running
   private currentEnemyImage = 'enemy-default'; // tracks which enemy texture is currently active
 
-  constructor() {
-    super({ key: 'DuelScene' }); // scene key used by Phaser
+  constructor(config: string | Phaser.Types.Scenes.SettingsConfig = { key: 'DuelScene' }) {
+    super(config); // scene key used by Phaser
   }
 
   init(data: Partial<RunData>) {
