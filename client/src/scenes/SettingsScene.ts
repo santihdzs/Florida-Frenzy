@@ -1,6 +1,11 @@
 import Phaser from 'phaser';
 
+
+
 export class SettingsScene extends Phaser.Scene {
+  private fromPause = false; // track if we came from the pause menu
+  private returnScene = 'MenuScene'; // default return scene if not coming from pause menu
+
   constructor() {
     super({ key: 'SettingsScene' });
   }
@@ -95,8 +100,20 @@ export class SettingsScene extends Phaser.Scene {
 
     // Back button
     this.createMetalBtn(centerX, 590, 180, 60, 'BACK', () => {
-      this.scene.start('MenuScene');
+      if (this.fromPause) {
+        this.scene.stop();
+        this.scene.launch('PauseScene', { returnScene: this.returnScene });
+      }
+
+      else {
+        this.scene.start('MenuScene');
+      }
     });
+  }
+
+  init(data: { fromPause?: boolean, returnScene?: string }) {
+    this.fromPause = data.fromPause ?? false;
+    this.returnScene = data.returnScene ?? 'MenuScene';
   }
 
   updateVolume(val: number, textObj: Phaser.GameObjects.Text) {
