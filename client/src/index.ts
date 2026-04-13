@@ -5,7 +5,10 @@ import { EvergladesScene } from './scenes/EvergladesScene';
 import { PlatformerScene } from './scenes/PlatformerScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { InstructionScene } from './scenes/InstructionScene';
+import { LoginScene } from './scenes/LoginScene';
 import { PauseScene } from './scenes/PauseScene';
+import { TutorialScene } from './scenes/TutorialScene';
+import { TutorialScene2 } from './scenes/TutorialScene2';
 
 const config: Phaser.Types.Core.GameConfig = { // Phaser game configuration object
   type: Phaser.WEBGL, // use WebGL rendering for better performance and effects
@@ -18,7 +21,7 @@ const config: Phaser.Types.Core.GameConfig = { // Phaser game configuration obje
     mode: Phaser.Scale.FIT, // scale the game to fit the available space while maintaining aspect ratio
     autoCenter: Phaser.Scale.CENTER_BOTH, // center the game canvas both horizontally and vertically
   },
-  scene: [MenuScene, DuelScene, EvergladesScene, PlatformerScene, InstructionScene, SettingsScene, PauseScene], // register all game scenes in the desired order
+  scene: [MenuScene, DuelScene, EvergladesScene, PlatformerScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2],
 };
 
 new Phaser.Game(config); // create a new Phaser game instance with the specified configuration

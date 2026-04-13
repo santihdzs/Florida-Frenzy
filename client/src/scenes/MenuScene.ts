@@ -4,6 +4,7 @@ import Phaser from 'phaser';
 // Estos errores se arreglarian con un d.ts file, pero funciona bien
 import titleBackground from '../assets/title-background.png'; 
 import titleLogo from '../assets/logos/logo.png';
+import music from '../assets/music/Tailgate_Troubles.mp3';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -13,12 +14,23 @@ export class MenuScene extends Phaser.Scene {
   preload() {
     this.load.image('title-background', titleBackground);
     this.load.image('title-logo', titleLogo);
+    this.load.audio('menu-music', music);
   }
 
   create() {
 
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
+
+    const savedVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
+    this.sound.volume = savedVolume;
+
+    let music = this.registry.get('music');
+    if(!music){
+      music = this.sound.add('menu-music', { loop: true, volume: 0.5 });
+      this.registry.set('music', music);
+      music.play();
+    }
 
     // Check if we're coming from the welcome screen and disable input until the "game-start-click" event is fired
     const welcomeScreen = document.getElementById('welcome-screen');
@@ -48,7 +60,7 @@ export class MenuScene extends Phaser.Scene {
 
     const buttons = [
       { text: 'START', y: 320, action: () => this.startGame() },
-      { text: 'MULTIPLAYER', y: 405, action: () => console.log('Multiplayer - coming soon') },
+      { text: 'MULTIPLAYER', y: 405, action: () => this.Multiplayerfalse() },
       { text: 'STORE', y: 490, action: () => console.log('Store - coming soon') },
       { text: 'SETTINGS', y: 575, action: () => this.settingsScene() },
       { text: 'LOG OUT', y: 660, action: () => this.showExit() }
@@ -56,6 +68,9 @@ export class MenuScene extends Phaser.Scene {
 
     // button apart from the main ones
     const buttonInstructions = this.createButton(centerX + 410, 670, 280, 50, 'HOW TO PLAY', () => this.instruction(), textStyle);
+
+    // button apart for tutorial
+    const buttonTutorial = this.createButton(centerX - 410, 670, 280, 50, 'TUTORIAL', () => this.scene.start('TutorialScene'), textStyle);
 
     const buttonWidth = 350;
     const buttonHeight = 70;
@@ -149,114 +164,8 @@ export class MenuScene extends Phaser.Scene {
 
   // Start the game by showing the login modal
   startGame() {
-    this.showLogin();
-  }
-
-  // Show a login modal with username and password fields
-  showLogin() {
-    const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
-
-    // Create a semi-transparent overlay to block interaction with the background
-    const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7)
-      .setOrigin(0)
-      .setDepth(200)
-      .setInteractive();
-
-    const modal = this.add.container(centerX, centerY).setDepth(201);
-
-    const bgWidth = 450;
-    const bgHeight = 400;
-    const background = this.add.graphics();
-    this.drawMetalPlate(background, bgWidth, bgHeight, false);
-
-    const title = this.add.text(0, -150, 'LOGIN', {
-      fontFamily: 'Impact, sans-serif',
-      fontSize: '32px',
-      color: '#c2baba',
-      stroke: '#000000',
-      strokeThickness: 3,
-      align: 'center'
-    }).setOrigin(0.5);
-
-    // Create a DOM element for the login form, use createFromHTML to define the structure and styling of the form
-    // Will be change in future sprint
-    const loginForm = this.add.dom(0, -20).createFromHTML(`
-      <div style="display: flex; flex-direction: column; gap: 15px; width: 300px;">
-        <input type="text" id="username" placeholder="Username" 
-          style="padding: 10px; font-size: 18px; border: 2px solid #999797; background: #222; color: white; font-family: Impact, sans-serif;">
-        <input type="password" id="password" placeholder="Password" 
-          style="padding: 10px; font-size: 18px; border: 2px solid #999797; background: #222; color: white; font-family: Impact, sans-serif;">
-      </div>
-    `);
-
-    const textStyleBtn = {
-      fontFamily: 'Impact, sans-serif',
-      fontSize: '24px',
-      color: '#c2baba',
-      stroke: '#000000',
-      strokeThickness: 2,
-      align: 'center'
-    };
-
-    //buttons for login and cancel
-    const loginBtn = this.createButton(0, 100, 200, 50, 'LOGIN', () => {
-      const user = (document.getElementById('username') as HTMLInputElement).value;
-      const pass = (document.getElementById('password') as HTMLInputElement).value;
-
-      if (user.length > 0) {
-        console.log('Login intent:', user);
-        this.scene.start('EvergladesScene', { level: 0, step: 0 });
-      } else {
-         this.alertLogin();
-         overlay.destroy();
-         modal.destroy();
-      }
-    }, textStyleBtn);
-
-    const cancelBtn = this.createButton(0, 165, 150, 40, 'CANCEL', () => {
-      overlay.destroy();
-      modal.destroy();
-    }, textStyleBtn);
-
-    modal.add([background, title, loginForm, loginBtn, cancelBtn]);
-
-    modal.setScale(0).setAlpha(0);
-    this.tweens.add({
-      targets: modal,
-      scale: 1,
-      alpha: 1,
-      duration: 300,
-      ease: 'Back.easeOut'
-    });
-  }
-
-  // Show an alert if the user tries to login without entering a username
-  alertLogin() {
-    const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
-    
-    const alertBox = this.add.container(centerX, centerY).setDepth(300);
-    const bg = this.add.graphics();
-    this.drawMetalPlate(bg, 400, 150, false);
-    
-    const text = this.add.text(0, -20, 'Please enter a username\nto continue.', {
-      fontFamily: 'Impact, sans-serif',
-      fontSize: '20px',
-      color: '#c2baba',
-      stroke: '#000000',
-      strokeThickness: 2,
-      align: 'center'
-    }).setOrigin(0.5);
-
-    const okBtn = this.createButton(0, 40, 100, 40, 'OK', () => {
-      alertBox.destroy();
-      this.showLogin();
-    }, { fontFamily: 'Impact', fontSize: '18px', color: '#c2baba', stroke: '#000000', strokeThickness: 2 });
-
-    alertBox.add([bg, text, okBtn]);
-    alertBox.setScale(0).setAlpha(0);
-    this.tweens.add({ targets: alertBox, scale: 1, alpha: 1, duration: 200, ease: 'Back.easeOut' });
+    this.sound.stopByKey('menu-music');
+    this.scene.start('LoginScene');
   }
 
   // Navigate to the settings scene
@@ -268,9 +177,63 @@ export class MenuScene extends Phaser.Scene {
   instruction(){
     this.scene.start('InstructionScene');
   }
+
+  // Placeholder for multiplayer not implemented yet
+  Multiplayerfalse(){
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+
+    const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6)
+        .setOrigin(0)
+        .setDepth(90)
+        .setInteractive();
+
+    const modal = this.add.container(centerX, centerY).setDepth(101);
+    const width = 500;
+    const height = 180;
+
+    const background = this.add.graphics();
+    this.drawMetalPlate(background, width, height, false);
+
+    const text = this.add.text(0, -20, 'Multiplayer mode is coming soon! Stay tuned.', {
+        fontFamily: 'Impact, Arial black, sans-serif',
+        fontSize: '24px',
+        color: '#c2baba',
+        stroke: '#000000',
+        strokeThickness: 3,
+        align: 'center'
+    }).setOrigin(0.5);
+
+    const okBtn = this.createButton(0, 40, 140, 60, 'OK', () => {
+        overlay.destroy();
+        modal.destroy();
+        this.input.enabled = true;
+    }, {
+        fontFamily: 'Impact, Arial black, sans-serif',
+        fontSize: '20px',
+        color: '#c2baba',
+        stroke: '#000000',
+        strokeThickness: 2
+    });
+
+    modal.add([background, text, okBtn]);
+
+    modal.setScale(0.5);
+    modal.setAlpha(0);
+    this.tweens.add({
+        targets: modal,
+        scale: 1,
+        alpha: 1,
+        duration: 300,
+        ease: 'Back.easeOut'
+    });
+
+    okBtn.setDepth(101);
+  }
   
   // Exit the game by reloading the page with a fade-out effect
   exitGame() {
+    this.sound.stopByKey('menu-music');
      this.input.enabled = false;
 
     const overlay = this.add.graphics();
