@@ -39,6 +39,7 @@ export class InstructionScene extends Phaser.Scene {
 
         let yOffset = 0;
 
+        // Function to create a section with a title and content, and add it to the scroll container
         const contentWidth = bgWidth * 0.75;
         const contentX = (bgWidth - contentWidth) / 2;
 
@@ -52,6 +53,7 @@ export class InstructionScene extends Phaser.Scene {
                 strokeThickness: 4
             }).setOrigin(0.5, 0);
 
+            // offset be calculated based on the height of the title and some padding
             yOffset += titleText.height + 10;
 
             const contentText = this.add.text(bgWidth / 2, yOffset, content, {
@@ -66,12 +68,14 @@ export class InstructionScene extends Phaser.Scene {
 
             contentText.setLineSpacing(8);
 
+            // Update the yOffset for the next section, adding some extra space after the content
             yOffset += contentText.height + 35;
 
+            // Add the title and content to the scroll container
             this.scrollContainer.add([titleText, contentText]);
         };
 
-        //instructions text (ahora por secciones)
+        //instructions text
         createSection("THE MISSION",
         `Florida Frenzy is a 2D roguelite where TCG strategy meets fast-paced platforming. \nAs a member of the Crock Clan, you must explore the swamps, build your deck, and defeat powerful bosses.`);
 
@@ -94,6 +98,7 @@ export class InstructionScene extends Phaser.Scene {
     `Each run is different. \n\nIf you lose, you restart from the beginning, but you keep your progress: \n- Experience (Swamp XP) \n- Unlocked cards \n- Clan Rank \n\nEvery run makes you stronger.`);
         
 
+        // After creating all sections, set the total content height and create a mask to limit the visible area of the scroll container
         this.contentHeight = yOffset;
         const maskShape = this.make.graphics();
         maskShape.fillStyle(0xffffff);
@@ -101,7 +106,7 @@ export class InstructionScene extends Phaser.Scene {
         this.scrollMask = maskShape.createGeometryMask();
         this.scrollContainer.setMask(this.scrollMask);
 
-        // 5. scroll logic
+        // scroll logic
         this.input.on('wheel', (pointer: any, gameObjects: any, deltaX: number, deltaY: number) => {
             this.scrollContainer.y -= deltaY * 0.5; //scroll más suave
             this.limitScroll(bgY + 20, bgHeight);

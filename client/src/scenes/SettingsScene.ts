@@ -1,6 +1,11 @@
 import Phaser from 'phaser';
 
+
+
 export class SettingsScene extends Phaser.Scene {
+  private fromPause = false; // track if we came from the pause menu
+  private returnScene = 'MenuScene'; // default return scene if not coming from pause menu
+
   constructor() {
     super({ key: 'SettingsScene' });
   }
@@ -82,27 +87,41 @@ export class SettingsScene extends Phaser.Scene {
     //full screen toggle
     this.add.text(centerX, 440, 'DISPLAY MODE', labelStyle).setOrigin(0.5);
 
-    const initialfslabel = this.scale.isFullscreen ? 'EXIT FULLSCREEN' : 'WINDOWED / FULLSCREEN';
+    const initialfslabel = this.scale.isFullscreen ? 'EXIT FULLSCREEN' : 'WINDOWED / FULLSCREEN'; // Set initial label based on current fullscreen state
 
+    // Fullscreen toggle button
     const fullScreenBtn = this.createMetalBtn(centerX, 500, 300, 60, initialfslabel, () => {
       if (this.scale.isFullscreen) {
         this.scale.stopFullscreen();
-        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('WINDOWED / FULLSCREEN');
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('WINDOWED / FULLSCREEN'); // Update label when exiting fullscreen
       } else {
         document.getElementById('game-container')?.requestFullscreen();
-        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('EXIT FULLSCREEN');
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('EXIT FULLSCREEN'); // Update label when entering fullscreen
       }
     });
 
     // Back button
     this.createMetalBtn(centerX, 590, 180, 60, 'BACK', () => {
-      this.scene.start('MenuScene');
+      if (this.fromPause) {
+        this.scene.stop();
+        this.scene.launch('PauseScene', { returnScene: this.returnScene });
+      }
+
+      else {
+        this.scene.start('MenuScene');
+      }
     });
+  }
+
+  init(data: { fromPause?: boolean, returnScene?: string }) {
+    this.fromPause = data.fromPause ?? false;
+    this.returnScene = data.returnScene ?? 'MenuScene';
   }
 
   updateVolume(val: number, textObj: Phaser.GameObjects.Text) {
     textObj.setText(`${Math.round(val * 100)}%`);
     localStorage.setItem('gameVolume', val.toString());
+    // Update the global volume immediately
     this.sound.volume = val;
 
     const music = this.registry.get('music');

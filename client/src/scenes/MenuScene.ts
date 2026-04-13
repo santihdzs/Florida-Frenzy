@@ -32,6 +32,7 @@ export class MenuScene extends Phaser.Scene {
       music.play();
     }
 
+    // Check if we're coming from the welcome screen and disable input until the "game-start-click" event is fired
     const welcomeScreen = document.getElementById('welcome-screen');
     if (welcomeScreen) {
         this.input.enabled = false;
@@ -65,6 +66,7 @@ export class MenuScene extends Phaser.Scene {
       { text: 'LOG OUT', y: 660, action: () => this.showExit() }
     ];
 
+    // button apart from the main ones
     const buttonInstructions = this.createButton(centerX + 410, 670, 280, 50, 'HOW TO PLAY', () => this.instruction(), textStyle);
 
     const buttonWidth = 350;
@@ -75,6 +77,7 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  // Helper function to create styled buttons with hover and click effects
   createButton(x: number, y: number, width: number, height: number, label: string, callback: () => void, style: any) {
     const container = this.add.container(x, y);
 
@@ -114,6 +117,7 @@ export class MenuScene extends Phaser.Scene {
     return container;
   }
 
+  // Function to draw a stylized metal plate for buttons and modals
   drawMetalPlate(graphics: Phaser.GameObjects.Graphics, width: number, height: number, pressed: boolean) {
     graphics.clear();
     const w = width;
@@ -155,19 +159,23 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  // Start the game by showing the login modal
   startGame() {
     this.sound.stopByKey('menu-music');
     this.scene.start('LoginScene');
   }
 
+  // Navigate to the settings scene
   settingsScene(){
     this.scene.start('SettingsScene');
   }
 
+  // Navigate to the instruction scene
   instruction(){
     this.scene.start('InstructionScene');
   }
   
+  // Exit the game by reloading the page with a fade-out effect
   exitGame() {
     this.sound.stopByKey('menu-music');
      this.input.enabled = false;
@@ -189,6 +197,7 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
+  // Show a confirmation modal when the user clicks "LOG OUT"
   showExit() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
