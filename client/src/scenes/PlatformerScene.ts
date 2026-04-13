@@ -133,6 +133,27 @@ export class PlatformerScene extends Phaser.Scene {
       S: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
+
+    const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
+    escKey?.on('down', () => {
+      if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
+      this.scene.launch('PauseScene', { returnScene: 'PlatformerScene' }); // open the pause menu and tell it to return here when resuming
+      this.scene.pause(); // pause the duel scene
+    });
+
+    const pauseButton = this.add.text(20, 20, 'PAUSE', {
+      fontSize: '28px',
+      color: '#feec00',
+      fontStyle: 'bold',
+      backgroundColor: '#000000',
+      padding: { left: 10, right: 10, top: 4, bottom: 4 },
+    }).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true }); // on-screen pause button in the top-left corner
+
+    pauseButton.on('pointerdown', () => {
+      if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
+      this.scene.pause(); // pause the duel scene
+      this.scene.launch('PauseScene', { returnScene: 'PlatformerScene' }); // open the pause menu and tell it to return here when resuming
+    });
   }
 
   update(time: number, delta: number) {

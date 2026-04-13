@@ -179,6 +179,27 @@ export class DuelScene extends Phaser.Scene {
 
     const keyP = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P); // shortcut for advancing the run
     keyP.on('down', () => this.advanceToNextCycle()); // move to the next Everglades scene on P press
+
+    const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
+    escKey?.on('down', () => {
+      if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
+      this.scene.launch('PauseScene', { returnScene: 'DuelScene' }); // open the pause menu and tell it to return here when resuming
+      this.scene.pause(); // pause the duel scene
+    });
+
+    const pauseButton = this.add.text(20, 690, 'PAUSE', {
+      fontSize: '28px',
+      color: '#feec00',
+      fontStyle: 'bold',
+      backgroundColor: '#000000',
+      padding: { left: 10, right: 10, top: 4, bottom: 4 },
+    }).setInteractive({ useHandCursor: true }).setDepth(1000); // on-screen pause button in the top-left corner
+
+    pauseButton.on('pointerdown', () => {
+      if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
+      this.scene.pause(); // pause the duel scene
+      this.scene.launch('PauseScene', { returnScene: 'DuelScene' }); // open the pause menu and tell it to return here when resuming
+    });
   }
 
   private advanceToNextCycle() {
