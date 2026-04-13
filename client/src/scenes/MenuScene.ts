@@ -60,7 +60,7 @@ export class MenuScene extends Phaser.Scene {
 
     const buttons = [
       { text: 'START', y: 320, action: () => this.startGame() },
-      { text: 'MULTIPLAYER', y: 405, action: () => console.log('Multiplayer - coming soon') },
+      { text: 'MULTIPLAYER', y: 405, action: () => this.Multiplayerfalse() },
       { text: 'STORE', y: 490, action: () => console.log('Store - coming soon') },
       { text: 'SETTINGS', y: 575, action: () => this.settingsScene() },
       { text: 'LOG OUT', y: 660, action: () => this.showExit() }
@@ -68,6 +68,9 @@ export class MenuScene extends Phaser.Scene {
 
     // button apart from the main ones
     const buttonInstructions = this.createButton(centerX + 410, 670, 280, 50, 'HOW TO PLAY', () => this.instruction(), textStyle);
+
+    // button apart for tutorial
+    const buttonTutorial = this.createButton(centerX - 410, 670, 280, 50, 'TUTORIAL', () => this.scene.start('TutorialScene'), textStyle);
 
     const buttonWidth = 350;
     const buttonHeight = 70;
@@ -173,6 +176,59 @@ export class MenuScene extends Phaser.Scene {
   // Navigate to the instruction scene
   instruction(){
     this.scene.start('InstructionScene');
+  }
+
+  // Placeholder for multiplayer not implemented yet
+  Multiplayerfalse(){
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+
+    const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6)
+        .setOrigin(0)
+        .setDepth(90)
+        .setInteractive();
+
+    const modal = this.add.container(centerX, centerY).setDepth(101);
+    const width = 500;
+    const height = 180;
+
+    const background = this.add.graphics();
+    this.drawMetalPlate(background, width, height, false);
+
+    const text = this.add.text(0, -20, 'Multiplayer mode is coming soon! Stay tuned.', {
+        fontFamily: 'Impact, Arial black, sans-serif',
+        fontSize: '24px',
+        color: '#c2baba',
+        stroke: '#000000',
+        strokeThickness: 3,
+        align: 'center'
+    }).setOrigin(0.5);
+
+    const okBtn = this.createButton(0, 40, 140, 60, 'OK', () => {
+        overlay.destroy();
+        modal.destroy();
+        this.input.enabled = true;
+    }, {
+        fontFamily: 'Impact, Arial black, sans-serif',
+        fontSize: '20px',
+        color: '#c2baba',
+        stroke: '#000000',
+        strokeThickness: 2
+    });
+
+    modal.add([background, text, okBtn]);
+
+    modal.setScale(0.5);
+    modal.setAlpha(0);
+    this.tweens.add({
+        targets: modal,
+        scale: 1,
+        alpha: 1,
+        duration: 300,
+        ease: 'Back.easeOut'
+    });
+
+    okBtn.setDepth(101);
   }
   
   // Exit the game by reloading the page with a fade-out effect
