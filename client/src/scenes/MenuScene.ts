@@ -1,10 +1,8 @@
 import Phaser from 'phaser';
-
-// Import assets directly for Vite
-// Estos errores se arreglarian con un d.ts file, pero funciona bien
-import titleBackground from '../assets/title-background.png'; 
+import titleBackground from '../assets/title-background.png';
 import titleLogo from '../assets/logos/logo.png';
 import music from '../assets/music/Tailgate_Troubles.mp3';
+import { isLoggedIn, getPlayer, logout, hasCompletedTutorial } from '../utils/auth.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -18,35 +16,52 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
-
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
     const savedVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
     this.sound.volume = savedVolume;
 
-    let music = this.registry.get('music');
-    if(!music){
-      music = this.sound.add('menu-music', { loop: true, volume: 0.5 });
-      this.registry.set('music', music);
-      music.play();
+    let bgMusic = this.registry.get('music');
+    if (!bgMusic) {
+      bgMusic = this.sound.add('menu-music', { loop: true, volume: 0.5 });
+      this.registry.set('music', bgMusic);
+      bgMusic.play();
     }
 
     // Check if we're coming from the welcome screen and disable input until the "game-start-click" event is fired
     const welcomeScreen = document.getElementById('welcome-screen');
     if (welcomeScreen) {
-        this.input.enabled = false;
-        window.addEventListener('game-start-click', () => {
-            this.time.delayedCall(300, () => {
-                if (this.input) this.input.enabled = true;
-            });
-        }, { once: true });
+      this.input.enabled = false;
+      window.addEventListener('game-start-click', () => {
+        this.time.delayedCall(300, () => {
+          if (this.input) this.input.enabled = true;
+        });
+      }, { once: true });
     } else {
-        this.input.enabled = true;
+      this.input.enabled = true;
     }
 
     this.add.image(centerX, centerY, 'title-background');
     this.add.image(centerX, 150, 'title-logo').setScale(0.5);
+
+    // Show logged-in player's username in the top-right corner
+    if (isLoggedIn()) {
+      const player = getPlayer();
+      if (player) {
+        this.add.text(
+          this.cameras.main.width - 20, 20,
+          `${String(player.username)}`,
+          {
+            fontFamily: 'Impact, Arial black, sans-serif',
+            fontSize: '20px',
+            color: '#c2baba',
+            stroke: '#000000',
+            strokeThickness: 2,
+          }
+        ).setOrigin(1, 0);
+      }
+    }
 
     const textStyle = {
       fontFamily: 'Impact, Arial black, sans-serif',
@@ -55,62 +70,56 @@ export class MenuScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 2,
       shadow: { offsetX: 3, offsetY: 3, color: '#000', blur: 0, fill: true },
-      letterSpacing: -1
+      letterSpacing: -1,
     };
 
+    const logoutLabel  = isLoggedIn() ? 'LOG OUT' : 'LOG IN';
+    const logoutAction = isLoggedIn()
+      ? () => logout()
+      : () => this.scene.launch('LoginScene', { mode: 'login' });
+
     const buttons = [
-      { text: 'START', y: 320, action: () => this.startGame() },
+      { text: 'START',       y: 320, action: () => this.startGame() },
       { text: 'MULTIPLAYER', y: 405, action: () => this.Multiplayerfalse() },
-      { text: 'STORE', y: 490, action: () => console.log('Store - coming soon') },
-      { text: 'SETTINGS', y: 575, action: () => this.settingsScene() },
-      { text: 'LOG OUT', y: 660, action: () => this.showExit() }
+      { text: 'STORE',       y: 490, action: () => console.log('Store - coming soon') },
+      { text: 'SETTINGS',   y: 575, action: () => this.settingsScene() },
+      { text: logoutLabel,  y: 660, action: logoutAction },
     ];
 
-    // button apart from the main ones
-    const buttonInstructions = this.createButton(centerX + 410, 670, 280, 50, 'HOW TO PLAY', () => this.instruction(), textStyle);
+    this.createButton(centerX + 410, 670, 280, 50, 'HOW TO PLAY', () => this.instruction(), textStyle);
+    this.createButton(centerX - 410, 670, 280, 50, 'TUTORIAL',    () => this.scene.start('TutorialScene'), textStyle);
 
-    // button apart for tutorial
-    const buttonTutorial = this.createButton(centerX - 410, 670, 280, 50, 'TUTORIAL', () => this.scene.start('TutorialScene'), textStyle);
-
-    const buttonWidth = 350;
+    const buttonWidth  = 350;
     const buttonHeight = 70;
-
     buttons.forEach(btn => {
       this.createButton(centerX, btn.y, buttonWidth, buttonHeight, btn.text, btn.action, textStyle);
     });
   }
 
   // Helper function to create styled buttons with hover and click effects
-  createButton(x: number, y: number, width: number, height: number, label: string, callback: () => void, style: any) {
+  createButton(x: number, y: number, width: number, height: number, label: string, callback: () => void, style: Phaser.Types.GameObjects.Text.TextStyle) {
     const container = this.add.container(x, y);
-
-    const graphics = this.add.graphics();
+    const graphics  = this.add.graphics();
     this.drawMetalPlate(graphics, width, height, false);
-
     const text = this.add.text(0, 0, label, style).setOrigin(0.5);
-
     container.add([graphics, text]);
-
     container.setSize(width, height);
-    container.setInteractive({useHandCursor: true});
+    container.setInteractive({ useHandCursor: true });
 
-    container.on('pointerover',() => {
+    container.on('pointerover', () => {
       text.setColor('#226d1b');
       this.tweens.add({ targets: container, scale: 1.03, duration: 100 });
     });
-
-    container.on('pointerout',() => {
+    container.on('pointerout', () => {
       text.setColor('#c2baba');
       this.drawMetalPlate(graphics, width, height, false);
       this.tweens.add({ targets: container, scale: 1, duration: 100 });
       text.y = 0;
     });
-
     container.on('pointerdown', () => {
       this.drawMetalPlate(graphics, width, height, true);
       text.y = 4;
     });
-
     container.on('pointerup', () => {
       this.drawMetalPlate(graphics, width, height, false);
       text.y = 0;
@@ -123,20 +132,16 @@ export class MenuScene extends Phaser.Scene {
   // Function to draw a stylized metal plate for buttons and modals
   drawMetalPlate(graphics: Phaser.GameObjects.Graphics, width: number, height: number, pressed: boolean) {
     graphics.clear();
-    const w = width;
-    const h = height;
-    const x = -w / 2;
-    const y = -h / 2;
+    const w = width; const h = height;
+    const x = -w / 2; const y = -h / 2;
 
     graphics.fillStyle(0x000000, 0.4);
     graphics.fillRoundedRect(x + 4, y + 4, w, h, 6);
-
     graphics.fillStyle(pressed ? 0x222222 : 0x444444, 1);
     graphics.fillRoundedRect(x, y, w, h, 4);
 
-    const topColor = pressed ? 0x333333 : 0x999999;
+    const topColor    = pressed ? 0x333333 : 0x999999;
     const bottomColor = pressed ? 0x111111 : 0x666666;
-    
     graphics.fillStyle(topColor, 1);
     graphics.fillRect(x + 4, y + 4, w - 8, (h / 2) - 4);
     graphics.fillStyle(bottomColor, 1);
@@ -149,12 +154,12 @@ export class MenuScene extends Phaser.Scene {
 
     const rivetColor = pressed ? 0x000000 : 0x222222;
     const offset = 12;
-    const rSize = 4;
-    
+    const rSize  = 4;
     graphics.fillStyle(rivetColor, 1);
-    [ [x+offset, y+offset], [x+w-offset, y+offset], [x+offset, y+h-offset], [x+w-offset, y+h-offset] ].forEach(pos => {
+    [[x + offset, y + offset], [x + w - offset, y + offset],
+     [x + offset, y + h - offset], [x + w - offset, y + h - offset]].forEach(pos => {
       graphics.fillCircle(pos[0], pos[1], rSize);
-      if(!pressed) {
+      if (!pressed) {
         graphics.fillStyle(0xffffff, 0.2);
         graphics.fillCircle(pos[0] - 1, pos[1] - 1, rSize / 2);
         graphics.fillStyle(rivetColor, 1);
@@ -162,150 +167,105 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  // Start the game by showing the login modal
+  // Start button — behaviour depends on login and tutorial state
   startGame() {
+    if (!isLoggedIn()) {
+      this.scene.launch('LoginScene', { mode: 'register' });
+      return;
+    }
     this.sound.stopByKey('menu-music');
-    this.scene.start('LoginScene');
+    if (hasCompletedTutorial()) {
+      this.scene.start('EvergladesScene');
+    } else {
+      this.scene.start('TutorialScene');
+    }
   }
 
-  // Navigate to the settings scene
-  settingsScene(){
+  settingsScene() {
     this.scene.start('SettingsScene');
   }
 
-  // Navigate to the instruction scene
-  instruction(){
+  instruction() {
     this.scene.start('InstructionScene');
   }
 
-  // Placeholder for multiplayer not implemented yet
-  Multiplayerfalse(){
+  Multiplayerfalse() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
     const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6)
-        .setOrigin(0)
-        .setDepth(90)
-        .setInteractive();
+      .setOrigin(0).setDepth(90).setInteractive();
 
     const modal = this.add.container(centerX, centerY).setDepth(101);
-    const width = 500;
-    const height = 180;
-
+    const width = 500; const height = 180;
     const background = this.add.graphics();
     this.drawMetalPlate(background, width, height, false);
 
     const text = this.add.text(0, -20, 'Multiplayer mode is coming soon! Stay tuned.', {
-        fontFamily: 'Impact, Arial black, sans-serif',
-        fontSize: '24px',
-        color: '#c2baba',
-        stroke: '#000000',
-        strokeThickness: 3,
-        align: 'center'
+      fontFamily: 'Impact, Arial black, sans-serif',
+      fontSize: '24px', color: '#c2baba',
+      stroke: '#000000', strokeThickness: 3, align: 'center',
     }).setOrigin(0.5);
 
     const okBtn = this.createButton(0, 40, 140, 60, 'OK', () => {
-        overlay.destroy();
-        modal.destroy();
-        this.input.enabled = true;
-    }, {
-        fontFamily: 'Impact, Arial black, sans-serif',
-        fontSize: '20px',
-        color: '#c2baba',
-        stroke: '#000000',
-        strokeThickness: 2
-    });
+      overlay.destroy();
+      modal.destroy();
+      this.input.enabled = true;
+    }, { fontFamily: 'Impact, Arial black, sans-serif', fontSize: '20px', color: '#c2baba', stroke: '#000000', strokeThickness: 2 });
 
     modal.add([background, text, okBtn]);
-
-    modal.setScale(0.5);
-    modal.setAlpha(0);
-    this.tweens.add({
-        targets: modal,
-        scale: 1,
-        alpha: 1,
-        duration: 300,
-        ease: 'Back.easeOut'
-    });
-
+    modal.setScale(0.5).setAlpha(0);
+    this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 300, ease: 'Back.easeOut' });
     okBtn.setDepth(101);
   }
-  
-  // Exit the game by reloading the page with a fade-out effect
+
   exitGame() {
     this.sound.stopByKey('menu-music');
-     this.input.enabled = false;
-
+    this.input.enabled = false;
     const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 1);
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
-    overlay.setAlpha(0);
-    overlay.setDepth(100);
-
+    overlay.setAlpha(0).setDepth(100);
     this.tweens.add({
-      targets: overlay,
-      alpha: 1,
-      duration: 800,
-        ease: 'Power2',
-        onComplete: () => {
-          window.location.reload();
-        }
+      targets: overlay, alpha: 1, duration: 800, ease: 'Power2',
+      onComplete: () => { window.location.reload(); },
     });
   }
 
-  // Show a confirmation modal when the user clicks "LOG OUT"
   showExit() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
     const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6)
-        .setOrigin(0)
-        .setDepth(90)
-        .setInteractive();
+      .setOrigin(0).setDepth(90).setInteractive();
 
     const modal = this.add.container(centerX, centerY).setDepth(101);
-    const width = 500;
-    const height = 280;
-
+    const width = 500; const height = 280;
     const background = this.add.graphics();
     this.drawMetalPlate(background, width, height, false);
 
     const text = this.add.text(0, -50, 'ARE YOU SURE?', {
-        fontFamily: 'Impact, Arial black, sans-serif',
-        fontSize: '32px',
-        color: '#c2baba',
-        stroke: '#000000',
-        strokeThickness: 3,
-        align: 'center'
+      fontFamily: 'Impact, Arial black, sans-serif',
+      fontSize: '32px', color: '#c2baba',
+      stroke: '#000000', strokeThickness: 3, align: 'center',
     }).setOrigin(0.5);
 
     const textStyle = {
       fontFamily: 'Impact, Arial black, sans-serif',
-      fontSize: '28px',
-      color: '#c2baba',
-      stroke: '#000000',
-      strokeThickness: 2
+      fontSize: '28px', color: '#c2baba',
+      stroke: '#000000', strokeThickness: 2,
     };
 
     const yesBtn = this.createButton(-100, 60, 140, 60, 'YES', () => this.exitGame(), textStyle);
-    const noBtn = this.createButton(100, 60, 140, 60, 'NO', () => {
+    const noBtn  = this.createButton( 100, 60, 140, 60, 'NO',  () => {
       overlay.destroy();
       modal.destroy();
       this.input.enabled = true;
     }, textStyle);
 
     modal.add([background, text, yesBtn, noBtn]);
-
-    modal.setScale(0.5);
-    modal.setAlpha(0);
-    this.tweens.add({
-        targets: modal,
-        scale: 1,
-        alpha: 1,
-        duration: 300,
-        ease: 'Back.easeOut'
-    });
-
+    modal.setScale(0.5).setAlpha(0);
+    this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 300, ease: 'Back.easeOut' });
     yesBtn.setDepth(101);
     noBtn.setDepth(101);
   }

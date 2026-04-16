@@ -12,7 +12,6 @@ export class InstructionScene extends Phaser.Scene {
     create() {
         const { width, height } = this.cameras.main;
         const centerX = width / 2;
-        const centerY = height / 2;
         this.input.enabled = true;
 
         this.cameras.main.setBackgroundColor('#1a1a1a');
@@ -41,7 +40,6 @@ export class InstructionScene extends Phaser.Scene {
 
         // Function to create a section with a title and content, and add it to the scroll container
         const contentWidth = bgWidth * 0.75;
-        const contentX = (bgWidth - contentWidth) / 2;
 
         const createSection = (title: string, content: string, color = '#acacac') => {
             //Titulo centrado
@@ -107,7 +105,7 @@ export class InstructionScene extends Phaser.Scene {
         this.scrollContainer.setMask(this.scrollMask);
 
         // scroll logic
-        this.input.on('wheel', (pointer: any, gameObjects: any, deltaX: number, deltaY: number) => {
+        this.input.on('wheel', (_pointer: unknown, _gameObjects: unknown, _deltaX: number, deltaY: number) => {
             this.scrollContainer.y -= deltaY * 0.5; //scroll más suave
             this.limitScroll(bgY + 20, bgHeight);
         });

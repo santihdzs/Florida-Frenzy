@@ -216,6 +216,8 @@ function createBaseCard(element: Element, power: number): Card {
         energyICost: 0,
       });
     }
+    default:
+      throw new Error(`Unknown element: ${element as string}`);
   }
 }
 

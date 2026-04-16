@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { DuelScene } from './DuelScene';
 import klanUrl from '../assets/sprites/Klan.png';
+import { markTutorialComplete } from '../utils/auth.js';
 
 export class TutorialScene2 extends DuelScene { // extends of the DuelScene because it inherits from it
     private klanPortrait!: Phaser.GameObjects.Image;
@@ -108,7 +109,8 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
                 y: '+=100',
                 duration: 500,
                 onComplete: () => {
-                    this.isAnimating = false; 
+                    markTutorialComplete();
+                    this.isAnimating = false;
                     this.tutorialContainer.destroy();
                 }
             });

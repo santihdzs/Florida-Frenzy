@@ -97,11 +97,11 @@ export class DuelScene extends Phaser.Scene {
   private currentTableCardObject?: Phaser.GameObjects.Container; // rendered table card container
   private discardTopCardObject?: Phaser.GameObjects.Container; // rendered discard top card container
   private discardClickZone?: Phaser.GameObjects.Zone; // invisible click target for the discard pile
-  private discardDrawHintText!: Phaser.GameObjects.Text; // initialized in create() for input guidance
+  protected discardDrawHintText!: Phaser.GameObjects.Text; // initialized in create() for input guidance
   private levelText!: Phaser.GameObjects.Text; // level indicator at the top
-  private instructionText!: Phaser.GameObjects.Text; // gameplay instruction text
+  protected instructionText!: Phaser.GameObjects.Text; // gameplay instruction text
   private battleMessageText!: Phaser.GameObjects.Text; // short combat feedback message
-  private tableCardLabel!: Phaser.GameObjects.Text; // label above the table card
+  protected tableCardLabel!: Phaser.GameObjects.Text; // label above the table card
   private discardCountText!: Phaser.GameObjects.Text; // discard count display
   private deckCountText!: Phaser.GameObjects.Text; // deck count display
   private playerShieldText!: Phaser.GameObjects.Text; // player shield display
@@ -126,7 +126,7 @@ export class DuelScene extends Phaser.Scene {
   private playerShadow!: Phaser.GameObjects.Graphics; // player shadow graphic
   private enemyShadow!: Phaser.GameObjects.Graphics; // enemy shadow graphic
 
-  private isAnimating = false; // locks input while a turn animation is running
+  protected isAnimating = false; // locks input while a turn animation is running
   private currentEnemyImage = 'enemy-default'; // tracks which enemy texture is currently active
 
   constructor(config: string | Phaser.Types.Scenes.SettingsConfig = { key: 'DuelScene' }) {

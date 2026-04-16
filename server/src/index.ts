@@ -1,39 +1,35 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { PrismaClient } from '@prisma/client';
+import prismaPlugin from './plugins/prisma.js';
+import authPlugin from './plugins/auth.js';
+import firebasePlugin from './plugins/firebase.js';
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
+import runRoutes from './routes/run.routes.js';
+import leaderboardRoutes from './routes/leaderboard.routes.js';
 
 const fastify = Fastify({ logger: true });
-const prisma = new PrismaClient();
 
-fastify.register(cors, {
-  origin: true
-});
+await fastify.register(cors, { origin: true });
+await fastify.register(prismaPlugin);
+await fastify.register(firebasePlugin);
+await fastify.register(authPlugin);
+
+await fastify.register(authRoutes, { prefix: '/api/auth' });
+await fastify.register(userRoutes, { prefix: '/api/users' });
+await fastify.register(runRoutes, { prefix: '/api/runs' });
+await fastify.register(leaderboardRoutes, { prefix: '/api/leaderboard' });
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
 
-// Placeholder routes
-fastify.get('/api/user', async (request) => {
-  return { message: 'Auth endpoint - implement Firebase verification' };
-});
-
-fastify.post('/api/run', async (request) => {
-  return { message: 'Run creation - implement later' };
-});
-
-fastify.get('/api/leaderboard', async (request) => {
-  return { message: 'Leaderboard - implement later' };
-});
-
 const start = async () => {
   try {
-    await prisma.$connect();
     await fastify.listen({ port: 3001, host: '0.0.0.0' });
     console.log('Server running at http://localhost:3001');
   } catch (err) {
     fastify.log.error(err);
-    await prisma.$disconnect();
     process.exit(1);
   }
 };

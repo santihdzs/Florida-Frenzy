@@ -7,12 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum ClanRank {
-  ROOKIE
-  FIGHTER
-  VETERAN
-}
-
 enum CardCategory {
   ATTACK
   DEFENSE
@@ -62,9 +56,9 @@ enum ZoneDifficulty {
 }
 
 enum RunStatus {
-  WIN
   IN_PROGRESS
-  LOSE
+  COMPLETED
+  ABANDONED
 }
 
 enum BattleResult {
@@ -72,16 +66,44 @@ enum BattleResult {
   LOSE
 }
 
+enum RunZoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum RewardType {
+  CARD
+  CHARACTER
+  XP
+  COINS
+}
+
+enum AuthProvider {
+  LOCAL
+  FIREBASE
+  BOTH
+}
+
+// Dual auth model:
+//   - Firebase users: firebaseUid is set, passwordHash may be null
+//   - Local users: passwordHash is set (bcrypt of client-side SHA-256 hash), firebaseUid may be null
+//   - Both: firebaseUid and passwordHash are both set
+//   Client sends: SHA-256(plaintext password) over the wire
+//   Server stores: bcrypt(SHA-256 hash) in passwordHash
+// CHECK: at least one of firebaseUid or passwordHash must be non-null (enforced at app level)
 model Player {
-  id          Int       @id @default(autoincrement())
-  firebaseUid String    @unique
-  username    String    @unique
-  nickname    String?
-  email       String    @unique
-  swampXp     Int       @default(0)
-  clanRank    ClanRank  @default(ROOKIE)
-  firstLogin  DateTime  @default(now())
-  lastLogin   DateTime?
+  id           Int          @id @default(autoincrement())
+  firebaseUid  String?      @unique
+  passwordHash String?
+  authProvider AuthProvider @default(LOCAL)
+  username     String       @unique
+  nickname     String?
+  email        String       @unique
+  swampXp      Int          @default(0)
+  firstLogin   DateTime     @default(now())
+  lastLogin    DateTime?
 
   playerCharacters PlayerCharacter[]
   playerCards      PlayerCard[]
@@ -102,7 +124,6 @@ model CharacterGame {
 
   playerCharacters PlayerCharacter[]
   decks            Deck[]
-  runs             Run[]
   rewards          Reward[]
 }
 
@@ -179,6 +200,7 @@ model PlayerCard {
   @@unique([playerId, cardGameId])
 }
 
+// UNIQUE(playerId) WHERE isActive = true — enforced at app level (Prisma doesn't support partial unique indexes natively)
 model Deck {
   id              Int           @id @default(autoincrement())
   deckName        String
@@ -191,6 +213,8 @@ model Deck {
 
   deckCards DeckCard[]
   runs      Run[]
+
+  @@unique([playerId, deckName])
 }
 
 model DeckCard {
@@ -205,32 +229,34 @@ model DeckCard {
 }
 
 model Run {
-  id              Int           @id @default(autoincrement())
-  startTime       DateTime      @default(now())
-  endTime         DateTime?
-  runStatus       RunStatus     @default(IN_PROGRESS)
-  zonesDone       Int           @default(0)
-  swampXpEarned   Int           @default(0)
-  playerId        Int
-  player          Player        @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  characterGameId Int
-  characterGame   CharacterGame @relation(fields: [characterGameId], references: [id], onDelete: Cascade)
-  deckId          Int
-  deck            Deck          @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  id            Int       @id @default(autoincrement())
+  startTime     DateTime  @default(now())
+  endTime       DateTime?
+  runStatus     RunStatus @default(IN_PROGRESS)
+  zonesDone     Int       @default(0) // Cached counter — kept in sync by application logic
+  swampXpEarned Int       @default(0)
+  playerId      Int
+  player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  deckId        Int
+  deck          Deck      @relation(fields: [deckId], references: [id], onDelete: Cascade)
 
   runZones RunZone[]
   battles  Battle[]
 }
 
 model RunZone {
-  id          Int      @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   order       Int
-  status      String
-  claimReward Boolean  @default(false)
+  status      RunZoneStatus
+  claimReward Boolean       @default(false)
   zoneGameId  Int
-  zoneGame    ZoneGame @relation(fields: [zoneGameId], references: [id], onDelete: Cascade)
+  zoneGame    ZoneGame      @relation(fields: [zoneGameId], references: [id], onDelete: Cascade)
   runId       Int
-  run         Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run         Run           @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, order])
+  @@index([runId])
+  @@index([zoneGameId])
 }
 
 model Battle {
@@ -251,10 +277,11 @@ model Battle {
   battleRewards BattleReward[]
 }
 
+// CHECK: NOT (cardGameId IS NOT NULL AND characterGameId IS NOT NULL) — enforced at app level
 model Reward {
   id              Int            @id @default(autoincrement())
   rewardName      String
-  rewardType      String
+  rewardType      RewardType
   rewardDesc      String?
   rewardValue     Int            @default(0)
   cardGameId      Int?
@@ -263,6 +290,9 @@ model Reward {
   characterGame   CharacterGame? @relation(fields: [characterGameId], references: [id], onDelete: SetNull)
 
   battleRewards BattleReward[]
+
+  @@index([cardGameId])
+  @@index([characterGameId])
 }
 
 model BattleReward {
@@ -272,4 +302,8 @@ model BattleReward {
   battle       Battle  @relation(fields: [battleId], references: [id], onDelete: Cascade)
   rewardId     Int
   reward       Reward  @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+
+  @@unique([battleId, rewardId])
+  @@index([battleId])
+  @@index([rewardId])
 }

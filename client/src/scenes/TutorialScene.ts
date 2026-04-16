@@ -164,7 +164,7 @@ export class TutorialScene extends Phaser.Scene {
         this.projectiles.push(proj);
     }
 
-    update(time: number, delta: number) {
+    update(_time: number, delta: number) {
         const dt = delta / 1000;
         const speed = this.keys.SHIFT.isDown ? PLAYER_SPRINT : PLAYER_SPEED;
 
