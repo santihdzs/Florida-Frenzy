@@ -692,6 +692,6 @@ export class PlatformerScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => menu.setColor('#ffffff'))
       .on('pointerout',  () => menu.setColor('#888888'))
-      .on('pointerdown', () => this.scene.start('MenuScene'));
+      .on('pointerdown', () => { this.time.delayedCall(100, () => { this.scene.start('MenuScene'); }); });
   }
 }

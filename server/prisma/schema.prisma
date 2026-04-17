@@ -99,9 +99,11 @@ model Player {
   passwordHash String?
   authProvider AuthProvider @default(LOCAL)
   username     String       @unique
-  nickname     String?
   email        String       @unique
-  swampXp      Int          @default(0)
+  maxXp        Int          @default(0)
+  totalCoins   Int          @default(0)
+  isAdmin      Boolean      @default(false)
+  maxHp        Int          @default(50)
   firstLogin   DateTime     @default(now())
   lastLogin    DateTime?
 
@@ -235,6 +237,9 @@ model Run {
   runStatus     RunStatus @default(IN_PROGRESS)
   zonesDone     Int       @default(0) // Cached counter — kept in sync by application logic
   swampXpEarned Int       @default(0)
+  xpEarned      Int       @default(0)
+  coinsEarned   Int       @default(0)
+  maxLevel      Int       @default(1)
   playerId      Int
   player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
   deckId        Int

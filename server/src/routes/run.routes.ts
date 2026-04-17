@@ -1,51 +1,53 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { getRunsByPlayer, getRunById } from '../services/run.service.js';
 import { notFound, badRequest } from '../utils/errors.js';
+import { completeRunSchema } from '../schemas/run.schema.js';
 
-interface CreateRunBody {
-  deckId: number;
-}
+// CreateRunBody intentionally empty — deckId resolved server-side
 
 interface RunParams {
   id: string;
+}
+
+interface CompleteRunBody {
+  runId: number;
+  coinsEarned: number;
+  xpEarned: number;
+  maxLevel: number;
 }
 
 const runRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', fastify.authenticate);
 
   // POST /api/runs
-  fastify.post<{ Body: CreateRunBody }>(
+  fastify.post(
     '/',
-    {
-      schema: {
-        body: {
-          type: 'object',
-          required: ['deckId'],
-          properties: {
-            deckId: { type: 'integer' },
-          },
-          additionalProperties: false,
-        },
-      },
-    },
     async (request, reply) => {
-      const { deckId } = request.body;
       const playerId = request.user.playerId;
 
-      const deck = await fastify.prisma.deck.findFirst({
-        where: { id: deckId, playerId },
+      // Find or create the player's active deck
+      let deck = await fastify.prisma.deck.findFirst({
+        where: { playerId, isActive: true },
       });
 
       if (!deck) {
-        return reply.code(404).send(notFound('Deck not found or does not belong to you'));
-      }
-
-      if (!deck.isActive) {
-        return reply.code(400).send(badRequest('Deck is not active'));
+        // No active deck yet — create a placeholder so the run can be recorded
+        const defaultChar = await fastify.prisma.characterGame.findFirst();
+        if (!defaultChar) {
+          return reply.code(400).send(badRequest('No characters exist in the game yet'));
+        }
+        deck = await fastify.prisma.deck.create({
+          data: {
+            deckName: 'Default',
+            isActive: true,
+            playerId,
+            characterGameId: defaultChar.id,
+          },
+        });
       }
 
       const run = await fastify.prisma.run.create({
-        data: { playerId, deckId, runStatus: 'IN_PROGRESS', zonesDone: 0 },
+        data: { playerId, deckId: deck.id, runStatus: 'IN_PROGRESS', zonesDone: 0, xpEarned: 0 },
       });
 
       return reply.code(201).send(run);
@@ -57,6 +59,52 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
     const runs = await getRunsByPlayer(fastify, request.user.playerId);
     return reply.send(runs);
   });
+
+  // POST /api/runs/complete
+  fastify.post<{ Body: CompleteRunBody }>(
+    '/complete',
+    { schema: completeRunSchema },
+    async (request, reply) => {
+      fastify.log.info({ body: request.body }, 'Run complete request');
+      const { runId, coinsEarned, xpEarned, maxLevel } = request.body;
+      const playerId = request.user.playerId;
+
+      const run = await fastify.prisma.run.findFirst({
+        where: { id: runId, playerId },
+      });
+
+      if (!run) {
+        return reply.code(404).send(notFound('Run not found or does not belong to you'));
+      }
+
+      if (run.runStatus !== 'IN_PROGRESS') {
+        return reply.code(400).send(badRequest('Run is already completed or abandoned'));
+      }
+
+      // Fetch current maxXp to compute the new max
+      const currentPlayer = await fastify.prisma.player.findUniqueOrThrow({
+        where: { id: playerId },
+        select: { maxXp: true },
+      });
+
+      const [updatedRun, updatedPlayer] = await fastify.prisma.$transaction([
+        fastify.prisma.run.update({
+          where: { id: runId },
+          data: { runStatus: 'COMPLETED', endTime: new Date(), xpEarned, coinsEarned, maxLevel },
+        }),
+        fastify.prisma.player.update({
+          where: { id: playerId },
+          data: {
+            totalCoins: { increment: coinsEarned },
+            maxXp: Math.max(currentPlayer.maxXp, xpEarned),
+          },
+        }),
+      ]);
+
+      const { passwordHash: _pw, ...safePlayer } = updatedPlayer;
+      return reply.send({ run: updatedRun, player: safePlayer });
+    }
+  );
 
   // GET /api/runs/:id
   fastify.get<{ Params: RunParams }>('/:id', async (request, reply) => {

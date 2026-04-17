@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Player" ADD COLUMN     "isAdmin" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "maxHp" INTEGER NOT NULL DEFAULT 50;
+
+-- AlterTable
+ALTER TABLE "Run" ADD COLUMN     "maxLevel" INTEGER NOT NULL DEFAULT 1;

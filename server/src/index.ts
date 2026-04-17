@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import runRoutes from './routes/run.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
+import shopRoutes from './routes/shop.routes.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -19,6 +20,7 @@ await fastify.register(authRoutes, { prefix: '/api/auth' });
 await fastify.register(userRoutes, { prefix: '/api/users' });
 await fastify.register(runRoutes, { prefix: '/api/runs' });
 await fastify.register(leaderboardRoutes, { prefix: '/api/leaderboard' });
+await fastify.register(shopRoutes, { prefix: '/api/shop' });
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };

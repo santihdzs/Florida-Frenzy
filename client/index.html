@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/icon_new.png" />
     <title>Florida Frenzy</title>
+    <!-- welcome-screen flash fix: applied inline after the div via body script below -->
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { 
@@ -94,19 +95,6 @@
         box-shadow: 0 0 0 #222;
       }
 
-      #banner{
-        width: 100%;
-        max-width: 1300px;
-        height: 250px;
-        margin: 20px auto;
-        overflow: hidden;
-        border-radius: 12px;
-      }
-      #banner img{
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
       .main-layout {
         display: flex;
         flex-direction: row;
@@ -114,45 +102,61 @@
         width: 100%;
         max-width: 1420px;
         justify-content: center;
-        align-items: flex-start;
+        align-items: flex-end;
+        margin-top: 20px;
       }
       #stats {
         width: 200px;
-        min-height: 750px;
+        height: 750px;
         background: rgba(31, 31, 31, 0.9);
         border: 10px solid rgb(136, 136, 136);
         border-style: ridge;
         padding: 20px;
         box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        overflow-y: auto;
       }
       #stats h3 {
-        font-family: "Arial Black", "Helvetica Neue", sans-serif; 
+        font-family: "Arial Black", "Helvetica Neue", sans-serif;
         font-size: 32px;
         font-weight: 900;
         text-align: center;
         letter-spacing: 1px;
         text-transform: uppercase;
         color: #b0b0b0;
-        text-shadow: 
-        -2px -1px 0 #555,  
+        text-shadow:
+        -2px -1px 0 #555,
          2px -1px 0 #555,
         -2px  1px 0 #555,
          2px  1px 0 #555,
-        inset 1px 1px 1px rgba(255,255,255,0.4),
-        inset -1px -1px 1px rgba(0,0,0,0.4),
-        4px 4px 0px rgba(0,0,0,1), 
-        5px 5px 2px rgba(0,0,0,0.5);    
+        4px 4px 0px rgba(0,0,0,1),
+        5px 5px 2px rgba(0,0,0,0.5);
         margin-bottom: 25px;
         padding: 5px;
         position: relative;
       }
-      #game-container {
+      .canvas-column {
         flex: 1;
-        box-shadow: 0 0 40px rgba(0, 255, 136, 0.2); 
-        overflow: hidden;
-        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
         max-width: 1200px;
-        height: auto;
+        min-width: 0;
+      }
+      #banner {
+        width: 100%;
+        height: 250px;
+        overflow: hidden;
+        border-radius: 12px;
+      }
+      #banner img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      #game-container {
+        width: 100%;
+        box-shadow: 0 0 40px rgba(0, 255, 136, 0.2);
+        overflow: hidden;
         aspect-ratio: 1200 / 750;
         outline: 15px solid rgb(136, 136, 136);
         outline-style: ridge;
@@ -160,6 +164,31 @@
       }
       #game-container canvas {
         display: block;
+      }
+      /* Sidebar navigation buttons */
+      .sidebar-btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 12px;
+        padding: 12px 8px;
+        background: linear-gradient(180deg, #666 0%, #333 50%, #444 100%);
+        border: 2px solid #111;
+        border-radius: 4px;
+        color: #b0b0b0;
+        font-family: "Arial Black", sans-serif;
+        font-size: 18px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        text-shadow: 2px 2px 0 #000;
+        box-shadow: 0 3px 0 #111, inset 0 1px 0 rgba(255,255,255,0.15);
+        transition: color 0.1s;
+      }
+      .sidebar-btn:hover { color: #226d1b; }
+      .sidebar-btn:active {
+        transform: translateY(3px);
+        box-shadow: 0 0 0 #111;
       }
     </style>
   </head>
@@ -186,13 +215,22 @@
         <button class="start-btn" onclick="startGame(event)">Start</button>
       </div>
     </div>
+    <script>/* Remove welcome screen synchronously for logged-in users — runs as HTML is parsed, zero flash */
+      if (localStorage.getItem('ff_token')) document.getElementById('welcome-screen').remove();
+    </script>
 
-    <div id="banner"><img src="./src/assets/backgrounds/banner.png"></div>
     <div class="main-layout">
         <div id="stats">
-            <h3>INFO STATS</h3>
+            <h3>MENU</h3>
+            <button class="sidebar-btn" onclick="sidebarNav('MenuScene')">PLAY</button>
+            <button class="sidebar-btn" onclick="sidebarNav('StatsScene')">STATS</button>
+            <button class="sidebar-btn" onclick="sidebarNav('InstructionScene')">INFO</button>
+            <button class="sidebar-btn" onclick="sidebarNav('TutorialScene')">TUTORIAL</button>
         </div>
-        <div id="game-container"></div>
+        <div class="canvas-column">
+            <div id="banner"><img src="./src/assets/backgrounds/banner.png"></div>
+            <div id="game-container"></div>
+        </div>
     </div>
     <script type="module" src="/src/index.ts"></script>
   </body>
@@ -221,6 +259,26 @@
         screen.remove(); /* Remove the welcome screen from the DOM after the fade-out transition. */
         console.log("Florida Frenzy successfully started");
       }, 500);
+    }
+
+    /* Navigate the Phaser canvas to a target scene from the HTML sidebar. */
+    function sidebarNav(key) {
+      var g = window.__phaserGame;
+      if (!g) return;
+      var activeScenes = g.scene.getScenes(true);
+
+      /* Do nothing if the target is already the active scene */
+      if (activeScenes.some(function(s) { return s.scene.key === key; })) return;
+
+      /* If a gameplay scene is running, let it decide whether to allow the switch */
+      var gameplayScenes = ['EvergladesScene', 'DuelScene'];
+      if (activeScenes.some(function(s) { return gameplayScenes.indexOf(s.scene.key) !== -1; })) {
+        window.dispatchEvent(new CustomEvent('sidebar-nav-request', { detail: { target: key } }));
+        return;
+      }
+
+      activeScenes.forEach(function(s) { s.scene.stop(); });
+      g.scene.start(key);
     }
   </script>
 </html>

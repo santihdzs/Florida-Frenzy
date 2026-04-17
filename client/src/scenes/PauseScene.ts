@@ -18,8 +18,8 @@ export class PauseScene extends Phaser.Scene {
         super({ key: 'PauseScene' }); // unique key for this scene
     }
 
-    init(data: { returnScene: string }) { // receive the name of the scene to return to when resuming
-        this.returnScene = data.returnScene; // store the return scene name for later use
+    init(data: { returnScene: string }) {
+        this.returnScene = data.returnScene;
     }
 
     create() {
@@ -67,10 +67,16 @@ export class PauseScene extends Phaser.Scene {
         }); // open settings on click, passing info that we came from pause menu
 
         menu.on('pointerdown', () => {
-            this.scene.stop(this.returnScene);
-            this.scene.stop();
-            this.scene.start('MenuScene');
-        }); // return to main menu on click, stopping both the paused scene and the return scene
+            this.time.delayedCall(100, () => {
+                const parentScene = this.scene.get(this.returnScene);
+                if (parentScene && typeof (parentScene as any).endRun === 'function') {
+                    (parentScene as any).endRun();
+                }
+                this.scene.stop(this.returnScene);
+                this.scene.stop();
+                this.scene.start('MenuScene');
+            });
+        }); // return to main menu on click, calling endRun() on the game scene then navigating to menu
 
         this.input.keyboard?.on('keydown-ESC',() => {
             this.scene.stop();

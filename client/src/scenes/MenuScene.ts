@@ -16,8 +16,10 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
-    const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
+    const W  = this.cameras.main.width;
+    const H  = this.cameras.main.height;
+    const cx = W / 2;
+    const cy = H / 2;
 
     const savedVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
     this.sound.volume = savedVolume;
@@ -29,41 +31,45 @@ export class MenuScene extends Phaser.Scene {
       bgMusic.play();
     }
 
-    // Check if we're coming from the welcome screen and disable input until the "game-start-click" event is fired
-    const welcomeScreen = document.getElementById('welcome-screen');
-    if (welcomeScreen) {
-      this.input.enabled = false;
-      window.addEventListener('game-start-click', () => {
-        this.time.delayedCall(300, () => {
-          if (this.input) this.input.enabled = true;
-        });
-      }, { once: true });
-    } else {
-      this.input.enabled = true;
-    }
-
-    this.add.image(centerX, centerY, 'title-background');
-    this.add.image(centerX, 150, 'title-logo').setScale(0.5);
-
-    // Show logged-in player's username in the top-right corner
+    // Disable input briefly to prevent click bleed from scene transitions
+    this.input.enabled = false;
     if (isLoggedIn()) {
-      const player = getPlayer();
-      if (player) {
-        this.add.text(
-          this.cameras.main.width - 20, 20,
-          `${String(player.username)}`,
-          {
-            fontFamily: 'Impact, Arial black, sans-serif',
-            fontSize: '20px',
-            color: '#c2baba',
-            stroke: '#000000',
-            strokeThickness: 2,
-          }
-        ).setOrigin(1, 0);
+      // Skip popup entirely — user is logged in, welcome screen never exists for them
+      this.time.delayedCall(100, () => { this.input.enabled = true; });
+    } else {
+      // ALL popup / welcome-screen code here — never runs for logged-in users
+      const welcomeScreen = document.getElementById('welcome-screen');
+      if (welcomeScreen) {
+        window.addEventListener('game-start-click', () => {
+          this.time.delayedCall(300, () => {
+            if (this.input) this.input.enabled = true;
+          });
+        }, { once: true });
+      } else {
+        this.time.delayedCall(100, () => { this.input.enabled = true; });
       }
     }
 
-    const textStyle = {
+    this.add.image(cx, cy, 'title-background');
+    this.add.image(cx, 150, 'title-logo').setScale(0.5);
+
+    // Username top-right (with admin badge if applicable — 7E)
+    if (isLoggedIn()) {
+      const player = getPlayer();
+      if (player) {
+        const isAdmin = player.isAdmin === true;
+        const label = `${String(player.username)}${isAdmin ? '  (Admin)' : ''}`;
+        this.add.text(W - 20, 20, label, {
+          fontFamily: 'Impact, Arial black, sans-serif',
+          fontSize: '20px',
+          color: isAdmin ? '#ffd700' : '#c2baba',
+          stroke: '#000000',
+          strokeThickness: 2,
+        }).setOrigin(1, 0);
+      }
+    }
+
+    const textStyle: Phaser.Types.GameObjects.Text.TextStyle = {
       fontFamily: 'Impact, Arial black, sans-serif',
       fontSize: '40px',
       color: '#c2baba',
@@ -73,31 +79,27 @@ export class MenuScene extends Phaser.Scene {
       letterSpacing: -1,
     };
 
+    // ── Main area buttons: MULTIPLAYER, STORE, SETTINGS, LOG IN/OUT ──
     const logoutLabel  = isLoggedIn() ? 'LOG OUT' : 'LOG IN';
     const logoutAction = isLoggedIn()
       ? () => logout()
       : () => this.scene.launch('LoginScene', { mode: 'login' });
 
-    const buttons = [
-      { text: 'START',       y: 320, action: () => this.startGame() },
-      { text: 'MULTIPLAYER', y: 405, action: () => this.Multiplayerfalse() },
-      { text: 'STORE',       y: 490, action: () => console.log('Store - coming soon') },
-      { text: 'SETTINGS',   y: 575, action: () => this.settingsScene() },
-      { text: logoutLabel,  y: 660, action: logoutAction },
-    ];
+    const mainW = 320;
+    const mainH = 68;
 
-    this.createButton(centerX + 410, 670, 280, 50, 'HOW TO PLAY', () => this.instruction(), textStyle);
-    this.createButton(centerX - 410, 670, 280, 50, 'TUTORIAL',    () => this.scene.start('TutorialScene'), textStyle);
-
-    const buttonWidth  = 350;
-    const buttonHeight = 70;
-    buttons.forEach(btn => {
-      this.createButton(centerX, btn.y, buttonWidth, buttonHeight, btn.text, btn.action, textStyle);
-    });
+    this.createButton(cx, 320, mainW, mainH, 'PLAY',        () => this.startGame(),                 textStyle);
+    this.createButton(cx, 410, mainW, mainH, 'MULTIPLAYER', () => this.Multiplayerfalse(),          textStyle);
+    this.createButton(cx, 490, mainW, mainH, 'STORE',       () => this.scene.start('ShopScene'),    textStyle);
+    this.createButton(cx, 570, mainW, mainH, 'SETTINGS',    () => this.settingsScene(),              textStyle);
+    this.createButton(cx, 650, mainW, mainH, logoutLabel,   logoutAction,                            textStyle);
   }
 
-  // Helper function to create styled buttons with hover and click effects
-  createButton(x: number, y: number, width: number, height: number, label: string, callback: () => void, style: Phaser.Types.GameObjects.Text.TextStyle) {
+  createButton(
+    x: number, y: number, width: number, height: number,
+    label: string, callback: () => void,
+    style: Phaser.Types.GameObjects.Text.TextStyle,
+  ) {
     const container = this.add.container(x, y);
     const graphics  = this.add.graphics();
     this.drawMetalPlate(graphics, width, height, false);
@@ -129,7 +131,6 @@ export class MenuScene extends Phaser.Scene {
     return container;
   }
 
-  // Function to draw a stylized metal plate for buttons and modals
   drawMetalPlate(graphics: Phaser.GameObjects.Graphics, width: number, height: number, pressed: boolean) {
     graphics.clear();
     const w = width; const h = height;
@@ -167,7 +168,6 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  // Start button — behaviour depends on login and tutorial state
   startGame() {
     if (!isLoggedIn()) {
       this.scene.launch('LoginScene', { mode: 'register' });
@@ -175,7 +175,7 @@ export class MenuScene extends Phaser.Scene {
     }
     this.sound.stopByKey('menu-music');
     if (hasCompletedTutorial()) {
-      this.scene.start('EvergladesScene');
+      this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 });
     } else {
       this.scene.start('TutorialScene');
     }

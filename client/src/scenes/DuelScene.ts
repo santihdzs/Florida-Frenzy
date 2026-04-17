@@ -45,6 +45,7 @@ import { updateHpBar, updateEnergyBar } from '../utils/duelUi'; // reusable UI r
 import { CombatState, createEmptyCombatState } from '../utils/combatState'; // combat status container and reset helper
 
 import type { RunData } from './EvergladesScene'; // run-progress data passed into this scene
+import { completeRun } from '../utils/auth.js'; // API call to save run result
 
 import backgroundImg from '../assets/backgrounds/everglades.jpg'; // duel background image
 
@@ -68,6 +69,9 @@ import skawlDamage2 from '../assets/characters/skawl/Skawl_damage-2.png'; // Ska
 import skawlDefeated from '../assets/characters/skawl/Skawl_defeated.png'; // Skawl defeated sprite
 
 export class DuelScene extends Phaser.Scene {
+  private isShowingQuitDialog = false;
+  private runEnded = false;
+  private sidebarNavHandler: EventListener | null = null;
   private playerHp = MAX_HP; // player current HP
   private enemyHp = MAX_HP; // enemy current HP
 
@@ -77,7 +81,8 @@ export class DuelScene extends Phaser.Scene {
   private enemyInstinctEnergy = 0; // enemy instinct energy meter
 
   private levelsWon = 0; // count of duel victories in this run
-  private level = 0; // current level value passed in from the run
+  private level = 1; // current level value passed in from the run
+  private runId = 0; // server-side run id, passed through from EvergladesScene
   private totalCoins = 0; // coins earned before this duel
   private totalXp = 0; // XP earned before this duel
   private duelCoins = 0; // coins earned during this duel
@@ -134,9 +139,10 @@ export class DuelScene extends Phaser.Scene {
   }
 
   init(data: Partial<RunData>) {
-    this.level = data.level ?? 0; // restore level if passed in, otherwise start at one
+    this.level = data.level ?? 1; // restore level if passed in, otherwise start at level 1
     this.totalCoins = data.totalCoins ?? 0; // restore accumulated coins
     this.totalXp = data.totalXp ?? 0; // restore accumulated XP
+    this.runId = data.runId ?? 0; // restore run id for server persistence
   }
 
   preload() {
@@ -160,6 +166,9 @@ export class DuelScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('DuelScene create() called');
+    console.log('Active scenes:', this.scene.manager.getScenes(true).map((s: Phaser.Scene) => s.scene.key));
+
     const { width, height } = this.cameras.main; // current scene dimensions
     const centerX = width / 2; // horizontal center point
 
@@ -183,7 +192,7 @@ export class DuelScene extends Phaser.Scene {
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
     escKey?.on('down', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
-      this.scene.launch('PauseScene', { returnScene: 'DuelScene' }); // open the pause menu and tell it to return here when resuming
+      this.scene.launch('PauseScene', { returnScene: 'DuelScene', runId: this.runId, totalCoins: this.totalCoins + this.duelCoins, totalXp: this.totalXp + this.duelXp, level: this.level }); // open the pause menu and tell it to return here when resuming
       this.scene.pause(); // pause the duel scene
     });
 
@@ -198,7 +207,73 @@ export class DuelScene extends Phaser.Scene {
     pauseButton.on('pointerdown', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
       this.scene.pause(); // pause the duel scene
-      this.scene.launch('PauseScene', { returnScene: 'DuelScene' }); // open the pause menu and tell it to return here when resuming
+      this.scene.launch('PauseScene', { returnScene: 'DuelScene', runId: this.runId, totalCoins: this.totalCoins + this.duelCoins, totalXp: this.totalXp + this.duelXp, level: this.level }); // open the pause menu and tell it to return here when resuming
+    });
+
+    // Sidebar navigation guard — only active in DuelScene, not subclasses (e.g. TutorialScene2)
+    if (this.scene.key === 'DuelScene') {
+      const onSidebarNavRequest = ((e: Event) => {
+        if (this.isShowingQuitDialog) return;
+        this.isShowingQuitDialog = true;
+        const target = (e as CustomEvent<{ target: string }>).detail.target;
+        const cx = this.cameras.main.centerX;
+        const cy = this.cameras.main.centerY;
+        const W  = this.cameras.main.width;
+        const H  = this.cameras.main.height;
+
+        const overlay = this.add.rectangle(cx, cy, W, H, 0x000000, 0.7)
+          .setDepth(9999).setScrollFactor(0);
+        const boxBg = this.add.graphics().setDepth(10000).setScrollFactor(0);
+        boxBg.fillStyle(0x1a1a1a, 0.9);
+        boxBg.fillRoundedRect(cx - 200, cy - 100, 400, 200, 12);
+        const promptText = this.add.text(cx, cy - 48, 'Quit current game?', {
+          fontSize: '28px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+        }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+        const subText = this.add.text(cx, cy - 10, 'Your current run will end', {
+          fontSize: '18px', color: '#aaaaaa', fontFamily: 'Arial',
+        }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+        const yesBtn = this.add.text(cx - 75, cy + 58, 'YES', {
+          fontSize: '22px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+          backgroundColor: '#8b0000', padding: { x: 30, y: 10 },
+        }).setOrigin(0.5).setDepth(10001).setScrollFactor(0)
+          .setInteractive({ useHandCursor: true });
+        const noBtn = this.add.text(cx + 75, cy + 58, 'NO', {
+          fontSize: '22px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+          backgroundColor: '#006400', padding: { x: 30, y: 10 },
+        }).setOrigin(0.5).setDepth(10001).setScrollFactor(0)
+          .setInteractive({ useHandCursor: true });
+
+        const destroyDialog = () => {
+          overlay.destroy(); boxBg.destroy();
+          promptText.destroy(); subText.destroy();
+          yesBtn.destroy(); noBtn.destroy();
+        };
+
+        yesBtn.on('pointerup', () => {
+          destroyDialog();
+          this.endRun();
+          this.scene.stop();
+          this.game.scene.start(target);
+        });
+        noBtn.on('pointerup', () => {
+          destroyDialog();
+          this.isShowingQuitDialog = false;
+        });
+      }) as EventListener;
+
+      this.sidebarNavHandler = onSidebarNavRequest;
+      window.addEventListener('sidebar-nav-request', this.sidebarNavHandler);
+    }
+
+    this.events.on('shutdown', () => {
+      this.time.removeAllEvents();
+      this.tweens.killAll();
+      this.input.keyboard?.removeAllKeys(true);
+      this.input.removeAllListeners();
+      if (this.sidebarNavHandler) {
+        window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
+        this.sidebarNavHandler = null;
+      }
     });
   }
 
@@ -208,10 +283,16 @@ export class DuelScene extends Phaser.Scene {
       step: 0, // reset step counter
       totalCoins: this.totalCoins + this.duelCoins, // carry forward coins earned in this duel
       totalXp: this.totalXp + this.duelXp, // carry forward XP earned in this duel
+      runId: this.runId, // preserve run id for server persistence
     });
   }
 
   private resetDuelState() {
+    // Reset boolean flags — these persist across scene restarts since Phaser reuses the instance
+    this.runEnded = false;
+    this.isShowingQuitDialog = false;
+    this.sidebarNavHandler = null;
+
     this.playerHp = MAX_HP; // restore player HP
     this.enemyHp = MAX_HP; // restore enemy HP
     this.playerElementalEnergy = 0; // reset player elemental energy
@@ -251,7 +332,7 @@ export class DuelScene extends Phaser.Scene {
   private createHud() {
     const centerX = this.cameras.main.width / 2; // shared horizontal center for top HUD
 
-    this.levelText = this.add.text(centerX, 50, `Level ${this.level + 1}`, {
+    this.levelText = this.add.text(centerX, 50, `Level ${this.level}`, {
       fontSize: '36px',
       color: '#ffaa00',
       fontStyle: 'bold',
@@ -1008,7 +1089,8 @@ export class DuelScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2; // center point for the victory overlay
     const centerY = this.cameras.main.height / 2; // vertical center for the victory overlay
 
-    this.duelXp += 100; // award XP for victory
+    const xpWon = 100 + (this.level * 50); // XP scales with level
+    this.duelXp += xpWon; // award XP for victory
     this.duelCoins += 50; // award coins for victory
     this.refreshHud(); // show updated totals immediately
 
@@ -1017,7 +1099,7 @@ export class DuelScene extends Phaser.Scene {
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height); // cover the scene
 
     this.add.text(centerX, centerY - 80, 'Enemy Defeated!', { fontSize: '48px', color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5); // victory headline
-    this.add.text(centerX, centerY - 10, `+100 XP  |  +50 Coins`, { fontSize: '26px', color: '#ffffff' }).setOrigin(0.5); // reward summary
+    this.add.text(centerX, centerY - 10, `+${xpWon} XP  |  +50 Coins`, { fontSize: '26px', color: '#ffffff' }).setOrigin(0.5); // reward summary
     this.add.text(centerX, centerY + 30, `Run Total — XP: ${this.totalXp + this.duelXp}  Coins: ${this.totalCoins + this.duelCoins}`, { fontSize: '20px', color: '#ffd700' }).setOrigin(0.5); // updated totals
 
     const continueBtn = this.add.text(centerX, centerY + 120, 'Continue', { fontSize: '28px', color: '#ffffff' })
@@ -1027,7 +1109,23 @@ export class DuelScene extends Phaser.Scene {
       .on('pointerdown', () => this.advanceToNextCycle()); // proceed to next cycle
   }
 
+  endRun() {
+    console.log('endRun() called, runId:', this.runId);
+    if (this.runEnded) return;
+    this.runEnded = true;
+    // Use committed totals only — duelCoins/duelXp are only committed to RunData on a WIN (advanceToNextCycle)
+    console.log('completeRun args:', { runId: this.runId, coins: this.totalCoins, xp: this.totalXp, maxLevel: this.level });
+    completeRun(this.runId, this.totalCoins, this.totalXp, this.level)
+      .catch((err: unknown) => console.error('completeRun failed:', err));
+    if (this.sidebarNavHandler) {
+      window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
+      this.sidebarNavHandler = null;
+    }
+  }
+
   private gameOver() {
+    if (this.runEnded) return;
+    this.endRun();
     const centerX = this.cameras.main.width / 2; // center point for the game over overlay
     const centerY = this.cameras.main.height / 2; // vertical center for the overlay
     const grandCoins = this.totalCoins + this.duelCoins; // final coin total for the run
@@ -1045,12 +1143,12 @@ export class DuelScene extends Phaser.Scene {
       .setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerover', () => restartBtn.setColor('#00ff88')) // hover feedback
       .on('pointerout', () => restartBtn.setColor('#ffffff')) // restore default color
-      .on('pointerdown', () => this.scene.restart()); // restart the scene
+      .on('pointerdown', () => this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 })); // start a fresh run
 
     const menuBtn = this.add.text(centerX, centerY + 150, 'Menu', { fontSize: '24px', color: '#888888' })
       .setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerover', () => menuBtn.setColor('#ffffff')) // hover feedback
       .on('pointerout', () => menuBtn.setColor('#888888')) // restore default color
-      .on('pointerdown', () => this.scene.start('MenuScene')); // return to the main menu
+      .on('pointerdown', () => { this.time.delayedCall(100, () => { this.scene.start('MenuScene'); }); }); // return to the main menu
   }
 }
