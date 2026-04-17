@@ -185,7 +185,7 @@ export class LoginScene extends Phaser.Scene {
                 this.scene.stop('LoginScene');
                 this.scene.stop('MenuScene');
                 if (hasCompletedTutorial()) {
-                    this.scene.start('EvergladesScene');
+                    this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 });
                 } else {
                     this.scene.start('TutorialScene');
                 }

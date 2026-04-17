@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Run" ADD COLUMN     "coinsEarned" INTEGER NOT NULL DEFAULT 0;

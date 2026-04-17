@@ -79,6 +79,80 @@ export async function login(
   return data;
 }
 
+// API: Create a new run — returns the run id, or null if offline/not logged in
+export async function createRun(): Promise<number | null> {
+  const token = getToken();
+  if (!token) return null;
+  const res = await fetch(`${API_URL}/api/runs`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({}),
+  });
+  const data = await res.json() as { id?: number };
+  console.log('createRun result:', data);
+  if (!res.ok) return null;
+  return data.id ?? null;
+}
+
+// API: Complete a run — saves coins, XP, and max level reached to the server
+export async function completeRun(
+  runId: number,
+  coinsEarned: number,
+  xpEarned: number,
+  maxLevel: number
+): Promise<Record<string, unknown> | null> {
+  const token = getToken();
+  if (!token) return null;
+  const res = await fetch(`${API_URL}/api/runs/complete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ runId, coinsEarned, xpEarned, maxLevel }),
+  });
+  const data = await res.json() as { run?: unknown; player?: Record<string, unknown>; message?: string };
+  console.log('completeRun response:', data);
+  if (!res.ok) throw new Error(data.message ?? 'Failed to complete run');
+  if (data.player) setPlayer(data.player);
+  return data as Record<string, unknown>;
+}
+
+// API: Upgrade player max HP — server determines tier and cost
+export async function upgradeHp(): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/upgrade-hp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({}),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Upgrade failed');
+  if (data.player) setPlayer(data.player);
+  return data as Record<string, unknown>;
+}
+
+// API: Fetch all runs for the logged-in player
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchMyRuns(): Promise<any[]> {
+  const token = getToken();
+  if (!token) return [];
+  const res = await fetch(`${API_URL}/api/runs`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await res.json() as any[];
+  if (!res.ok) return [];
+  return data;
+}
+
 // API: Logout (client-side only)
 export function logout(): void {
   clearToken();

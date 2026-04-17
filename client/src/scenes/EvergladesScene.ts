@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import evTilesUrl from '../assets/maps/everglades.png';
+import { completeRun, createRun, getPlayer } from '../utils/auth.js';
 
 const TILE    = 48;
 const COLS    = 105;
@@ -9,8 +10,11 @@ const WORLD_H = ROWS * TILE;
 
 const KEY_SPR_PLAYER     = 'spr-player';
 const KEY_SPR_ENEMY      = 'spr-enemy';
+const KEY_SPR_TANK       = 'spr-tank';
+const KEY_SPR_SWIFT      = 'spr-swift';
 const KEY_SPR_COIN       = 'spr-coin';
 const KEY_SPR_PROJECTILE = 'spr-projectile';
+const KEY_SPR_ENEMY_PROJ = 'spr-enemy-proj';
 
 const KEY_EV_TILES       = 'ev-tiles';
 const FRAME_GRASS        = 75;
@@ -39,6 +43,11 @@ const ENEMY_BAR_W     = 30;
 const ENEMY_BAR_H     = 4;
 const ENEMY_BAR_Y     = -6;
 
+const SHOOTER_FIRE_INTERVAL = 2000; // ms between shots
+const ENEMY_PROJ_SIZE  = 8;
+const ENEMY_PROJ_SPEED = 200;
+const ENEMY_PROJ_DMG   = 10;
+
 const COIN_SIZE      = 12;
 const COIN_COUNT_MIN = 8;
 const COIN_COUNT_MAX = 15;
@@ -52,9 +61,8 @@ const PROJ_DMG   = 20;
 const HEAL_PER_SEC = 12;
 
 const CAMERA_SCROLL_BASE = 30;
-const CAMERA_SCROLL_STEP = 5;
 
-const EVERGLADES_PER_CYCLE = 2;
+const EVERGLADES_PER_CYCLE = 3;
 const END_COL         = COLS - 5;
 const START_COLS      = 4;
 
@@ -172,9 +180,21 @@ function astar(
 
 interface Rect { x: number; y: number; w: number; h: number }
 
+const EnemyType = {
+  SHOOTER: 'SHOOTER',
+  TANK:    'TANK',
+  SWIFT:   'SWIFT',
+} as const;
+type EnemyType = typeof EnemyType[keyof typeof EnemyType];
+
 interface Enemy {
   x: number; y: number;
   hp: number;
+  maxHp: number;
+  speed: number;
+  contactDmgRate: number; // damage/sec on contact; 0 for SHOOTER
+  enemyType: EnemyType;
+  shootTimer: number;     // ms until next shot (SHOOTER only)
   img: Phaser.GameObjects.Image;
   hpBar: Phaser.GameObjects.Graphics;
   pathTimer: number;
@@ -194,19 +214,57 @@ interface Projectile {
   img: Phaser.GameObjects.Image;
 }
 
+interface EnemyProjectile {
+  x: number; y: number;
+  vx: number; vy: number;
+  dmg: number;
+  img: Phaser.GameObjects.Image;
+}
+
 type DeathReason = 'hp' | 'hole' | 'camera';
+
+function getEnemyStats(type: EnemyType, level: number): {
+  hp: number; maxHp: number; speed: number; contactDmgRate: number;
+} {
+  if (type === EnemyType.SHOOTER) {
+    const la = level - 1;
+    const hp = Math.round(ENEMY_HP * Math.min(3, Math.pow(1.1, la)));
+    const speed = ENEMY_SPEED * Math.min(1.5, Math.pow(1.03, la));
+    return { hp, maxHp: hp, speed, contactDmgRate: 0 };
+  }
+  if (type === EnemyType.TANK) {
+    const la = Math.max(0, level - 2);
+    const hp = Math.round(ENEMY_HP * Math.min(5, 3 * Math.pow(1.15, la)));
+    const contactDmgRate = ENEMY_DPS * Math.min(2, Math.pow(1.05, la));
+    return { hp, maxHp: hp, speed: ENEMY_SPEED, contactDmgRate };
+  }
+  // SWIFT
+  const la = Math.max(0, level - 3);
+  const speed = ENEMY_SPEED * Math.min(2, 1.5 * Math.pow(1.05, la));
+  const contactDmgRate = ENEMY_DPS * Math.min(4.5, 3 * Math.pow(1.03, la));
+  return { hp: 1, maxHp: 1, speed, contactDmgRate };
+}
+
+function getSpawnPool(level: number): EnemyType[] {
+  const r = (t: EnemyType, n: number): EnemyType[] => Array.from({ length: n }, () => t);
+  if (level <= 1) return r(EnemyType.SHOOTER, 10);
+  if (level === 2) return [...r(EnemyType.SHOOTER, 7), ...r(EnemyType.TANK, 3)];
+  return [...r(EnemyType.SHOOTER, 4), ...r(EnemyType.TANK, 2), ...r(EnemyType.SWIFT, 2)];
+}
 
 export interface RunData {
   level: number;
   step: number;
   totalCoins: number;
   totalXp: number;
+  runId: number;
 }
 
 export class EvergladesScene extends Phaser.Scene {
 
   private px = 0;
   private py = 0;
+  private maxHp = MAX_HP;
   private hp = MAX_HP;
   private playerImg!: Phaser.GameObjects.Image;
   private sprinting = false;
@@ -215,10 +273,13 @@ export class EvergladesScene extends Phaser.Scene {
 
   private level = 0;
   private step = 0;
+  private runId = 0;
   private totalCoins = 0;
   private totalXp = 0;
   private leftStart = false;
   private done = false;
+  private isShowingQuitDialog = false;
+  private sidebarNavHandler: EventListener | null = null;
   private timer = 0;
   private coinsCollected = 0;
   private deathReason: DeathReason = 'hp';
@@ -229,9 +290,10 @@ export class EvergladesScene extends Phaser.Scene {
   private puddleRects:  Rect[] = [];
   private endZone: Rect = { x: 0, y: 0, w: 0, h: 0 };
 
-  private enemies:     Enemy[]      = [];
-  private coins:       Coin[]       = [];
-  private projectiles: Projectile[] = [];
+  private enemies:          Enemy[]           = [];
+  private coins:            Coin[]            = [];
+  private projectiles:      Projectile[]      = [];
+  private enemyProjectiles: EnemyProjectile[] = [];
 
   private hudContainer!: Phaser.GameObjects.Container;
   private hpBar!:      Phaser.GameObjects.Graphics;
@@ -245,18 +307,19 @@ export class EvergladesScene extends Phaser.Scene {
   private keyS!:     Phaser.Input.Keyboard.Key;
   private keyD!:     Phaser.Input.Keyboard.Key;
   private keyShift!: Phaser.Input.Keyboard.Key;
-  private keyF!:     Phaser.Input.Keyboard.Key;
   private keyP!:     Phaser.Input.Keyboard.Key;
 
   constructor() { super({ key: 'EvergladesScene' }); }
 
   init(data: Partial<RunData>) {
-    this.level          = data.level ?? 0;
+    this.level          = data.level ?? 1;
     this.step           = data.step ?? 0;
+    this.runId          = data.runId ?? 0;
     this.totalCoins     = data.totalCoins ?? 0;
     this.totalXp        = data.totalXp ?? 0;
     this.done           = false;
-    this.hp             = MAX_HP;
+    this.maxHp          = (getPlayer()?.maxHp as number | undefined) ?? 50;
+    this.hp             = this.maxHp;
     this.stamina        = STAMINA_MAX;
     this.lastSprintTime = -STAMINA_REGEN_DELAY;
     this.sprinting      = false;
@@ -267,9 +330,15 @@ export class EvergladesScene extends Phaser.Scene {
     this.barrierRects   = [];
     this.holeRects      = [];
     this.puddleRects    = [];
-    this.enemies        = [];
-    this.coins          = [];
-    this.projectiles    = [];
+    this.enemies          = [];
+    this.coins            = [];
+    this.projectiles      = [];
+    this.enemyProjectiles = [];
+
+    // Create a server-side run record at the start of each new run
+    if (this.level === 1 && this.step === 0) {
+      void createRun().then(id => { this.runId = id ?? 0; });
+    }
   }
 
   preload() {
@@ -277,6 +346,14 @@ export class EvergladesScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('EvergladesScene create() called');
+    console.log('Active scenes:', this.scene.manager.getScenes(true).map((s: Phaser.Scene) => s.scene.key));
+
+    // Reset all flags — these persist across scene restarts since Phaser reuses the instance
+    this.done = false;
+    this.isShowingQuitDialog = false;
+    this.sidebarNavHandler = null;
+
     this.cameras.main.setBackgroundColor(0x1a1a2e);
     this.generateTextures();
 
@@ -297,7 +374,7 @@ export class EvergladesScene extends Phaser.Scene {
     escKey?.on('down', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
       this.scene.pause(); // pause the duel scene
-      this.scene.launch('PauseScene', { returnScene: 'EvergladesScene' }); // open the pause menu and tell it to return here when resuming
+      this.scene.launch('PauseScene', { returnScene: 'EvergladesScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
     });
 
     const pauseButton = this.add.text(20, 20, 'PAUSE', {
@@ -310,17 +387,93 @@ export class EvergladesScene extends Phaser.Scene {
 
     pauseButton.on('pointerdown', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
-      this.scene.launch('PauseScene', { returnScene: 'EvergladesScene' }); // open the pause menu and tell it to return here when resuming
+      this.scene.launch('PauseScene', { returnScene: 'EvergladesScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
       this.scene.pause(); // pause the duel scene
+    });
+
+    // Sidebar navigation guard — show quit confirmation instead of hard-switching
+    const onSidebarNavRequest = ((e: Event) => {
+      if (this.isShowingQuitDialog) return;
+      this.isShowingQuitDialog = true;
+      const target = (e as CustomEvent<{ target: string }>).detail.target;
+      const cx = this.cameras.main.centerX;
+      const cy = this.cameras.main.centerY;
+      const W  = this.cameras.main.width;
+      const H  = this.cameras.main.height;
+
+      // Dark overlay
+      const overlay = this.add.rectangle(cx, cy, W, H, 0x000000, 0.7)
+        .setDepth(9999).setScrollFactor(0);
+
+      // Dialog box background
+      const boxBg = this.add.graphics().setDepth(10000).setScrollFactor(0);
+      boxBg.fillStyle(0x1a1a1a, 0.9);
+      boxBg.fillRoundedRect(cx - 200, cy - 100, 400, 200, 12);
+
+      // Title and subtitle
+      const promptText = this.add.text(cx, cy - 48, 'Quit current game?', {
+        fontSize: '28px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+
+      const subText = this.add.text(cx, cy - 10, 'Your current run will end', {
+        fontSize: '18px', color: '#aaaaaa', fontFamily: 'Arial',
+      }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+
+      // YES button
+      const yesBtn = this.add.text(cx - 75, cy + 58, 'YES', {
+        fontSize: '22px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+        backgroundColor: '#8b0000', padding: { x: 30, y: 10 },
+      }).setOrigin(0.5).setDepth(10001).setScrollFactor(0)
+        .setInteractive({ useHandCursor: true });
+
+      // NO button
+      const noBtn = this.add.text(cx + 75, cy + 58, 'NO', {
+        fontSize: '22px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+        backgroundColor: '#006400', padding: { x: 30, y: 10 },
+      }).setOrigin(0.5).setDepth(10001).setScrollFactor(0)
+        .setInteractive({ useHandCursor: true });
+
+      const destroyDialog = () => {
+        overlay.destroy(); boxBg.destroy();
+        promptText.destroy(); subText.destroy();
+        yesBtn.destroy(); noBtn.destroy();
+      };
+
+      yesBtn.on('pointerup', () => {
+        destroyDialog();
+        this.endRun();
+        this.scene.stop();
+        this.game.scene.start(target);
+      });
+      noBtn.on('pointerup', () => {
+        destroyDialog();
+        this.isShowingQuitDialog = false;
+      });
+    }) as EventListener;
+
+    this.sidebarNavHandler = onSidebarNavRequest;
+    window.addEventListener('sidebar-nav-request', this.sidebarNavHandler);
+
+    this.events.on('shutdown', () => {
+      this.time.removeAllEvents();
+      this.tweens.killAll();
+      this.input.keyboard?.removeAllKeys(true);
+      this.input.removeAllListeners();
+      if (this.sidebarNavHandler) {
+        window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
+        this.sidebarNavHandler = null;
+      }
     });
   }
 
   update(time: number, delta: number) {
     if (this.done) return;
+    if (this.isShowingQuitDialog) return;
     this.timer += delta;
     this.handleMovement(time, delta);
     this.updateEnemies(delta);
     this.updateProjectiles(delta);
+    this.updateEnemyProjectiles(delta);
     this.checkPuddle(delta);
     this.checkCoins();
     this.updateCamera(delta);
@@ -336,6 +489,7 @@ export class EvergladesScene extends Phaser.Scene {
       step: this.step,
       totalCoins: this.totalCoins + coins,
       totalXp: this.totalXp + xp,
+      runId: this.runId,
     };
   }
 
@@ -352,8 +506,17 @@ export class EvergladesScene extends Phaser.Scene {
     };
     make(KEY_SPR_PLAYER,     PLAYER_SIZE, PLAYER_SIZE, 0x3366ff);
     make(KEY_SPR_ENEMY,      ENEMY_SIZE,  ENEMY_SIZE,  0xcc2222);
+    make(KEY_SPR_TANK,       ENEMY_SIZE,  ENEMY_SIZE,  0x9933cc);
+    make(KEY_SPR_SWIFT,      ENEMY_SIZE,  ENEMY_SIZE,  0xff8800);
     make(KEY_SPR_COIN,       COIN_SIZE,   COIN_SIZE,   0xffd700);
     make(KEY_SPR_PROJECTILE, PROJ_SIZE,   PROJ_SIZE,   0x44aaff);
+    if (!this.textures.exists(KEY_SPR_ENEMY_PROJ)) {
+      const g = this.make.graphics();
+      g.fillStyle(0xff3333);
+      g.fillCircle(ENEMY_PROJ_SIZE / 2, ENEMY_PROJ_SIZE / 2, ENEMY_PROJ_SIZE / 2);
+      g.generateTexture(KEY_SPR_ENEMY_PROJ, ENEMY_PROJ_SIZE, ENEMY_PROJ_SIZE);
+      g.destroy();
+    }
   }
 
   // ── Grid generation ──
@@ -494,7 +657,9 @@ export class EvergladesScene extends Phaser.Scene {
   // ── Spawning ──
 
   private spawnEnemies(grid: number[][]) {
-    const count = randInt(ENEMY_COUNT_MIN, ENEMY_COUNT_MAX);
+    const pool  = getSpawnPool(this.level);
+    const extra = Math.min(20, 2 * (this.level - 1));
+    const count = randInt(ENEMY_COUNT_MIN + extra, ENEMY_COUNT_MAX + extra);
     let placed = 0, attempts = 0;
 
     while (placed < count && attempts < 300) {
@@ -503,11 +668,21 @@ export class EvergladesScene extends Phaser.Scene {
       const row = randInt(0, ROWS - 1);
       if (grid[row][col] !== FLOOR) continue;
 
-      const ex = col * TILE;
-      const ey = row * TILE;
+      const ex   = col * TILE;
+      const ey   = row * TILE;
+      const type = pool[Math.floor(Math.random() * pool.length)];
+      const s    = getEnemyStats(type, this.level);
+      const imgKey = type === EnemyType.TANK  ? KEY_SPR_TANK :
+                     type === EnemyType.SWIFT ? KEY_SPR_SWIFT : KEY_SPR_ENEMY;
+
       this.enemies.push({
-        x: ex, y: ey, hp: ENEMY_HP,
-        img: this.add.image(ex, ey, KEY_SPR_ENEMY).setOrigin(0, 0).setDepth(4),
+        x: ex, y: ey,
+        hp: s.hp, maxHp: s.maxHp,
+        speed: s.speed,
+        contactDmgRate: s.contactDmgRate,
+        enemyType: type,
+        shootTimer: Math.random() * SHOOTER_FIRE_INTERVAL, // stagger initial shots
+        img: this.add.image(ex, ey, imgKey).setOrigin(0, 0).setDepth(4),
         hpBar: this.add.graphics().setDepth(5),
         pathTimer: 0,
         path: [],
@@ -563,7 +738,7 @@ export class EvergladesScene extends Phaser.Scene {
     ]);
     this.hudContainer.setScrollFactor(0).setDepth(10);
 
-    this.add.text(1190, 740, `Level ${this.level + 1}`, {
+    this.add.text(1190, 740, `Level ${this.level}`, {
       fontSize: '14px', color: '#c0ccd8',
     }).setOrigin(1, 1).setScrollFactor(0).setDepth(12);
 
@@ -574,14 +749,14 @@ export class EvergladesScene extends Phaser.Scene {
     const BAR_X = 50;
     const BAR_W = 182;
 
-    const hpRatio = Math.max(0, this.hp / MAX_HP);
+    const hpRatio = Math.max(0, this.hp / this.maxHp);
     const hpCol   = hpRatio > 0.5 ? 0x44cc66 : hpRatio > 0.25 ? 0xffaa00 : 0xff3333;
     this.hpBar.clear();
     this.hpBar.fillStyle(0x333333);
     this.hpBar.fillRoundedRect(BAR_X, 22, BAR_W, 12, 3);
     this.hpBar.fillStyle(hpCol);
     this.hpBar.fillRoundedRect(BAR_X, 22, BAR_W * hpRatio, 12, 3);
-    this.hpLabel.setText(`HP  ${Math.ceil(this.hp)} / ${MAX_HP}`);
+    this.hpLabel.setText(`HP  ${Math.ceil(this.hp)} / ${this.maxHp}`);
 
     const stRatio = this.stamina / STAMINA_MAX;
     const stCol   = this.sprinting ? 0xffcc00 : 0x5599ff;
@@ -603,13 +778,7 @@ export class EvergladesScene extends Phaser.Scene {
     this.keyS     = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S);
     this.keyD     = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     this.keyShift = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-    this.keyF     = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.F);
     this.keyP     = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P);
-
-    this.keyF.on('down', () => {
-      if (this.scale.isFullscreen) this.scale.stopFullscreen();
-      else this.scale.startFullscreen();
-    });
 
     this.keyP.on('down', () => {
       if (!this.done) this.advanceStage();
@@ -722,11 +891,13 @@ export class EvergladesScene extends Phaser.Scene {
         for (let j = this.enemies.length - 1; j >= 0; j--) {
           const e = this.enemies[j];
           if (rectsOverlap(p.x, p.y, PROJ_SIZE, PROJ_SIZE, e.x, e.y, ENEMY_SIZE, ENEMY_SIZE)) {
-            e.hp -= PROJ_DMG;
-            if (e.hp <= 0) {
-              e.img.destroy();
-              e.hpBar.destroy();
-              this.enemies.splice(j, 1);
+            if (this.leftStart) {
+              e.hp -= PROJ_DMG;
+              if (e.hp <= 0) {
+                e.img.destroy();
+                e.hpBar.destroy();
+                this.enemies.splice(j, 1);
+              }
             }
             hit = true;
             break;
@@ -739,6 +910,74 @@ export class EvergladesScene extends Phaser.Scene {
         this.projectiles.splice(i, 1);
       } else {
         p.img.setPosition(p.x + PROJ_SIZE / 2, p.y + PROJ_SIZE / 2);
+      }
+    }
+  }
+
+  // ── Enemy projectiles ──
+
+  private fireEnemyProjectile(e: Enemy) {
+    const ex = e.x + ENEMY_SIZE / 2;
+    const ey = e.y + ENEMY_SIZE / 2;
+    const px = this.px + PLAYER_SIZE / 2;
+    const py = this.py + PLAYER_SIZE / 2;
+    const dx = px - ex;
+    const dy = py - ey;
+    const d  = Math.sqrt(dx * dx + dy * dy);
+    if (d === 0) return;
+    const scaledDmg = ENEMY_PROJ_DMG * Math.min(2, Math.pow(1.05, Math.floor((this.level - 1) / 3)));
+    this.enemyProjectiles.push({
+      x: ex - ENEMY_PROJ_SIZE / 2,
+      y: ey - ENEMY_PROJ_SIZE / 2,
+      vx: (dx / d) * ENEMY_PROJ_SPEED,
+      vy: (dy / d) * ENEMY_PROJ_SPEED,
+      dmg: scaledDmg,
+      img: this.add.image(ex, ey, KEY_SPR_ENEMY_PROJ).setOrigin(0.5).setDepth(6),
+    });
+  }
+
+  private updateEnemyProjectiles(delta: number) {
+    if (this.done) return;
+    const dt = delta / 1000;
+    for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+      const p = this.enemyProjectiles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      if (p.x < 0 || p.x + ENEMY_PROJ_SIZE > WORLD_W ||
+          p.y < 0 || p.y + ENEMY_PROJ_SIZE > WORLD_H) {
+        p.img.destroy();
+        this.enemyProjectiles.splice(i, 1);
+        continue;
+      }
+
+      let hit = false;
+      for (const b of this.barrierRects) {
+        if (rectsOverlap(p.x, p.y, ENEMY_PROJ_SIZE, ENEMY_PROJ_SIZE, b.x, b.y, b.w, b.h)) {
+          hit = true;
+          break;
+        }
+      }
+
+      if (!hit && rectsOverlap(p.x, p.y, ENEMY_PROJ_SIZE, ENEMY_PROJ_SIZE,
+          this.px, this.py, PLAYER_SIZE, PLAYER_SIZE)) {
+        this.hp -= p.dmg;
+        hit = true;
+        if (this.hp <= 0) {
+          p.img.destroy();
+          this.enemyProjectiles.splice(i, 1);
+          this.hp = 0;
+          this.deathReason = 'hp';
+          this.showGameOver();
+          return;
+        }
+      }
+
+      if (hit) {
+        p.img.destroy();
+        this.enemyProjectiles.splice(i, 1);
+      } else {
+        p.img.setPosition(p.x + ENEMY_PROJ_SIZE / 2, p.y + ENEMY_PROJ_SIZE / 2);
       }
     }
   }
@@ -781,7 +1020,7 @@ export class EvergladesScene extends Phaser.Scene {
         if (d < 4) {
           e.pathIdx++;
         } else {
-          const step = ENEMY_SPEED * dt;
+          const step = e.speed * dt;
           e.x += (dx / d) * step;
           e.y += (dy / d) * step;
         }
@@ -803,17 +1042,29 @@ export class EvergladesScene extends Phaser.Scene {
         else                  e.y = b.y + b.h;
       }
 
-      const touching = rectsOverlap(
-        this.px, this.py, PLAYER_SIZE, PLAYER_SIZE,
-        e.x, e.y, ENEMY_SIZE, ENEMY_SIZE
-      );
-      if (touching) {
-        this.hp -= ENEMY_DPS * dt;
-        if (this.hp <= 0) {
-          this.hp = 0;
-          this.deathReason = 'hp';
-          this.showGameOver();
-          return;
+      // SHOOTER: fire projectile on timer, no contact damage
+      if (e.enemyType === EnemyType.SHOOTER) {
+        e.shootTimer -= delta;
+        if (e.shootTimer <= 0) {
+          e.shootTimer = SHOOTER_FIRE_INTERVAL;
+          this.fireEnemyProjectile(e);
+        }
+      }
+
+      // TANK / SWIFT: deal contact damage
+      if (e.contactDmgRate > 0) {
+        const touching = rectsOverlap(
+          this.px, this.py, PLAYER_SIZE, PLAYER_SIZE,
+          e.x, e.y, ENEMY_SIZE, ENEMY_SIZE
+        );
+        if (touching) {
+          this.hp -= e.contactDmgRate * dt;
+          if (this.hp <= 0) {
+            this.hp = 0;
+            this.deathReason = 'hp';
+            this.showGameOver();
+            return;
+          }
         }
       }
 
@@ -825,7 +1076,7 @@ export class EvergladesScene extends Phaser.Scene {
   private drawEnemyBar(e: Enemy) {
     const barX = e.x + (ENEMY_SIZE - ENEMY_BAR_W) / 2;
     const barY = e.y + ENEMY_BAR_Y;
-    const ratio = Math.max(0, e.hp / ENEMY_HP);
+    const ratio = Math.max(0, e.hp / e.maxHp);
     e.hpBar.clear();
     e.hpBar.fillStyle(0x333333);
     e.hpBar.fillRect(barX, barY, ENEMY_BAR_W, ENEMY_BAR_H);
@@ -840,7 +1091,7 @@ export class EvergladesScene extends Phaser.Scene {
     const cy = this.py + PLAYER_SIZE / 2;
     for (const p of this.puddleRects) {
       if (cx > p.x && cx < p.x + p.w && cy > p.y && cy < p.y + p.h) {
-        this.hp = Math.min(MAX_HP, this.hp + HEAL_PER_SEC * (delta / 1000));
+        this.hp = Math.min(this.maxHp, this.hp + HEAL_PER_SEC * (delta / 1000));
         break;
       }
     }
@@ -867,7 +1118,7 @@ export class EvergladesScene extends Phaser.Scene {
     const cam  = this.cameras.main;
     const camW = cam.width;
     const camH = cam.height;
-    const spd  = CAMERA_SCROLL_BASE + this.level * CAMERA_SCROLL_STEP;
+    const spd  = CAMERA_SCROLL_BASE * Math.min(3.5, 1 + 0.05 * (this.level - 1));
     const maxX = Math.max(0, WORLD_W - camW);
     const maxY = Math.max(0, WORLD_H - camH);
 
@@ -909,7 +1160,7 @@ export class EvergladesScene extends Phaser.Scene {
     const secs = this.timer / 1000;
     const intervals = secs < 60 ? Math.floor((60 - secs) / TIME_BONUS_INTERVAL) : 0;
     return {
-      xp:    BASE_XP    + intervals * TIME_BONUS_XP,
+      xp:    BASE_XP + intervals * TIME_BONUS_XP + 50 + (this.level * 25),
       coins: BASE_COINS + intervals * TIME_BONUS_COINS + this.coinsCollected,
     };
   }
@@ -957,9 +1208,23 @@ export class EvergladesScene extends Phaser.Scene {
       .on('pointerdown', () => this.advanceStage());
   }
 
-  private showGameOver() {
+  endRun() {
+    console.log('endRun() called, runId:', this.runId);
     if (this.done) return;
     this.done = true;
+    // Use committed totals only — current incomplete stage coins/XP are discarded on quit/death
+    console.log('completeRun args:', { runId: this.runId, coins: this.totalCoins, xp: this.totalXp, maxLevel: this.level });
+    completeRun(this.runId, this.totalCoins, this.totalXp, this.level)
+      .catch((err: unknown) => console.error('completeRun failed:', err));
+    if (this.sidebarNavHandler) {
+      window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
+      this.sidebarNavHandler = null;
+    }
+  }
+
+  private showGameOver() {
+    if (this.done) return;
+    this.endRun();
 
     const run = this.getRunData();
     const w  = this.cameras.main.width;
@@ -978,7 +1243,7 @@ export class EvergladesScene extends Phaser.Scene {
 
     this.add.text(cx, cy - 100, reasons[this.deathReason], { fontSize: '48px', color: '#ff4444', fontStyle: 'bold' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21);
-    this.add.text(cx, cy - 40, `Level ${this.level + 1}`, { fontSize: '24px', color: '#ffffff' })
+    this.add.text(cx, cy - 40, `Level ${this.level}`, { fontSize: '24px', color: '#ffffff' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21);
     this.add.text(cx, cy, `Total Coins: ${run.totalCoins}  |  Total XP: ${run.totalXp}`, { fontSize: '18px', color: '#ffd700' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21);
@@ -988,13 +1253,13 @@ export class EvergladesScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => retry.setColor('#00ff88'))
       .on('pointerout',  () => retry.setColor('#ffffff'))
-      .on('pointerdown', () => this.scene.start('EvergladesScene', { level: this.level, step: this.step, totalCoins: run.totalCoins, totalXp: run.totalXp }));
+      .on('pointerdown', () => this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 }));
 
     const menu = this.add.text(cx, cy + 120, 'Menu', { fontSize: '24px', color: '#888888' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => menu.setColor('#ffffff'))
       .on('pointerout',  () => menu.setColor('#888888'))
-      .on('pointerdown', () => this.scene.start('MenuScene'));
+      .on('pointerdown', () => { this.time.delayedCall(100, () => { this.scene.start('MenuScene'); }); });
   }
 }
