@@ -714,9 +714,32 @@ export class DuelScene extends Phaser.Scene {
     }
   }
 
+  private refillHandFromDiscardIfEmpty(side: 'player' | 'enemy') {
+    const hand = side === 'player' ? this.playerHand : this.enemyHand; // select the correct hand
+
+    if (hand.length > 0) return; // only refill from discard if the hand is completely empty
+    if (this.discardPile.length === 0) return; // stop if there are no cards in discard to draw (practically impossible)
+
+    while (hand.length < HAND_SIZE && this.discardPile.length > 0) {
+      const nextCard = drawOneCard(this.discardPile);
+      if (!nextCard) break; // stop if discard draw fails
+
+      this. incrementDiscardFatigue(side); // track fatigue from drawing extra cards
+      hand.push(nextCard); // add the drawn card to the hand
+    }
+  }
+
   private finishLevel() {
     this.refillHandFromDeckOnly(this.playerHand, this.playerDeck); // refill the player's hand from deck only
     this.refillHandFromDeckOnly(this.enemyHand, this.enemyDeck); // refill the enemy's hand from deck only
+
+    if (this.playerDeck.length === 0 && this.playerHand.length === 0) {
+      this.refillHandFromDiscardIfEmpty('player'); // if the player has no cards left in hand, allow drawing from discard to prevent deadlock
+    }
+
+    if (this.enemyDeck.length === 0 && this.enemyHand.length === 0) {
+      this.refillHandFromDiscardIfEmpty('enemy'); // if the enemy has no cards left in hand, allow drawing from discard to prevent deadlock
+    }
 
     this.applyStartOfTurnStatusEffects('player'); // apply player poison/burn at the start of the next cycle
     if (this.checkCombatEnded()) return; // stop if the player was defeated by status damage
@@ -795,7 +818,7 @@ export class DuelScene extends Phaser.Scene {
     }
 
     if (this.playerHand.length >= HAND_SIZE) {
-      this.showBattleMessage('Discard or play a card before drawing!', '#ffaa00'); // explain why drawing is blocked
+      this.showBattleMessage('Discard or play first!', '#ffaa00'); // explain why drawing is blocked
       return null;
     }
 
@@ -827,33 +850,137 @@ export class DuelScene extends Phaser.Scene {
     
     if (attackerState.sandBuffTurnCounter > 0 && card.element === 'sand') damage += Math.ceil(damage * attackerState.sandBuffPercent / 100); // sand buff increases damage for sand cards
     switch (card.effect) {
-      case 'DAMAGE': break; // raw damage card, no extra effect handling
-      case 'SHIELD': attackerState.shield += card.shieldValue; damage = 0; break; // convert effect into shield
-      case 'POISON': defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); defenderState.poisonDamage = Math.max(defenderState.poisonDamage, card.effectValue); damage = 0; break; // apply poison over time
-      case 'WEAKEN': defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, card.effectDuration || 1); defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, card.effectValue); damage = 0; break; // apply weaken debuff
-      case 'BURN': defenderState.burnTurnCounter = Math.max(defenderState.burnTurnCounter, card.effectDuration); defenderState.burnDamage = Math.max(defenderState.burnDamage, card.effectValue); break; // apply burn over time
-      case 'BLOCK_FIRE': defenderState.blockFireTurnCounter = Math.max(defenderState.blockFireTurnCounter, card.effectDuration || 1); break; // prevent fire cards for a short time
-      case 'RAGE': if ((isPlayer ? this.playerHp : this.enemyHp) <= MAX_HP / 2) damage *= 2; break; // double damage when under half HP
-      case 'EXPLOSION': selfDamage = card.effectValue; break; // explosion damages the attacker too
-      case 'CHAIN': attackerState.chainFireBonus = Math.max(attackerState.chainFireBonus, card.effectValue); break; // store a future fire bonus
-      case 'HEAL': attackerState.shield += card.shieldValue; this.healSide(attacker, Math.ceil(card.shieldValue * (card.effectValue / 100))); damage = 0; break; // heal and grant shield
-      case 'DOUBLE_SHIELD': attackerState.shield = attackerState.shield > 0 ? attackerState.shield * 2 : card.shieldValue; damage = 0; break; // double existing shield or set a base shield
-      case 'CLEANSE': this.cleanseNegative(attackerState); damage = 0; break; // remove negative effects from the attacker
-      case 'REFLECT': attackerState.reflectTurnCounter = Math.max(attackerState.reflectTurnCounter, card.effectDuration || 1); attackerState.reflectPercent = Math.max(attackerState.reflectPercent, card.effectValue); damage = 0; break; // enable reflect
-      case 'ENERGY_BOOST': attackerState.energyBoostTurnCounter = Math.max(attackerState.energyBoostTurnCounter, card.effectDuration || 1); attackerState.energyBoostPercent = Math.max(attackerState.energyBoostPercent, card.effectValue); damage = 0; break; // boost energy gains for a duration
-      case 'TOXIC': defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); defenderState.poisonDamage = Math.max(defenderState.poisonDamage, card.effectValue); damage = 0; break; // apply poison with toxic wording
-      case 'DECAY': defenderState.shield = Math.max(0, defenderState.shield - Math.ceil(defenderState.shield * (card.effectValue / 100))); damage = 0; break; // reduce enemy shield by percentage
-      case 'EXTEND': defenderState.poisonTurnCounter += card.effectValue; defenderState.burnTurnCounter += card.effectValue; defenderState.weakenTurnCounter += card.effectValue; damage = 0; break; // extend negative effect durations
-      case 'WEAKEN_ATTACK': defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, card.effectDuration || 1); defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, card.effectValue); damage = 0; break; // same weaken logic under attack-focused name
-      case 'LIFESTEAL': this.healSide(attacker, Math.ceil(damage * (card.effectValue / 100))); break; // heal based on dealt damage
-      case 'BLOCK_NUMBER': defenderState.blockedNumberTurnCounter = this.tableCard.power; damage = 0; break; // block the current table number
-      case 'BLIND': damage = 0; break; // remove damage but keep the card action
-      case 'SHIELD_BOOST': attackerState.shield += card.shieldValue; damage = 0; break; // add shield directly
-      case 'WILDCARD': damage = 0; break; // placeholder effect
-      case 'BUFF': attackerState.sandBuffTurnCounter = Math.max(attackerState.sandBuffTurnCounter, card.effectDuration || 1); attackerState.sandBuffPercent = Math.max(attackerState.sandBuffPercent, card.effectValue); damage = 0; break; // grant a temporary damage buff
-      case 'STUN': defenderState.stunTurnCounter = Math.max(defenderState.stunTurnCounter, card.effectDuration || 1); damage = 0; break; // prevent the defender's next action
-      case 'JAM': defenderState.jamTurnCounter = Math.max(defenderState.jamTurnCounter, card.effectDuration || 1); damage = 0; break; // block non-base enemy cards
-      case 'DOUBLE_PLAY': case 'FORCE_DRAW': case 'AMPLIFY': case 'IMMUNITY': case 'HAND_RESET': case 'RANDOM_STATUS': case 'EXECUTE': damage = card.baseDamage; break; // reserved / shared effect bucket
+      case 'DAMAGE': 
+        break; // raw damage card, no extra effect handling
+
+      case 'SHIELD': 
+        attackerState.shield += card.shieldValue; 
+        damage = 0; 
+        break; // convert effect into shield
+
+      case 'POISON': 
+        defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); 
+        defenderState.poisonDamage = Math.max(defenderState.poisonDamage, card.effectValue); 
+        damage = 0; 
+        break; // apply poison over time
+
+      case 'WEAKEN': 
+        defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, card.effectDuration || 1); 
+        defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, card.effectValue);  
+        break; // apply weaken debuff
+
+      case 'BURN': 
+        defenderState.burnTurnCounter = Math.max(defenderState.burnTurnCounter, card.effectDuration); 
+        defenderState.burnDamage = Math.max(defenderState.burnDamage, card.effectValue); 
+        break; // apply burn over time
+      
+      case 'BLOCK_FIRE': 
+        defenderState.blockFireTurnCounter = Math.max(defenderState.blockFireTurnCounter, card.effectDuration || 1); 
+        break; // prevent fire cards for a short time
+
+      case 'RAGE': 
+        if ((isPlayer ? this.playerHp : this.enemyHp) <= MAX_HP / 2) damage *= 2; 
+        break; // double damage when under half HP
+      
+      case 'EXPLOSION': 
+        selfDamage = card.effectValue; 
+        break; // explosion damages the attacker too
+      case 'CHAIN': 
+        attackerState.chainFireBonus = Math.max(attackerState.chainFireBonus, card.effectValue); 
+        break; // store a future fire bonus
+      
+      case 'HEAL': 
+        attackerState.shield += card.shieldValue; 
+        this.healSide(attacker, Math.ceil(card.shieldValue * (card.effectValue / 100))); 
+        damage = 0; 
+        break; // heal and grant shield
+
+      case 'DOUBLE_SHIELD': 
+        attackerState.shield = attackerState.shield > 0 ? attackerState.shield * 2 : card.shieldValue; 
+        damage = 0; 
+        break; // double existing shield or set a base shield
+      
+      case 'CLEANSE': 
+        this.cleanseNegative(attackerState); 
+        damage = 0; 
+        break; // remove negative effects from the attacker
+      
+      case 'REFLECT': 
+        attackerState.reflectTurnCounter = Math.max(attackerState.reflectTurnCounter, card.effectDuration || 1); 
+        attackerState.reflectPercent = Math.max(attackerState.reflectPercent, card.effectValue); 
+        damage = 0; 
+        break; // enable reflect
+
+      case 'ENERGY_BOOST': 
+        attackerState.energyBoostTurnCounter = Math.max(attackerState.energyBoostTurnCounter, card.effectDuration || 1); 
+        attackerState.energyBoostPercent = Math.max(attackerState.energyBoostPercent, card.effectValue); 
+        damage = 0; 
+        break; // boost energy gains for a duration
+      
+      case 'TOXIC': 
+        defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); 
+        defenderState.poisonDamage = Math.max(defenderState.poisonDamage, card.effectValue); 
+        damage = 0; 
+        break; // apply poison with toxic wording
+      
+      case 'DECAY': 
+        defenderState.shield = Math.max(0, defenderState.shield - Math.ceil(defenderState.shield * (card.effectValue / 100))); 
+        damage = 0; 
+        break; // reduce enemy shield by percentage
+      
+      case 'EXTEND': 
+        defenderState.poisonTurnCounter += card.effectValue; 
+        defenderState.burnTurnCounter += card.effectValue; 
+        defenderState.weakenTurnCounter += card.effectValue; 
+        damage = 0; 
+        break; // extend negative effect durations
+      
+      case 'WEAKEN_ATTACK': 
+        defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, card.effectDuration || 1); 
+        defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, card.effectValue); 
+        damage = 0; 
+        break; // same weaken logic under attack-focused name
+      
+      case 'LIFESTEAL': 
+        this.healSide(attacker, Math.ceil(damage * (card.effectValue / 100))); 
+        break; // heal based on dealt damage
+      
+      case 'BLOCK_NUMBER': 
+        defenderState.blockedNumberTurnCounter = this.tableCard.power; 
+        damage = 0; 
+        break; // block the current table number
+      
+      case 'BLIND': 
+        damage = 0; 
+        break; // remove damage but keep the card action
+      
+      case 'SHIELD_BOOST': 
+        attackerState.shield += card.shieldValue; 
+        damage = 0; 
+        break; // add shield directly
+      
+      case 'WILDCARD': 
+        damage = 0; 
+        break; // placeholder effect
+      
+      case 'BUFF': 
+        attackerState.sandBuffTurnCounter = Math.max(attackerState.sandBuffTurnCounter, card.effectDuration || 1); 
+        attackerState.sandBuffPercent = Math.max(attackerState.sandBuffPercent, card.effectValue); 
+        damage = 0; 
+        break; // grant a temporary damage buff
+      
+      case 'STUN': 
+        defenderState.stunTurnCounter = Math.max(defenderState.stunTurnCounter, card.effectDuration || 1); 
+        damage = 0; 
+        break; // prevent the defender's next action
+      
+      case 'JAM': 
+        defenderState.jamTurnCounter = Math.max(defenderState.jamTurnCounter, card.effectDuration || 1); 
+        damage = 0; 
+        break; // block non-base enemy cards
+      
+      case 'DOUBLE_PLAY': 
+        case 'FORCE_DRAW': case 'AMPLIFY': case 'IMMUNITY': case 'HAND_RESET': case 'RANDOM_STATUS': case 'EXECUTE': damage = card.baseDamage; break; // reserved / shared effect bucket
       default: break; // ignore unsupported effects
     }
     if (damage > 0) this.applyAttackDamage(attacker, damage, card.element); // resolve normal attack damage

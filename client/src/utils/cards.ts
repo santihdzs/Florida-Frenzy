@@ -141,10 +141,10 @@ function createBaseCard(element: Element, power: number): Card {
         rarity: 'base',
         power,
         effect: 'DAMAGE',
-        effectDescription: `Haz ${power} de daño al enemigo.`,
-        baseDamage: power,
+        effectDescription: `Haz ${power * 2} de daño al enemigo.`,
+        baseDamage: power * 2,
         shieldValue: 0,
-        effectValue: power,
+        effectValue: power * 2,
         effectDuration: 0,
         effectValueSecondary: 0,
         energyEGain: energyElementGained(power),
@@ -161,10 +161,10 @@ function createBaseCard(element: Element, power: number): Card {
         rarity: 'base',
         power,
         effect: 'SHIELD',
-        effectDescription: `Gana ${power} puntos de escudo.`,
+        effectDescription: `Gana ${power * 2} puntos de escudo.`,
         baseDamage: 0,
-        shieldValue: power,
-        effectValue: power,
+        shieldValue: power * 2,
+        effectValue: power * 2,
         effectDuration: 0,
         effectValueSecondary: 0,
         energyEGain: energyElementGained(power),
@@ -174,7 +174,7 @@ function createBaseCard(element: Element, power: number): Card {
       });
     
     case 'swamp': {
-      const poisonValue = Math.max(1, Math.floor(power / 3));
+      const poisonValue = Math.max(2, Math.floor(power / 2));
       const poisonDuration = Math.max(1, Math.floor(power / 3));
       return createCard({
         name: `${capitalized} Card ${power}`,
@@ -204,10 +204,10 @@ function createBaseCard(element: Element, power: number): Card {
         rarity: 'base',
         power,
         effect: 'WEAKEN',
-        effectDescription: `Reduce el daño del enemigo por ${power} para el siguiente turno.`,
-        baseDamage: 0,
+        effectDescription: `Haz ${power} de daño y reduce el daño del enemigo por ${power * 2} para el siguiente turno.`,
+        baseDamage: power,
         shieldValue: 0,
-        effectValue: power,
+        effectValue: power * 2,
         effectDuration: 1,
         effectValueSecondary: 0,
         energyEGain: energyElementGained(power),
