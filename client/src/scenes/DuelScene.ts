@@ -21,6 +21,9 @@ import {
   drawOneCard, // utility for drawing a single card from a pile
   ELEMENT_COLORS, // element-to-color map used when rendering cards
   generateDeck, // utility for creating a shuffled deck
+  getSpecialCardPool, // utility for generating the pool of special effect cards based on level and rarity
+  shuffleCards, // utility for randomizing card order in a pile
+  isCounterBonusTrigger, // checks if a card play should trigger a counter bonus based on the current table card
 } from '../utils/cards'; // from cards.ts module
 
 import {
@@ -48,6 +51,14 @@ import type { RunData } from './EvergladesScene'; // run-progress data passed in
 import { completeRun } from '../utils/auth.js'; // API call to save run result
 
 import backgroundImg from '../assets/backgrounds/everglades.jpg'; // duel background image
+
+import cardFrame from '../assets/sprites/FFCardFront.png'; // card frame image
+
+// element-specific card art used for the table card and the card backs in the deck and discard pile
+import cardFireSpecial from '../assets/sprites/CardFire.png'; 
+import cardWaterSpecial from '../assets/sprites/CardWater.png';
+import cardSandSpecial from '../assets/sprites/CardSand.png';
+import cardSwampSpecial from '../assets/sprites/CardSwamp.png';
 
 import christianIdle from '../assets/characters/christian/Christian_v4_resized.png'; // Christian idle sprite
 import christianAttack1 from '../assets/characters/christian/Christian_attack-1.png'; // Christian attack animation frame 1
@@ -147,6 +158,11 @@ export class DuelScene extends Phaser.Scene {
 
   preload() {
     this.load.image('background', backgroundImg); // load duel background
+    this.load.image('card-frame', cardFrame); // load card frame image
+    this.load.image('card-fire-special', cardFireSpecial); // load fire element card art
+    this.load.image('card-water-special', cardWaterSpecial); // load water element card art
+    this.load.image('card-sand-special', cardSandSpecial); // load sand element card art
+    this.load.image('card-swamp-special', cardSwampSpecial); // load swamp element card art
     this.load.image('christian-idle', christianIdle); // load Christian idle sprite
     this.load.image('christian-attack-1', christianAttack1); // load Christian attack sprite 1
     this.load.image('christian-attack-2', christianAttack2); // load Christian attack sprite 2
@@ -481,14 +497,33 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private setupDecks() {
-    this.playerDeck = generateDeck(PLAYER_DECK_SIZE); // build the player's starting deck
-    this.enemyDeck = generateDeck(PLAYER_DECK_SIZE); // build the enemy's starting deck
-    this.playerHand = buildHand(this.playerDeck, HAND_SIZE); // draw the player's starting hand
-    this.enemyHand = buildHand(this.enemyDeck, HAND_SIZE); // draw the enemy's starting hand
+    this.playerDeck = this.generateSpecialDeck(PLAYER_DECK_SIZE); // build the player's starting deck
+    this.enemyDeck = this.generateSpecialDeck(PLAYER_DECK_SIZE); // build the enemy's starting deck
+    
+    this.playerHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the player's starting hand
+    this.enemyHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the enemy's starting hand
+    
     this.discardPile = createBaseDiscardPile(DISCARD_BASE_SIZE); // seed the discard pile from the base card pool
+
     const openingCard = createBaseDiscardPile(1)[0]; // generate the first table card
     if (!openingCard) throw new Error('Could not generate initial table card.'); // fail early if setup data is invalid
     this.tableCard = openingCard; // place the opening card on the table
+  }
+
+  // temporal special effect deck generator
+  private generateSpecialDeck(size: number): Card[] {
+    const pool = shuffleCards(getSpecialCardPool()); // get the pool of special cards and shuffle it for randomness
+    const deck: Card[] = [];
+
+    for (let i = 0; i < size; i++) {
+      const source = pool[i % pool.length]; // loop through the pool if we need more cards than it contains
+      deck.push({
+        ...source,
+        id: `${source.id}-specialdeck-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      });
+    }
+
+    return shuffleCards(deck); // final shuffle to mix the repeated cards
   }
 
   private refreshHud() {
@@ -540,13 +575,61 @@ export class DuelScene extends Phaser.Scene {
     return container; // return the assembled placeholder
   }
 
+  private getCardFrameKey(card: Card): string { // determines which card frame to use based on the card's rarity and element
+    if (card.rarity === 'effect') { // if the card is an effect card, use the special frame corresponding to its element
+      switch (card.element) {
+        case 'fire': return 'card-fire-special';
+        case 'water': return 'card-water-special';
+        case 'sand': return 'card-sand-special';
+        case 'swamp': return 'card-swamp-special';
+        default: return 'card-frame';
+      }
+    }
+
+    return 'card-frame'; // for non-effect cards, use the standard frame regardless of element
+  }
+
+  private getCardFooterLabel(card: Card, isPlayable: boolean, isStatic: boolean, footerOverride?: string): string { // some names might be too long to fit in the footer
+    if (footerOverride) return footerOverride; // if an override is provided (e.g. for the table card), use it directly
+    if (isStatic) return 'TABLE';
+
+    if (card.rarity === 'effect') {
+      const shortNames: Record<string, string> = { // predefined short labels for known effect cards to fit in the footer
+        'Burn Strike': 'BURN',
+        'Half Break': 'BREAK',
+        'Rage Boost': 'RAGE',
+        'Explosion': 'BOOM',
+        'Chain Fire': 'CHAIN',
+        'Healing Wave': 'HEAL',
+        'Shield Surge': 'SURGE',
+        'Cleanse': 'CLEAN',
+        'Reflect': 'REFLECT',
+        'Flow State': 'FLOW',
+        'Toxic Spread': 'TOXIC',
+        'Decay': 'DECAY',
+        'Infection': 'INFECT',
+        'Corrosion': 'CORRODE',
+        'Leech': 'LEECH',
+        'Quicksand': 'QUICK',
+        'Dust Blind': 'BLIND',
+        'Barrier': 'BARRIER',
+        'Skywalker': 'SKY',
+        'Sandstorm': 'STORM',
+      };
+
+      return shortNames[card.name] ?? 'SPECIAL'; // use the short name if available, otherwise default to 'SPECIAL' for unknown effect cards
+    }
+
+    return isPlayable ? 'PLAY' : 'LOCK';
+  }
+
   private renderCards() {
     this.cardObjects.forEach((cardObject) => cardObject.destroy()); // remove old hand card renders
     this.cardObjects = []; // clear object cache
     const centerX = this.cameras.main.width / 2; // horizontal center for card layout
-    const startX = centerX - 310; // left-most hand card position
+    const startX = centerX - 280; // left-most hand card position
     const y = this.cameras.main.height - 110; // shared hand row y position
-    const spacing = 155; // distance between cards
+    const spacing = 140; // distance between cards
     
     this.playerHand.forEach((card, index) => {
       const x = startX + index * spacing; // spread cards across the hand row
@@ -560,45 +643,171 @@ export class DuelScene extends Phaser.Scene {
     this.currentTableCardObject?.destroy(); // remove the previous table card render
     const centerX = this.cameras.main.width / 2; // center the table card
     this.currentTableCardObject = this.createCardContainer(centerX, 305, this.tableCard, true, true, highlightColor); // render the active table card as static
+    this.currentTableCardObject.setScale(1.12); // slightly smaller than hand cards to fit the table area
   }
 
-  private createCardContainer(x: number, y: number, card: Card, isPlayable: boolean, isStatic = false, outlineColor = 0xffffff): Phaser.GameObjects.Container {
-    const container = this.add.container(x, y); // wrapper for card visuals and interaction
-    const bg = this.add.graphics(); // graphics object for the card body
-    const baseColor = ELEMENT_COLORS[card.element] ?? 0xffffff; // color chosen from the card's element
-    bg.fillStyle(baseColor, isPlayable || isStatic ? 1 : 0.45); // fade non-playable hand cards
-    bg.fillRoundedRect(-58, -78, 116, 156, 12); // card background shape
-    bg.lineStyle(3, outlineColor, 1); // border color for the card
-    bg.strokeRoundedRect(-58, -78, 116, 156, 12); // draw the border
+  private createCardContainer(x: number, y: number, card: Card, isPlayable: boolean, isStatic = false, outlineColor = 0xffffff, footerOverride?: string): // renders a card with the appropriate visuals based on its properties and whether it's interactable
+  Phaser.GameObjects.Container {
+    const container = this.add.container(x, y); // wrapper for all card visuals and interactions
 
-    const rarityLabel = this.add.text(0, -54, card.rarity.toUpperCase(), { fontSize: '11px', color: '#f3f3f3', fontStyle: 'bold' }).setOrigin(0.5); // rarity label
-    const elementText = this.add.text(0, -26, card.element.toUpperCase(), { fontSize: '16px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5); // element label
-    const powerValue = card.power === null ? 'FX' : String(card.power); // show FX for effect cards
-    const powerText = this.add.text(0, 28, powerValue, { fontSize: '42px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5); // large power display
-    const footerText = this.add.text(0, 58, isStatic ? 'TABLE' : (isPlayable ? 'PLAY' : 'LOCK'), { fontSize: '13px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5); // footer action label
+    const baseColor = ELEMENT_COLORS[card.element] ?? 0xffffff; // base color determined by the card's element, with a fallback to white
+    const alpha = isPlayable || isStatic ? 1 : 0.12; // fully opaque if the card is playable or static, otherwise dimmed to indicate it's not selectable
+    
+    const isEffectCard = card.rarity === 'effect'; // check if the card is an effect card for tooltip purposes
+    
+    const cardWidth = isEffectCard ? 118 : 122; // slightly narrower width for effect cards to accommodate the special frame design
+    const cardHeight = isEffectCard ? 197 : 161;
 
-    container.add([bg, rarityLabel, elementText, powerText, footerText]); // combine all card layers
-    container.setSize(116, 156); // interaction bounds
+    const innerBg = this.add.graphics();
+    innerBg.fillStyle(baseColor, alpha); // fill color based on element and playability
 
-    if (!isStatic) {
-      container.setInteractive({ useHandCursor: true }) // enable hover/click behavior for hand cards
-        .on('pointerover', () => { if (!this.isAnimating) container.setScale(isPlayable ? 1.08 : 1.03); }) // subtle hover effect
-        .on('pointerout', () => { container.setScale(1); }) // restore size after hover
-        .on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-          if (pointer.rightButtonDown()) { 
-            this.discardPlayerCard(card); 
-            return; 
-          } // right-click discards the card
+    innerBg.fillRoundedRect(-44, -62, 88, 134, 16); // slightly smaller than the frame to create a border effect
 
-          if (!this.isPlayerCardPlayable(card)) { 
-            this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666'); 
-            return; 
-          } // block illegal plays
+    innerBg.lineStyle(2, outlineColor, isStatic ? 0.9 : 0.35); // brighter outline for static cards, subtler for non-playable ones
+    innerBg.strokeRoundedRect(-44, -62, 88, 134, 16); // outline around the card background
 
-          this.playPlayerCard(card); // play legal card
+    let lockOverlay: Phaser.GameObjects.Graphics | null = null;
+
+    if (!isPlayable && !isStatic) {
+      lockOverlay = this.add.graphics(); // create a lock overlay for non-playable cards
+      lockOverlay.fillStyle(0x000000, 0.28); // semi-transparent black to obscure the card
+      lockOverlay.fillRoundedRect(-44, -62, 88, 134, 16); // same size as the card background
+    }
+
+    const frameKey = this.getCardFrameKey(card); // determine which frame to use based on card properties
+    const frame = this.add.image(0, 0, frameKey); // card frame image
+    frame.setDisplaySize(cardWidth, cardHeight); // scale the frame to fit the card dimensions
+
+    const rarityY = isEffectCard ? -61 : -48; // adjust rarity label position for effect cards to fit within the special frame design
+    const rarityLabel = this.add.text(0, rarityY, card.rarity.toUpperCase(), {
+      fontSize: '10px',
+      color: '#f4f1e8',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5); // rarity label at the top of the card
+
+    const elementY = isEffectCard ? 28 : -20; // adjust element label position for effect cards to avoid overlap with the rarity label
+    const elementText = this.add.text(0, elementY, card.element.toUpperCase(), {
+      fontSize: '15px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+      align: 'center',
+    }).setOrigin(0.5); // element label below the rarity, centered and with a stroke for readability
+
+    const showPowerText = card.rarity !== 'effect'; // only show power for non-effect cards, as effect cards use the footer for their label
+
+    const powerValue = card.power === null ? 'FX' : String(card.power); // display 'FX' for cards with variable power, otherwise show the numeric value
+    const powerText = this.add.text(0, 22, powerValue, {
+      fontSize: '36px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5); // power value in the middle of the card, with a larger font size for emphasis
+
+    powerText.setVisible(showPowerText); // hide the power text if it's an effect card, since it doesn't have a fixed power value
+
+    const footerLabel = this.getCardFooterLabel(card, isPlayable, isStatic, footerOverride); // determine footer text based on card properties and overrides
+    const footerY = isEffectCard ? 46 : 58; // adjust footer position for effect cards to fit within the special frame design
+    const footerText = this.add.text(0, footerY, footerLabel, {
+      fontSize: '12px',
+      color: '#f7f30a',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 5,
+    }).setOrigin(0.5); // footer text indicating the card's status (static, playable, or locked)
+
+    let tooltipBg: Phaser.GameObjects.Graphics | null = null; // background for the tooltip that appears on special effect cards when hovered
+    let tooltipText: Phaser.GameObjects.Text | null = null;
+    let infoText: Phaser.GameObjects.Text | null = null;
+    let infoZone: Phaser.GameObjects.Zone | null = null;
+
+    const infoX = 39;
+    const infoY = -72;
+    if (card.rarity === 'effect') {
+      infoText = this.add.text(infoX, infoY, '?', {
+        fontSize: '14px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 5,
+      }).setOrigin(0.5); // small question mark icon to indicate more information is available on hover
+
+      infoZone = this.add.zone(infoX, infoY, 24, 24).setOrigin(0.5); // invisible interactive area over the info icon
+
+      tooltipBg = this.add.graphics(); // background for the tooltip that appears when hovering over the info icon
+      tooltipBg.fillStyle(0x000000, 0.9);
+      tooltipBg.fillRoundedRect(-78, -142, 156, 58, 8);
+      tooltipBg.setVisible(false);
+
+      tooltipText = this.add.text(0, -113, card.effectDescription ?? 'No description', {
+        fontSize: '10px',
+        color: '#fff200',
+        align: 'center',
+        stroke: '#000000',
+        strokeThickness: 5,
+        wordWrap: { width: 140 },
+      }).setOrigin(0.5).setVisible(false); // tooltip text that shows the card's effect description, hidden by default
+    }
+
+    container.add([
+      innerBg,
+      ...(lockOverlay ? [lockOverlay] : []), // conditionally add the lock overlay if it exists
+      frame,
+      rarityLabel,
+      elementText,
+      powerText,
+      footerText,
+      ...(tooltipBg ? [tooltipBg] : []),
+      ...(tooltipText ? [tooltipText] : []),
+      ...(infoText ? [infoText] : []),
+      ...(infoZone ? [infoZone] : []),
+    ]); // assemble all card visuals into the container
+
+    if (infoZone && tooltipBg && tooltipText) {
+      infoZone
+        .setInteractive({ useHandCursor: true })
+        .on('pointerover', () => {
+          tooltipBg?.setVisible(true);
+          tooltipText?.setVisible(true);
+        })
+        .on('pointerout', () => {
+          tooltipBg?.setVisible(false);
+          tooltipText?.setVisible(false);
         });
     }
-    return container; // return the finished container
+
+    container.setSize(cardWidth, cardHeight); // set the container's interactive area to match the card dimensions
+
+    if (!isStatic) {
+      container
+        .setSize(cardWidth, cardHeight)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerover', () => {
+          if (!this.isAnimating) container.setScale(isPlayable ? 1.08 : 1.03);
+        })
+        .on('pointerout', () => {
+          container.setScale(1);
+        })
+        .on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+          if (pointer.rightButtonDown()) {
+            this.discardPlayerCard(card);
+            return;
+          }
+
+          if (!this.isPlayerCardPlayable(card)) {
+            this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666');
+            return;
+          }
+
+          this.playPlayerCard(card);
+        });
+    }
+
+    return container; // return the fully assembled card container for rendering
   }
 
   private renderDiscardTopCard() {
@@ -616,8 +825,8 @@ export class DuelScene extends Phaser.Scene {
       return;
     }
 
-    this.discardTopCardObject = this.createCardContainer(discardX, discardY, topCard, true, true, 0xffffff); // render the top discard card as static
-    this.discardTopCardObject.setScale(0.55); // shrink the preview to fit the pile area
+    this.discardTopCardObject = this.createCardContainer(discardX, discardY, topCard, true, true, 0xffffff, 'DISC'); // render the top discard card as static
+    this.discardTopCardObject.setScale(0.68); // shrink the preview to fit the pile area
     
     this.discardClickZone = this.add.zone(discardX, discardY, 150, 110) // invisible hotspot over the discard pile
       .setInteractive({ useHandCursor: true })
@@ -625,10 +834,10 @@ export class DuelScene extends Phaser.Scene {
         this.handlePlayerDrawAction(); // draw from discard when clicked
       })
       .on('pointerover', () => {
-        if (!this.isAnimating) this.discardTopCardObject?.setScale(0.60); // enlarge preview on hover
+        if (!this.isAnimating) this.discardTopCardObject?.setScale(0.74); // enlarge preview on hover
       })
       .on('pointerout', () => {
-        this.discardTopCardObject?.setScale(0.55); // restore preview size when leaving
+        this.discardTopCardObject?.setScale(0.68); // restore preview size when leaving
       });
   }
 
@@ -667,7 +876,7 @@ export class DuelScene extends Phaser.Scene {
     this.tableCard = card; // new card becomes the active table card
     this.renderTableCard(0x00ff88); // highlight the table card in player color
     this.addEnergyFromCard(card, 'player', previousTableCard); // award energy based on the play
-    this.applyCardEffects(card, 'player'); // resolve the card's effect and damage
+    this.applyCardEffects(card, 'player', previousTableCard); // resolve the card's effect and damage
     this.animatePlayerAttack(); // play the player attack pose
     this.time.delayedCall(550, () => { // brief pause before handing control to the enemy
       if (this.checkCombatEnded()) return; // stop if the duel ended
@@ -699,7 +908,7 @@ export class DuelScene extends Phaser.Scene {
     this.renderTableCard(0xff6666); // show the table card in enemy color
     this.addEnergyFromCard(enemyCard, 'enemy', previousTableCard); // award enemy energy gains
     this.animateEnemyAttack(); // play enemy attack pose
-    this.applyCardEffects(enemyCard, 'enemy'); // resolve enemy card effects
+    this.applyCardEffects(enemyCard, 'enemy', previousTableCard); // resolve enemy card effects
     this.time.delayedCall(700, () => { // delay before ending the level
       if (this.checkCombatEnded()) return; // stop if the duel ended
       this.finishLevel(); // continue back to level cleanup
@@ -714,9 +923,32 @@ export class DuelScene extends Phaser.Scene {
     }
   }
 
+  private refillHandFromDiscardIfEmpty(side: 'player' | 'enemy') {
+    const hand = side === 'player' ? this.playerHand : this.enemyHand; // select the correct hand
+
+    if (hand.length > 0) return; // only refill from discard if the hand is completely empty
+    if (this.discardPile.length === 0) return; // stop if there are no cards in discard to draw (practically impossible)
+
+    while (hand.length < HAND_SIZE && this.discardPile.length > 0) {
+      const nextCard = drawOneCard(this.discardPile);
+      if (!nextCard) break; // stop if discard draw fails
+
+      this. incrementDiscardFatigue(side); // track fatigue from drawing extra cards
+      hand.push(nextCard); // add the drawn card to the hand
+    }
+  }
+
   private finishLevel() {
     this.refillHandFromDeckOnly(this.playerHand, this.playerDeck); // refill the player's hand from deck only
     this.refillHandFromDeckOnly(this.enemyHand, this.enemyDeck); // refill the enemy's hand from deck only
+
+    if (this.playerDeck.length === 0 && this.playerHand.length === 0) {
+      this.refillHandFromDiscardIfEmpty('player'); // if the player has no cards left in hand, allow drawing from discard to prevent deadlock
+    }
+
+    if (this.enemyDeck.length === 0 && this.enemyHand.length === 0) {
+      this.refillHandFromDiscardIfEmpty('enemy'); // if the enemy has no cards left in hand, allow drawing from discard to prevent deadlock
+    }
 
     this.applyStartOfTurnStatusEffects('player'); // apply player poison/burn at the start of the next cycle
     if (this.checkCombatEnded()) return; // stop if the player was defeated by status damage
@@ -795,7 +1027,7 @@ export class DuelScene extends Phaser.Scene {
     }
 
     if (this.playerHand.length >= HAND_SIZE) {
-      this.showBattleMessage('Discard or play a card before drawing!', '#ffaa00'); // explain why drawing is blocked
+      this.showBattleMessage('Discard or play first!', '#ffaa00'); // explain why drawing is blocked
       return null;
     }
 
@@ -812,7 +1044,7 @@ export class DuelScene extends Phaser.Scene {
   //   if (nextCard) hand.push(nextCard);
   // } // kept commented out as in your current code
 
-  private applyCardEffects(card: Card, attacker: 'player' | 'enemy') {
+  private applyCardEffects(card: Card, attacker: 'player' | 'enemy', previousTableCard?: Card) {
     const isPlayer = attacker === 'player'; // boolean used to branch between player and enemy
     const attackerState = isPlayer ? this.playerState : this.enemyState; // status state for the card owner
     const defenderState = isPlayer ? this.enemyState : this.playerState; // status state for the target
@@ -824,36 +1056,151 @@ export class DuelScene extends Phaser.Scene {
       damage += attackerState.chainFireBonus; 
       attackerState.chainFireBonus = 0; 
     } // chain bonus is consumed on fire attacks
+
+    const gotCounterBonus = previousTableCard ? isCounterBonusTrigger(card, previousTableCard) : false; // check if the new card triggers a counter bonus against the previous table card
+    if (gotCounterBonus) {
+      if (card.element === 'fire' || card.element === 'swamp') {
+        damage += 10; // flat bonus for countering with fire/swamp
+      }
+      
+      else if (card.element === 'water' || card.element === 'sand') {
+        attackerState.shield += 10; // defensive bonus for countering with water/sand
+      }
+    }
     
     if (attackerState.sandBuffTurnCounter > 0 && card.element === 'sand') damage += Math.ceil(damage * attackerState.sandBuffPercent / 100); // sand buff increases damage for sand cards
     switch (card.effect) {
-      case 'DAMAGE': break; // raw damage card, no extra effect handling
-      case 'SHIELD': attackerState.shield += card.shieldValue; damage = 0; break; // convert effect into shield
-      case 'POISON': defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); defenderState.poisonDamage = Math.max(defenderState.poisonDamage, card.effectValue); damage = 0; break; // apply poison over time
-      case 'WEAKEN': defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, card.effectDuration || 1); defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, card.effectValue); damage = 0; break; // apply weaken debuff
-      case 'BURN': defenderState.burnTurnCounter = Math.max(defenderState.burnTurnCounter, card.effectDuration); defenderState.burnDamage = Math.max(defenderState.burnDamage, card.effectValue); break; // apply burn over time
-      case 'BLOCK_FIRE': defenderState.blockFireTurnCounter = Math.max(defenderState.blockFireTurnCounter, card.effectDuration || 1); break; // prevent fire cards for a short time
-      case 'RAGE': if ((isPlayer ? this.playerHp : this.enemyHp) <= MAX_HP / 2) damage *= 2; break; // double damage when under half HP
-      case 'EXPLOSION': selfDamage = card.effectValue; break; // explosion damages the attacker too
-      case 'CHAIN': attackerState.chainFireBonus = Math.max(attackerState.chainFireBonus, card.effectValue); break; // store a future fire bonus
-      case 'HEAL': attackerState.shield += card.shieldValue; this.healSide(attacker, Math.ceil(card.shieldValue * (card.effectValue / 100))); damage = 0; break; // heal and grant shield
-      case 'DOUBLE_SHIELD': attackerState.shield = attackerState.shield > 0 ? attackerState.shield * 2 : card.shieldValue; damage = 0; break; // double existing shield or set a base shield
-      case 'CLEANSE': this.cleanseNegative(attackerState); damage = 0; break; // remove negative effects from the attacker
-      case 'REFLECT': attackerState.reflectTurnCounter = Math.max(attackerState.reflectTurnCounter, card.effectDuration || 1); attackerState.reflectPercent = Math.max(attackerState.reflectPercent, card.effectValue); damage = 0; break; // enable reflect
-      case 'ENERGY_BOOST': attackerState.energyBoostTurnCounter = Math.max(attackerState.energyBoostTurnCounter, card.effectDuration || 1); attackerState.energyBoostPercent = Math.max(attackerState.energyBoostPercent, card.effectValue); damage = 0; break; // boost energy gains for a duration
-      case 'TOXIC': defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); defenderState.poisonDamage = Math.max(defenderState.poisonDamage, card.effectValue); damage = 0; break; // apply poison with toxic wording
-      case 'DECAY': defenderState.shield = Math.max(0, defenderState.shield - Math.ceil(defenderState.shield * (card.effectValue / 100))); damage = 0; break; // reduce enemy shield by percentage
-      case 'EXTEND': defenderState.poisonTurnCounter += card.effectValue; defenderState.burnTurnCounter += card.effectValue; defenderState.weakenTurnCounter += card.effectValue; damage = 0; break; // extend negative effect durations
-      case 'WEAKEN_ATTACK': defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, card.effectDuration || 1); defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, card.effectValue); damage = 0; break; // same weaken logic under attack-focused name
-      case 'LIFESTEAL': this.healSide(attacker, Math.ceil(damage * (card.effectValue / 100))); break; // heal based on dealt damage
-      case 'BLOCK_NUMBER': defenderState.blockedNumberTurnCounter = this.tableCard.power; damage = 0; break; // block the current table number
-      case 'BLIND': damage = 0; break; // remove damage but keep the card action
-      case 'SHIELD_BOOST': attackerState.shield += card.shieldValue; damage = 0; break; // add shield directly
-      case 'WILDCARD': damage = 0; break; // placeholder effect
-      case 'BUFF': attackerState.sandBuffTurnCounter = Math.max(attackerState.sandBuffTurnCounter, card.effectDuration || 1); attackerState.sandBuffPercent = Math.max(attackerState.sandBuffPercent, card.effectValue); damage = 0; break; // grant a temporary damage buff
-      case 'STUN': defenderState.stunTurnCounter = Math.max(defenderState.stunTurnCounter, card.effectDuration || 1); damage = 0; break; // prevent the defender's next action
-      case 'JAM': defenderState.jamTurnCounter = Math.max(defenderState.jamTurnCounter, card.effectDuration || 1); damage = 0; break; // block non-base enemy cards
-      case 'DOUBLE_PLAY': case 'FORCE_DRAW': case 'AMPLIFY': case 'IMMUNITY': case 'HAND_RESET': case 'RANDOM_STATUS': case 'EXECUTE': damage = card.baseDamage; break; // reserved / shared effect bucket
+      case 'DAMAGE': 
+        break; // raw damage card, no extra effect handling
+
+      case 'SHIELD': 
+        attackerState.shield += card.shieldValue; 
+        damage = 0; 
+        break; // convert effect into shield
+
+      case 'POISON': 
+        defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); 
+        defenderState.poisonDamage = Math.max(defenderState.poisonDamage, card.effectValue); 
+        damage = 0; 
+        break; // apply poison over time
+
+      case 'WEAKEN': 
+        defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, card.effectDuration || 1); 
+        defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, card.effectValue);  
+        break; // apply weaken debuff
+
+      case 'BURN': 
+        defenderState.burnTurnCounter = Math.max(defenderState.burnTurnCounter, card.effectDuration); 
+        defenderState.burnDamage = Math.max(defenderState.burnDamage, card.effectValue); 
+        break; // apply burn over time
+      
+      case 'BLOCK_FIRE': 
+        defenderState.blockFireTurnCounter = Math.max(defenderState.blockFireTurnCounter, card.effectDuration || 1); 
+        break; // prevent fire cards for a short time
+
+      case 'RAGE': 
+        if ((isPlayer ? this.playerHp : this.enemyHp) <= MAX_HP / 2) damage *= 2; 
+        break; // double damage when under half HP
+      
+      case 'EXPLOSION': 
+        selfDamage = card.effectValue; 
+        break; // explosion damages the attacker too
+      case 'CHAIN': 
+        attackerState.chainFireBonus = Math.max(attackerState.chainFireBonus, card.effectValue); 
+        break; // store a future fire bonus
+      
+      case 'HEAL': 
+        attackerState.shield += card.shieldValue; 
+        this.healSide(attacker, Math.ceil(card.shieldValue * (card.effectValue / 100))); 
+        damage = 0; 
+        break; // heal and grant shield
+
+      case 'DOUBLE_SHIELD': 
+        attackerState.shield = attackerState.shield > 0 ? attackerState.shield * 2 : card.shieldValue; 
+        damage = 0; 
+        break; // double existing shield or set a base shield
+      
+      case 'CLEANSE': 
+        this.cleanseNegative(attackerState); 
+        damage = 0; 
+        break; // remove negative effects from the attacker
+      
+      case 'REFLECT': 
+        attackerState.reflectTurnCounter = Math.max(attackerState.reflectTurnCounter, card.effectDuration || 1); 
+        attackerState.reflectPercent = Math.max(attackerState.reflectPercent, card.effectValue); 
+        damage = 0; 
+        break; // enable reflect
+
+      case 'ENERGY_BOOST': 
+        attackerState.energyBoostTurnCounter = Math.max(attackerState.energyBoostTurnCounter, card.effectDuration || 1); 
+        attackerState.energyBoostPercent = Math.max(attackerState.energyBoostPercent, card.effectValue); 
+        damage = 0; 
+        break; // boost energy gains for a duration
+      
+      case 'TOXIC': 
+        defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); 
+        defenderState.poisonDamage = Math.max(defenderState.poisonDamage, card.effectValue); 
+        damage = 0; 
+        break; // apply poison with toxic wording
+      
+      case 'DECAY': 
+        defenderState.shield = Math.max(0, defenderState.shield - Math.ceil(defenderState.shield * (card.effectValue / 100))); 
+        damage = 0; 
+        break; // reduce enemy shield by percentage
+      
+      case 'EXTEND': 
+        defenderState.poisonTurnCounter += card.effectValue; 
+        defenderState.burnTurnCounter += card.effectValue; 
+        defenderState.weakenTurnCounter += card.effectValue; 
+        damage = 0; 
+        break; // extend negative effect durations
+      
+      case 'WEAKEN_ATTACK': 
+        defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, card.effectDuration || 1); 
+        defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, card.effectValue); 
+        damage = 0; 
+        break; // same weaken logic under attack-focused name
+      
+      case 'LIFESTEAL': 
+        this.healSide(attacker, Math.ceil(damage * (card.effectValue / 100))); 
+        break; // heal based on dealt damage
+      
+      case 'BLOCK_NUMBER': 
+        defenderState.blockedNumberTurnCounter = this.tableCard.power; 
+        damage = 0; 
+        break; // block the current table number
+      
+      case 'BLIND': 
+        damage = 0; 
+        break; // remove damage but keep the card action
+      
+      case 'SHIELD_BOOST': 
+        attackerState.shield += card.shieldValue; 
+        damage = 0; 
+        break; // add shield directly
+      
+      case 'WILDCARD': 
+        damage = 0; 
+        break; // placeholder effect
+      
+      case 'BUFF': 
+        attackerState.sandBuffTurnCounter = Math.max(attackerState.sandBuffTurnCounter, card.effectDuration || 1); 
+        attackerState.sandBuffPercent = Math.max(attackerState.sandBuffPercent, card.effectValue); 
+        damage = 0; 
+        break; // grant a temporary damage buff
+      
+      case 'STUN': 
+        defenderState.stunTurnCounter = Math.max(defenderState.stunTurnCounter, card.effectDuration || 1); 
+        damage = 0; 
+        break; // prevent the defender's next action
+      
+      case 'JAM': 
+        defenderState.jamTurnCounter = Math.max(defenderState.jamTurnCounter, card.effectDuration || 1); 
+        damage = 0; 
+        break; // block non-base enemy cards
+      
+      case 'DOUBLE_PLAY': 
+        case 'FORCE_DRAW': case 'AMPLIFY': case 'IMMUNITY': case 'HAND_RESET': case 'RANDOM_STATUS': case 'EXECUTE': damage = card.baseDamage; break; // reserved / shared effect bucket
       default: break; // ignore unsupported effects
     }
     if (damage > 0) this.applyAttackDamage(attacker, damage, card.element); // resolve normal attack damage
@@ -1057,6 +1404,11 @@ export class DuelScene extends Phaser.Scene {
     this.discardPile.push(card); // place the card into the discard pile
 
     this.refillHandFromDeckOnly(this.playerHand, this.playerDeck); // refill the hand from deck if possible
+    
+    if (this.playerDeck.length === 0 && this.playerHand.length === 0) {
+      this.refillHandFromDiscardIfEmpty('player'); // if the hand is empty after refilling from deck, allow drawing from discard to prevent deadlock
+    }
+
     this.showBattleMessage('Card discarded', '#ffaa00'); // confirm the discard action
     this.refreshHud(); // sync HUD values
     this.renderDiscardTopCard(); // refresh discard preview
