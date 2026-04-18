@@ -21,6 +21,7 @@ import {
   drawOneCard, // utility for drawing a single card from a pile
   ELEMENT_COLORS, // element-to-color map used when rendering cards
   generateDeck, // utility for creating a shuffled deck
+  SPECIAL_CARD_POOL, // predefined pool of special cards for the player and enemy decks
 } from '../utils/cards'; // from cards.ts module
 
 import {
@@ -48,6 +49,14 @@ import type { RunData } from './EvergladesScene'; // run-progress data passed in
 import { completeRun } from '../utils/auth.js'; // API call to save run result
 
 import backgroundImg from '../assets/backgrounds/everglades.jpg'; // duel background image
+
+import cardFrame from '../assets/sprites/FFCardFront.png'; // card frame image
+
+// element-specific card art used for the table card and the card backs in the deck and discard pile
+import cardFireSpecial from '../assets/sprites/CardFire.png'; 
+import cardWaterSpecial from '../assets/sprites/CardWater.png';
+import cardSandSpecial from '../assets/sprites/CardSand.png';
+import cardSwampSpecial from '../assets/sprites/CardSwamp.png';
 
 import christianIdle from '../assets/characters/christian/Christian_v4_resized.png'; // Christian idle sprite
 import christianAttack1 from '../assets/characters/christian/Christian_attack-1.png'; // Christian attack animation frame 1
@@ -147,6 +156,11 @@ export class DuelScene extends Phaser.Scene {
 
   preload() {
     this.load.image('background', backgroundImg); // load duel background
+    this.load.image('card-frame', cardFrame); // load card frame image
+    this.load.image('card-fire-special', cardFireSpecial); // load fire element card art
+    this.load.image('card-water-special', cardWaterSpecial); // load water element card art
+    this.load.image('card-sand-special', cardSandSpecial); // load sand element card art
+    this.load.image('card-swamp-special', cardSwampSpecial); // load swamp element card art
     this.load.image('christian-idle', christianIdle); // load Christian idle sprite
     this.load.image('christian-attack-1', christianAttack1); // load Christian attack sprite 1
     this.load.image('christian-attack-2', christianAttack2); // load Christian attack sprite 2
@@ -540,13 +554,61 @@ export class DuelScene extends Phaser.Scene {
     return container; // return the assembled placeholder
   }
 
+  private getCardFrameKey(card: Card): string { // determines which card frame to use based on the card's rarity and element
+    if (card.rarity === 'effect') { // if the card is an effect card, use the special frame corresponding to its element
+      switch (card.element) {
+        case 'fire': return 'card-fire-special';
+        case 'water': return 'card-water-special';
+        case 'sand': return 'card-sand-special';
+        case 'swamp': return 'card-swamp-special';
+        default: return 'card-frame';
+      }
+    }
+
+    return 'card-frame'; // for non-effect cards, use the standard frame regardless of element
+  }
+
+  private getCardFooterLabel(card: Card, isPlayable: boolean, isStatic: boolean, footerOverride?: string): string { // some names might be too long to fit in the footer
+    if (footerOverride) return footerOverride; // if an override is provided (e.g. for the table card), use it directly
+    if (isStatic) return 'TABLE';
+
+    if (card.rarity === 'effect') {
+      const shortNames: Record<string, string> = { // predefined short labels for known effect cards to fit in the footer
+        'Burn Strike': 'BURN',
+        'Half Break': 'BREAK',
+        'Rage Boost': 'RAGE',
+        'Explosion': 'BOOM',
+        'Chain Fire': 'CHAIN',
+        'Healing Wave': 'HEAL',
+        'Shield Surge': 'SURGE',
+        'Cleanse': 'CLEAN',
+        'Reflect': 'REFLECT',
+        'Flow State': 'FLOW',
+        'Toxic Spread': 'TOXIC',
+        'Decay': 'DECAY',
+        'Infection': 'INFECT',
+        'Corrosion': 'CORRODE',
+        'Leech': 'LEECH',
+        'Quicksand': 'QUICK',
+        'Dust Blind': 'BLIND',
+        'Barrier': 'BARRIER',
+        'Skywalker': 'SKY',
+        'Sandstorm': 'STORM',
+      };
+
+      return shortNames[card.name] ?? 'SPECIAL'; // use the short name if available, otherwise default to 'SPECIAL' for unknown effect cards
+    }
+
+    return isPlayable ? 'PLAY' : 'LOCK';
+  }
+
   private renderCards() {
     this.cardObjects.forEach((cardObject) => cardObject.destroy()); // remove old hand card renders
     this.cardObjects = []; // clear object cache
     const centerX = this.cameras.main.width / 2; // horizontal center for card layout
-    const startX = centerX - 310; // left-most hand card position
+    const startX = centerX - 280; // left-most hand card position
     const y = this.cameras.main.height - 110; // shared hand row y position
-    const spacing = 155; // distance between cards
+    const spacing = 140; // distance between cards
     
     this.playerHand.forEach((card, index) => {
       const x = startX + index * spacing; // spread cards across the hand row
@@ -560,45 +622,159 @@ export class DuelScene extends Phaser.Scene {
     this.currentTableCardObject?.destroy(); // remove the previous table card render
     const centerX = this.cameras.main.width / 2; // center the table card
     this.currentTableCardObject = this.createCardContainer(centerX, 305, this.tableCard, true, true, highlightColor); // render the active table card as static
+    this.currentTableCardObject.setScale(1.12); // slightly smaller than hand cards to fit the table area
   }
 
-  private createCardContainer(x: number, y: number, card: Card, isPlayable: boolean, isStatic = false, outlineColor = 0xffffff): Phaser.GameObjects.Container {
-    const container = this.add.container(x, y); // wrapper for card visuals and interaction
-    const bg = this.add.graphics(); // graphics object for the card body
-    const baseColor = ELEMENT_COLORS[card.element] ?? 0xffffff; // color chosen from the card's element
-    bg.fillStyle(baseColor, isPlayable || isStatic ? 1 : 0.45); // fade non-playable hand cards
-    bg.fillRoundedRect(-58, -78, 116, 156, 12); // card background shape
-    bg.lineStyle(3, outlineColor, 1); // border color for the card
-    bg.strokeRoundedRect(-58, -78, 116, 156, 12); // draw the border
+  private createCardContainer(x: number, y: number, card: Card, isPlayable: boolean, isStatic = false, outlineColor = 0xffffff, footerOverride?: string): // renders a card with the appropriate visuals based on its properties and whether it's interactable
+  Phaser.GameObjects.Container {
+    const container = this.add.container(x, y); // wrapper for all card visuals and interactions
 
-    const rarityLabel = this.add.text(0, -54, card.rarity.toUpperCase(), { fontSize: '11px', color: '#f3f3f3', fontStyle: 'bold' }).setOrigin(0.5); // rarity label
-    const elementText = this.add.text(0, -26, card.element.toUpperCase(), { fontSize: '16px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5); // element label
-    const powerValue = card.power === null ? 'FX' : String(card.power); // show FX for effect cards
-    const powerText = this.add.text(0, 28, powerValue, { fontSize: '42px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5); // large power display
-    const footerText = this.add.text(0, 58, isStatic ? 'TABLE' : (isPlayable ? 'PLAY' : 'LOCK'), { fontSize: '13px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5); // footer action label
+    const baseColor = ELEMENT_COLORS[card.element] ?? 0xffffff; // base color determined by the card's element, with a fallback to white
+    const alpha = isPlayable || isStatic ? 1 : 0.12; // fully opaque if the card is playable or static, otherwise dimmed to indicate it's not selectable
+    
+    const cardWidth = 122;
+    const cardHeight = 161;
 
-    container.add([bg, rarityLabel, elementText, powerText, footerText]); // combine all card layers
-    container.setSize(116, 156); // interaction bounds
+    const innerBg = this.add.graphics();
+    innerBg.fillStyle(baseColor, alpha); // fill color based on element and playability
 
-    if (!isStatic) {
-      container.setInteractive({ useHandCursor: true }) // enable hover/click behavior for hand cards
-        .on('pointerover', () => { if (!this.isAnimating) container.setScale(isPlayable ? 1.08 : 1.03); }) // subtle hover effect
-        .on('pointerout', () => { container.setScale(1); }) // restore size after hover
-        .on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-          if (pointer.rightButtonDown()) { 
-            this.discardPlayerCard(card); 
-            return; 
-          } // right-click discards the card
+    innerBg.fillRoundedRect(-44, -62, 88, 134, 16); // slightly smaller than the frame to create a border effect
 
-          if (!this.isPlayerCardPlayable(card)) { 
-            this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666'); 
-            return; 
-          } // block illegal plays
+    innerBg.lineStyle(2, outlineColor, isStatic ? 0.9 : 0.35); // brighter outline for static cards, subtler for non-playable ones
+    innerBg.strokeRoundedRect(-44, -62, 88, 134, 16); // outline around the card background
 
-          this.playPlayerCard(card); // play legal card
+    let lockOverlay: Phaser.GameObjects.Graphics | null = null;
+
+    if (!isPlayable && !isStatic) {
+      lockOverlay = this.add.graphics(); // create a lock overlay for non-playable cards
+      lockOverlay.fillStyle(0x000000, 0.28); // semi-transparent black to obscure the card
+      lockOverlay.fillRoundedRect(-44, -62, 88, 134, 16); // same size as the card background
+    }
+
+    const frameKey = this.getCardFrameKey(card); // determine which frame to use based on card properties
+    const frame = this.add.image(0, 0, frameKey); // card frame image
+    frame.setDisplaySize(cardWidth, cardHeight); // scale the frame to fit the card dimensions
+
+    const rarityLabel = this.add.text(0, -48, card.rarity.toUpperCase(), {
+      fontSize: '10px',
+      color: '#f4f1e8',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5); // rarity label at the top of the card
+
+    const elementText = this.add.text(0, -20, card.element.toUpperCase(), {
+      fontSize: '15px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 3,
+      align: 'center',
+    }).setOrigin(0.5); // element label below the rarity, centered and with a stroke for readability
+
+    const powerValue = card.power === null ? 'FX' : String(card.power); // display 'FX' for cards with variable power, otherwise show the numeric value
+    const powerText = this.add.text(0, 22, powerValue, {
+      fontSize: '36px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5); // power value in the middle of the card, with a larger font size for emphasis
+
+    const footerLabel = this.getCardFooterLabel(card, isPlayable, isStatic, footerOverride); // determine footer text based on card properties and overrides
+
+    const footerText = this.add.text(0, 58, footerLabel, {
+      fontSize: '12px',
+      color: '#f7f30a',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 5,
+    }).setOrigin(0.5); // footer text indicating the card's status (static, playable, or locked)
+
+    let tooltipBg: Phaser.GameObjects.Graphics | null = null; // background for the tooltip that appears on special effect cards when hovered
+    let tooltipText: Phaser.GameObjects.Text | null = null;
+    let infoText: Phaser.GameObjects.Text | null = null;
+    let infoZone: Phaser.GameObjects.Zone | null = null;
+
+    if (card.rarity === 'effect') {
+      infoText = this.add.text(34, -58, '?', {
+        fontSize: '14px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 3,
+      }).setOrigin(0.5); // small question mark icon to indicate more information is available on hover
+
+      infoZone = this.add.zone(34, -58, 22, 22).setOrigin(0.5); // invisible interactive area over the info icon
+
+      tooltipBg = this.add.graphics(); // background for the tooltip that appears when hovering over the info icon
+      tooltipBg.fillStyle(0x000000, 0.9);
+      tooltipBg.fillRoundedRect(-78, -142, 156, 58, 8);
+      tooltipBg.setVisible(false);
+
+      tooltipText = this.add.text(0, -113, card.effectDescription ?? 'No description', {
+        fontSize: '10px',
+        color: '#ffffff',
+        align: 'center',
+        wordWrap: { width: 140 },
+      }).setOrigin(0.5).setVisible(false); // tooltip text that shows the card's effect description, hidden by default
+    }
+
+    container.add([
+      innerBg,
+      ...(lockOverlay ? [lockOverlay] : []), // conditionally add the lock overlay if it exists
+      frame,
+      rarityLabel,
+      elementText,
+      powerText,
+      footerText,
+      ...(tooltipBg ? [tooltipBg] : []),
+      ...(tooltipText ? [tooltipText] : []),
+      ...(infoText ? [infoText] : []),
+      ...(infoZone ? [infoZone] : []),
+    ]); // assemble all card visuals into the container
+
+    if (infoZone && tooltipBg && tooltipText) {
+      infoZone
+        .setInteractive({ useHandCursor: true })
+        .on('pointerover', () => {
+          tooltipBg?.setVisible(true);
+          tooltipText?.setVisible(true);
+        })
+        .on('pointerout', () => {
+          tooltipBg?.setVisible(false);
+          tooltipText?.setVisible(false);
         });
     }
-    return container; // return the finished container
+
+    container.setSize(cardWidth, cardHeight); // set the container's interactive area to match the card dimensions
+
+    if (!isStatic) {
+      container
+        .setSize(cardWidth, cardHeight)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerover', () => {
+          if (!this.isAnimating) container.setScale(isPlayable ? 1.08 : 1.03);
+        })
+        .on('pointerout', () => {
+          container.setScale(1);
+        })
+        .on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+          if (pointer.rightButtonDown()) {
+            this.discardPlayerCard(card);
+            return;
+          }
+
+          if (!this.isPlayerCardPlayable(card)) {
+            this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666');
+            return;
+          }
+
+          this.playPlayerCard(card);
+        });
+    }
+
+    return container; // return the fully assembled card container for rendering
   }
 
   private renderDiscardTopCard() {
@@ -616,8 +792,8 @@ export class DuelScene extends Phaser.Scene {
       return;
     }
 
-    this.discardTopCardObject = this.createCardContainer(discardX, discardY, topCard, true, true, 0xffffff); // render the top discard card as static
-    this.discardTopCardObject.setScale(0.55); // shrink the preview to fit the pile area
+    this.discardTopCardObject = this.createCardContainer(discardX, discardY, topCard, true, true, 0xffffff, 'DISC'); // render the top discard card as static
+    this.discardTopCardObject.setScale(0.68); // shrink the preview to fit the pile area
     
     this.discardClickZone = this.add.zone(discardX, discardY, 150, 110) // invisible hotspot over the discard pile
       .setInteractive({ useHandCursor: true })
@@ -625,10 +801,10 @@ export class DuelScene extends Phaser.Scene {
         this.handlePlayerDrawAction(); // draw from discard when clicked
       })
       .on('pointerover', () => {
-        if (!this.isAnimating) this.discardTopCardObject?.setScale(0.60); // enlarge preview on hover
+        if (!this.isAnimating) this.discardTopCardObject?.setScale(0.74); // enlarge preview on hover
       })
       .on('pointerout', () => {
-        this.discardTopCardObject?.setScale(0.55); // restore preview size when leaving
+        this.discardTopCardObject?.setScale(0.68); // restore preview size when leaving
       });
   }
 
@@ -1184,6 +1360,11 @@ export class DuelScene extends Phaser.Scene {
     this.discardPile.push(card); // place the card into the discard pile
 
     this.refillHandFromDeckOnly(this.playerHand, this.playerDeck); // refill the hand from deck if possible
+    
+    if (this.playerDeck.length === 0 && this.playerHand.length === 0) {
+      this.refillHandFromDiscardIfEmpty('player'); // if the hand is empty after refilling from deck, allow drawing from discard to prevent deadlock
+    }
+
     this.showBattleMessage('Card discarded', '#ffaa00'); // confirm the discard action
     this.refreshHud(); // sync HUD values
     this.renderDiscardTopCard(); // refresh discard preview
