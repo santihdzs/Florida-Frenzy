@@ -21,7 +21,8 @@ import {
   drawOneCard, // utility for drawing a single card from a pile
   ELEMENT_COLORS, // element-to-color map used when rendering cards
   generateDeck, // utility for creating a shuffled deck
-  SPECIAL_CARD_POOL, // predefined pool of special cards for the player and enemy decks
+  getSpecialCardPool, // utility for generating the pool of special effect cards based on level and rarity
+  shuffleCards, // utility for randomizing card order in a pile
 } from '../utils/cards'; // from cards.ts module
 
 import {
@@ -495,14 +496,33 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private setupDecks() {
-    this.playerDeck = generateDeck(PLAYER_DECK_SIZE); // build the player's starting deck
-    this.enemyDeck = generateDeck(PLAYER_DECK_SIZE); // build the enemy's starting deck
-    this.playerHand = buildHand(this.playerDeck, HAND_SIZE); // draw the player's starting hand
-    this.enemyHand = buildHand(this.enemyDeck, HAND_SIZE); // draw the enemy's starting hand
+    this.playerDeck = this.generateSpecialDeck(PLAYER_DECK_SIZE); // build the player's starting deck
+    this.enemyDeck = this.generateSpecialDeck(PLAYER_DECK_SIZE); // build the enemy's starting deck
+    
+    this.playerHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the player's starting hand
+    this.enemyHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the enemy's starting hand
+    
     this.discardPile = createBaseDiscardPile(DISCARD_BASE_SIZE); // seed the discard pile from the base card pool
+
     const openingCard = createBaseDiscardPile(1)[0]; // generate the first table card
     if (!openingCard) throw new Error('Could not generate initial table card.'); // fail early if setup data is invalid
     this.tableCard = openingCard; // place the opening card on the table
+  }
+
+  // temporal special effect deck generator
+  private generateSpecialDeck(size: number): Card[] {
+    const pool = shuffleCards(getSpecialCardPool()); // get the pool of special cards and shuffle it for randomness
+    const deck: Card[] = [];
+
+    for (let i = 0; i < size; i++) {
+      const source = pool[i % pool.length]; // loop through the pool if we need more cards than it contains
+      deck.push({
+        ...source,
+        id: `${source.id}-specialdeck-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      });
+    }
+
+    return shuffleCards(deck); // final shuffle to mix the repeated cards
   }
 
   private refreshHud() {
@@ -632,8 +652,10 @@ export class DuelScene extends Phaser.Scene {
     const baseColor = ELEMENT_COLORS[card.element] ?? 0xffffff; // base color determined by the card's element, with a fallback to white
     const alpha = isPlayable || isStatic ? 1 : 0.12; // fully opaque if the card is playable or static, otherwise dimmed to indicate it's not selectable
     
-    const cardWidth = 122;
-    const cardHeight = 161;
+    const isEffectCard = card.rarity === 'effect'; // check if the card is an effect card for tooltip purposes
+    
+    const cardWidth = isEffectCard ? 118 : 122; // slightly narrower width for effect cards to accommodate the special frame design
+    const cardHeight = isEffectCard ? 197 : 161;
 
     const innerBg = this.add.graphics();
     innerBg.fillStyle(baseColor, alpha); // fill color based on element and playability
@@ -655,22 +677,26 @@ export class DuelScene extends Phaser.Scene {
     const frame = this.add.image(0, 0, frameKey); // card frame image
     frame.setDisplaySize(cardWidth, cardHeight); // scale the frame to fit the card dimensions
 
-    const rarityLabel = this.add.text(0, -48, card.rarity.toUpperCase(), {
+    const rarityY = isEffectCard ? -61 : -48; // adjust rarity label position for effect cards to fit within the special frame design
+    const rarityLabel = this.add.text(0, rarityY, card.rarity.toUpperCase(), {
       fontSize: '10px',
       color: '#f4f1e8',
       fontStyle: 'bold',
       stroke: '#000000',
-      strokeThickness: 2,
+      strokeThickness: 3,
     }).setOrigin(0.5); // rarity label at the top of the card
 
-    const elementText = this.add.text(0, -20, card.element.toUpperCase(), {
+    const elementY = isEffectCard ? 28 : -20; // adjust element label position for effect cards to avoid overlap with the rarity label
+    const elementText = this.add.text(0, elementY, card.element.toUpperCase(), {
       fontSize: '15px',
       color: '#ffffff',
       fontStyle: 'bold',
       stroke: '#000000',
-      strokeThickness: 3,
+      strokeThickness: 4,
       align: 'center',
     }).setOrigin(0.5); // element label below the rarity, centered and with a stroke for readability
+
+    const showPowerText = card.rarity !== 'effect'; // only show power for non-effect cards, as effect cards use the footer for their label
 
     const powerValue = card.power === null ? 'FX' : String(card.power); // display 'FX' for cards with variable power, otherwise show the numeric value
     const powerText = this.add.text(0, 22, powerValue, {
@@ -681,9 +707,11 @@ export class DuelScene extends Phaser.Scene {
       strokeThickness: 4,
     }).setOrigin(0.5); // power value in the middle of the card, with a larger font size for emphasis
 
-    const footerLabel = this.getCardFooterLabel(card, isPlayable, isStatic, footerOverride); // determine footer text based on card properties and overrides
+    powerText.setVisible(showPowerText); // hide the power text if it's an effect card, since it doesn't have a fixed power value
 
-    const footerText = this.add.text(0, 58, footerLabel, {
+    const footerLabel = this.getCardFooterLabel(card, isPlayable, isStatic, footerOverride); // determine footer text based on card properties and overrides
+    const footerY = isEffectCard ? 46 : 58; // adjust footer position for effect cards to fit within the special frame design
+    const footerText = this.add.text(0, footerY, footerLabel, {
       fontSize: '12px',
       color: '#f7f30a',
       fontStyle: 'bold',
@@ -696,16 +724,18 @@ export class DuelScene extends Phaser.Scene {
     let infoText: Phaser.GameObjects.Text | null = null;
     let infoZone: Phaser.GameObjects.Zone | null = null;
 
+    const infoX = 39;
+    const infoY = -72;
     if (card.rarity === 'effect') {
-      infoText = this.add.text(34, -58, '?', {
+      infoText = this.add.text(infoX, infoY, '?', {
         fontSize: '14px',
         color: '#ffffff',
         fontStyle: 'bold',
         stroke: '#000000',
-        strokeThickness: 3,
+        strokeThickness: 5,
       }).setOrigin(0.5); // small question mark icon to indicate more information is available on hover
 
-      infoZone = this.add.zone(34, -58, 22, 22).setOrigin(0.5); // invisible interactive area over the info icon
+      infoZone = this.add.zone(infoX, infoY, 24, 24).setOrigin(0.5); // invisible interactive area over the info icon
 
       tooltipBg = this.add.graphics(); // background for the tooltip that appears when hovering over the info icon
       tooltipBg.fillStyle(0x000000, 0.9);
@@ -714,8 +744,10 @@ export class DuelScene extends Phaser.Scene {
 
       tooltipText = this.add.text(0, -113, card.effectDescription ?? 'No description', {
         fontSize: '10px',
-        color: '#ffffff',
+        color: '#fff200',
         align: 'center',
+        stroke: '#000000',
+        strokeThickness: 5,
         wordWrap: { width: 140 },
       }).setOrigin(0.5).setVisible(false); // tooltip text that shows the card's effect description, hidden by default
     }

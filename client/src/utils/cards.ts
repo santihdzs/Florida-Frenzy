@@ -85,11 +85,11 @@ export interface CardResolution {
 
 // Mapping of elements to their corresponding colors for UI representation
 export const ELEMENT_COLORS: Record<Element, number> = {
-  fire: 0xff4444,
-  water: 0x3399ff,
-  swamp: 0x44aa44,
-  sand: 0xc2a36b,
-  ice: 0xaee7ff,
+  fire: 0xe65707,
+  water: 0x2596be,
+  swamp: 0x9ac226,
+  sand: 0xfdd87b,
+  ice: 0xe7f3fc,
 };
 
 // Function for Elemental Energy gain based on card power
@@ -238,7 +238,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 6,
     effect: 'BURN',
-    effectDescription: 'Inflige 6 de daño y quema al enemigo por 2 turnos, causando 2 de daño adicional cada turno.',
+    effectDescription: '12 de daño y quemadura que hace 4 de daño por 2 turnos',
     baseDamage: 12,
     shieldValue: 0,
     effectValue: 4,
@@ -257,7 +257,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 5,
     effect: 'BLOCK_FIRE',
-    effectDescription: 'Hace 5 de daño y bloquea el próximo ataque de fuego del enemigo durante 1 turno.',
+    effectDescription: '10 de daño y bloqueo de fuego por 1 turno',
     baseDamage: 10,
     shieldValue: 0,
     effectValue: 1,
@@ -276,8 +276,8 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 7,
     effect: 'RAGE',
-    effectDescription: 'Hace el doble de daño, solo si la HP del rival está por debajo del 50%.',
-    baseDamage: 7,
+    effectDescription: 'Doble de daño (10), solo si la HP rival es menor al 50%.',
+    baseDamage: 10,
     shieldValue: 0,
     effectValue: 100, // Representa el porcentaje de aumento de daño
     effectDuration: 1,
@@ -295,7 +295,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'EXPLOSION',
-    effectDescription: 'Daño maximo, pero daña al jugador.',
+    effectDescription: 'Daño maximo (24), pero daña al jugador.',
     baseDamage: 24,
     shieldValue: 0,
     effectValue: 6, // Daño que el jugador recibe
