@@ -23,6 +23,7 @@ import {
   generateDeck, // utility for creating a shuffled deck
   getSpecialCardPool, // utility for generating the pool of special effect cards based on level and rarity
   shuffleCards, // utility for randomizing card order in a pile
+  isCounterBonusTrigger, // checks if a card play should trigger a counter bonus based on the current table card
 } from '../utils/cards'; // from cards.ts module
 
 import {
@@ -875,7 +876,7 @@ export class DuelScene extends Phaser.Scene {
     this.tableCard = card; // new card becomes the active table card
     this.renderTableCard(0x00ff88); // highlight the table card in player color
     this.addEnergyFromCard(card, 'player', previousTableCard); // award energy based on the play
-    this.applyCardEffects(card, 'player'); // resolve the card's effect and damage
+    this.applyCardEffects(card, 'player', previousTableCard); // resolve the card's effect and damage
     this.animatePlayerAttack(); // play the player attack pose
     this.time.delayedCall(550, () => { // brief pause before handing control to the enemy
       if (this.checkCombatEnded()) return; // stop if the duel ended
@@ -907,7 +908,7 @@ export class DuelScene extends Phaser.Scene {
     this.renderTableCard(0xff6666); // show the table card in enemy color
     this.addEnergyFromCard(enemyCard, 'enemy', previousTableCard); // award enemy energy gains
     this.animateEnemyAttack(); // play enemy attack pose
-    this.applyCardEffects(enemyCard, 'enemy'); // resolve enemy card effects
+    this.applyCardEffects(enemyCard, 'enemy', previousTableCard); // resolve enemy card effects
     this.time.delayedCall(700, () => { // delay before ending the level
       if (this.checkCombatEnded()) return; // stop if the duel ended
       this.finishLevel(); // continue back to level cleanup
@@ -1043,7 +1044,7 @@ export class DuelScene extends Phaser.Scene {
   //   if (nextCard) hand.push(nextCard);
   // } // kept commented out as in your current code
 
-  private applyCardEffects(card: Card, attacker: 'player' | 'enemy') {
+  private applyCardEffects(card: Card, attacker: 'player' | 'enemy', previousTableCard?: Card) {
     const isPlayer = attacker === 'player'; // boolean used to branch between player and enemy
     const attackerState = isPlayer ? this.playerState : this.enemyState; // status state for the card owner
     const defenderState = isPlayer ? this.enemyState : this.playerState; // status state for the target
@@ -1055,6 +1056,17 @@ export class DuelScene extends Phaser.Scene {
       damage += attackerState.chainFireBonus; 
       attackerState.chainFireBonus = 0; 
     } // chain bonus is consumed on fire attacks
+
+    const gotCounterBonus = previousTableCard ? isCounterBonusTrigger(card, previousTableCard) : false; // check if the new card triggers a counter bonus against the previous table card
+    if (gotCounterBonus) {
+      if (card.element === 'fire' || card.element === 'swamp') {
+        damage += 10; // flat bonus for countering with fire/swamp
+      }
+      
+      else if (card.element === 'water' || card.element === 'sand') {
+        attackerState.shield += 10; // defensive bonus for countering with water/sand
+      }
+    }
     
     if (attackerState.sandBuffTurnCounter > 0 && card.element === 'sand') damage += Math.ceil(damage * attackerState.sandBuffPercent / 100); // sand buff increases damage for sand cards
     switch (card.effect) {

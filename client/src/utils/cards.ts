@@ -36,6 +36,9 @@ export type CardEffect =
   | 'LIFESTEAL'
   | 'BLOCK_NUMBER'
   | 'BLIND'
+  | 'HALVE_ATTACK'
+  | 'NEGATE_SAND'
+  | 'BARRIER_REACTIVE'
   | 'SHIELD_BOOST'
   | 'WILDCARD'
   | 'BUFF'
@@ -82,6 +85,15 @@ export interface CardResolution {
   effectDuration: number;
   secondaryEffectValue: number | null;
 }
+
+// Special cards helper for determining counters (e.g., fire is strong against swamp, but weak against water)
+export const SPECIAL_COUNTERS: Record<Element, Element> = {
+  fire: 'water',
+  water: 'sand',
+  sand: 'swamp',
+  swamp: 'fire',
+  ice: 'ice',
+};
 
 // Mapping of elements to their corresponding colors for UI representation
 export const ELEMENT_COLORS: Record<Element, number> = {
@@ -238,7 +250,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 6,
     effect: 'BURN',
-    effectDescription: '12 de daño y quemadura que hace 4 de daño por 2 turnos',
+    effectDescription: '12 daño + 4 burn por 2 turnos',
     baseDamage: 12,
     shieldValue: 0,
     effectValue: 4,
@@ -257,7 +269,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 5,
     effect: 'BLOCK_FIRE',
-    effectDescription: '10 de daño y bloqueo de fuego por 1 turno',
+    effectDescription: '10 daño. Bloquea cartas Fire por 1 turno',
     baseDamage: 10,
     shieldValue: 0,
     effectValue: 1,
@@ -276,7 +288,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 7,
     effect: 'RAGE',
-    effectDescription: 'Doble de daño (10), solo si la HP rival es menor al 50%.',
+    effectDescription: '20 daño si el rival está bajo 50% HP',
     baseDamage: 10,
     shieldValue: 0,
     effectValue: 100, // Representa el porcentaje de aumento de daño
@@ -295,7 +307,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'EXPLOSION',
-    effectDescription: 'Daño maximo (24), pero daña al jugador.',
+    effectDescription: '24 daño. Recibes 6 de recoil',
     baseDamage: 24,
     shieldValue: 0,
     effectValue: 6, // Daño que el jugador recibe
@@ -314,7 +326,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 6,
     effect: 'CHAIN',
-    effectDescription: 'Si el siguiente ataque del jugador es de fuego, aumenta su daño en 3',
+    effectDescription: '12 daño. Tu próximo Fire gana +6 daño',
     baseDamage: 12,
     shieldValue: 0,
     effectValue: 6, // Aumento de daño para el siguiente ataque de fuego
@@ -334,10 +346,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 5,
     effect: 'HEAL',
-    effectDescription: 'Convierte el 25% de tu daño en vida',
+    effectDescription: '10 escudo y cura 6 HP',
     baseDamage: 0,
     shieldValue: 10,
-    effectValue: 25, // Representa el porcentaje de curación basado en el daño infligido
+    effectValue: 6,
     effectDuration: 0,
     effectValueSecondary: 0,
     energyEGain: 2,
@@ -353,7 +365,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 6,
     effect: 'DOUBLE_SHIELD',
-    effectDescription: 'Duplica tu escudo disponible',
+    effectDescription: 'Duplica tu escudo. Si no tienes, ganas 24', // flag
     baseDamage: 0,
     shieldValue: 24,
     effectValue: 100, // Representa el porcentaje de aumento de escudo
@@ -372,7 +384,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'CLEANSE',
-    effectDescription: 'Elimina todos los efectos negativos activos en el jugador',
+    effectDescription: 'Limpia todos tus efectos negativos activos',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 1,
@@ -385,16 +397,16 @@ export const SPECIAL_CARD_POOL: Card[] = [
   }),
 
   createCard({
-    name: 'Reflect',
+    name: 'Reflect', // flag
     element: 'water',
     category: 'defense',
     rarity: 'effect',
     power: 5,
     effect: 'REFLECT',
-    effectDescription: 'Devuelve el 25% del daño recibido al enemigo',
+    effectDescription: 'Refleja 35% del daño por 1 turno',
     baseDamage: 0,
     shieldValue: 0,
-    effectValue: 25,
+    effectValue: 35,
     effectDuration: 1,
     effectValueSecondary: 0,
     energyEGain: 2,
@@ -410,10 +422,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'ENERGY_BOOST',
-    effectDescription: 'Aumenta la regenración de energía un 20% por 2 turnos',
+    effectDescription: '+30% energía por 2 turnos',
     baseDamage: 0,
     shieldValue: 0,
-    effectValue: 20,
+    effectValue: 30,
     effectDuration: 2,
     effectValueSecondary: 0,
     energyEGain: 2,
@@ -430,7 +442,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 5,
     effect: 'TOXIC',
-    effectDescription: 'Aplica 5 de daño por veneno por 3 turnos',
+    effectDescription: '10 poison por 3 turnos',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 10,
@@ -449,7 +461,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'DECAY',
-    effectDescription: 'Reduce el escudo del enemigo progresivamente en un 10%',
+    effectDescription: 'Reduce el escudo rival en 10%',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 10,
@@ -468,7 +480,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'EXTEND',
-    effectDescription: 'Extiende los efectos activos del enemigo por 1 turno',
+    effectDescription: 'Extiende 1 turno los efectos del rival',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 1,
@@ -487,10 +499,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'WEAKEN_ATTACK',
-    effectDescription: 'Reduce el daño de las cartas del enemigo en un 20% por 2 turnos',
+    effectDescription: 'Reduce por 6 el daño rival por 2 turnos',
     baseDamage: 0,
     shieldValue: 0,
-    effectValue: 20,
+    effectValue: 6,
     effectDuration: 2,
     effectValueSecondary: 0,
     energyEGain: 2,
@@ -506,10 +518,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: 4,
     effect: 'LIFESTEAL',
-    effectDescription: '15% del daño infligido se convierte en vida para el jugador',
-    baseDamage: 8,
+    effectDescription: '10 daño. Roba 25% del daño como vida',
+    baseDamage: 10,
     shieldValue: 0,
-    effectValue: 15,
+    effectValue: 25,
     effectDuration: 0,
     effectValueSecondary: 0,
     energyEGain: 2,
@@ -525,11 +537,11 @@ export const SPECIAL_CARD_POOL: Card[] = [
     category: 'status',
     rarity: 'effect',
     power: null,
-    effect: 'BLOCK_NUMBER',
-    effectDescription: 'Bloquea un número específico',
+    effect: 'HALVE_ATTACK',
+    effectDescription: 'Reduce el próximo ataque rival a la mitad',
     baseDamage: 0,
     shieldValue: 0,
-    effectValue: 1,
+    effectValue: 50, // Representa la reducción del 50% en el próximo ataque
     effectDuration: 1,
     effectValueSecondary: 0,
     energyEGain: 2,
@@ -544,10 +556,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     category: 'status',
     rarity: 'effect',
     power: null,
-    effect: 'BLIND',
-    effectDescription: 'Oculta los valores de las cartas base del enemigo',
+    effect: 'NEGATE_SAND',
+    effectDescription: 'Nega el próximo Sand rival. Si no aplica, ganas 20 escudo',
     baseDamage: 0,
-    shieldValue: 0,
+    shieldValue: 20,
     effectValue: 1,
     effectDuration: 1,
     effectValueSecondary: 0,
@@ -563,12 +575,12 @@ export const SPECIAL_CARD_POOL: Card[] = [
     category: 'defense',
     rarity: 'effect',
     power: 5,
-    effect: 'SHIELD_BOOST',
-    effectDescription: 'Aplica un 20% de escudo adicional',
+    effect: 'BARRIER_REACTIVE',
+    effectDescription: 'Gana 20 escudo. Si el rival juega Swamp Special, ganas 20 más',
     baseDamage: 0,
-    shieldValue: 40,
+    shieldValue: 20,
     effectValue: 20,
-    effectDuration: 0,
+    effectDuration: 1,
     effectValueSecondary: 0,
     energyEGain: 2,
     energyIGain: 2,
@@ -583,7 +595,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'WILDCARD',
-    effectDescription: 'Comodín exclusivo para cartas de arena (se juega contra cualquier numero)',
+    effectDescription: 'Comodín Sand contra cualquier Special',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 1,
@@ -602,10 +614,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'BUFF',
-    effectDescription: 'Aumenta el daño de las cartas de arena del jugador un 14% por 3 turnos',
+    effectDescription: 'Tus cartas Sand ganan +20% daño por 3 turnos',
     baseDamage: 0,
     shieldValue: 0,
-    effectValue: 14,
+    effectValue: 20,
     effectDuration: 3,
     effectValueSecondary: 0,
     energyEGain: 2,
@@ -874,15 +886,33 @@ export function buildHand(deck: Card[], handSize = 5): Card[] {
   return hand;
 }
 
+export function isSpecialCounterPlay(selected: Card, tableCard: Card): boolean {
+  if (selected.rarity !== 'effect') return false;
+  return selected.element === SPECIAL_COUNTERS[tableCard.element];
+}
+
+export function isCounterBonusTrigger(selected: Card, tableCard: Card): boolean {
+  return selected.rarity === 'effect' && selected.element === SPECIAL_COUNTERS[tableCard.element];
+}
+
 // Validate if a card can be played
 export function canPlayCard(selected: Card, tableCard: Card): boolean {
   if (selected.element === 'ice') {
     return true; // Ice card logic
   }
 
-  if (selected.power !== null && tableCard.power !== null && selected.power === tableCard.power) {
+  if (selected.rarity === 'effect') { // Special card logic
+    return selected.element === tableCard.element || isSpecialCounterPlay(selected, tableCard); // Permite jugar un Special si es del mismo elemento o es un counter especial
+  }
+
+  if (tableCard.rarity === 'effect') {
+    return selected.element === tableCard.element; // Solo permite jugar cartas normales contra Specials del mismo elemento, no permite counters normales contra Specials
+  }
+
+  if (selected.power !== null && tableCard.power !== null && selected.power === tableCard.power) { // Permite jugar si el poder es exactamente igual, independientemente del elemento
     return true;
   }
+
   return selected.element === tableCard.element;
 }
 
