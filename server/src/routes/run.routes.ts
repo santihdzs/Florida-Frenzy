@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { getRunsByPlayer, getRunById } from '../services/run.service.js';
 import { notFound, badRequest } from '../utils/errors.js';
 import { completeRunSchema } from '../schemas/run.schema.js';
+import { SAFE_PLAYER_SELECT } from '../utils/playerSelect.js';
 
 // CreateRunBody intentionally empty — deckId resolved server-side
 
@@ -14,6 +15,7 @@ interface CompleteRunBody {
   coinsEarned: number;
   xpEarned: number;
   maxLevel: number;
+  enemiesKilled?: number;
 }
 
 const runRoutes: FastifyPluginAsync = async (fastify) => {
@@ -47,7 +49,7 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const run = await fastify.prisma.run.create({
-        data: { playerId, deckId: deck.id, runStatus: 'IN_PROGRESS', zonesDone: 0, xpEarned: 0 },
+        data: { playerId, deckId: deck.id, runStatus: 'IN_PROGRESS', zonesDone: 0, xpEarned: 0, coinsEarned: 0 },
       });
 
       return reply.code(201).send(run);
@@ -66,7 +68,7 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
     { schema: completeRunSchema },
     async (request, reply) => {
       fastify.log.info({ body: request.body }, 'Run complete request');
-      const { runId, coinsEarned, xpEarned, maxLevel } = request.body;
+      const { runId, coinsEarned, xpEarned, maxLevel, enemiesKilled = 0 } = request.body;
       const playerId = request.user.playerId;
 
       const run = await fastify.prisma.run.findFirst({
@@ -81,28 +83,29 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(400).send(badRequest('Run is already completed or abandoned'));
       }
 
-      // Fetch current maxXp to compute the new max
-      const currentPlayer = await fastify.prisma.player.findUniqueOrThrow({
-        where: { id: playerId },
-        select: { maxXp: true },
-      });
-
-      const [updatedRun, updatedPlayer] = await fastify.prisma.$transaction([
-        fastify.prisma.run.update({
+      const result = await fastify.prisma.$transaction(async (tx) => {
+        const currentPlayer = await tx.player.findUniqueOrThrow({
+          where: { id: playerId },
+          select: { maxXp: true },
+        });
+        const updatedRun = await tx.run.update({
           where: { id: runId },
           data: { runStatus: 'COMPLETED', endTime: new Date(), xpEarned, coinsEarned, maxLevel },
-        }),
-        fastify.prisma.player.update({
+        });
+        const updatedPlayer = await tx.player.update({
           where: { id: playerId },
           data: {
-            totalCoins: { increment: coinsEarned },
-            maxXp: Math.max(currentPlayer.maxXp, xpEarned),
+            totalCoins:         { increment: coinsEarned },
+            maxXp:              Math.max(currentPlayer.maxXp, xpEarned),
+            totalGamesPlayed:   { increment: 1 },
+            totalEnemiesKilled: { increment: enemiesKilled },
           },
-        }),
-      ]);
+          select: SAFE_PLAYER_SELECT,
+        });
+        return { run: updatedRun, player: updatedPlayer };
+      });
 
-      const { passwordHash: _pw, ...safePlayer } = updatedPlayer;
-      return reply.send({ run: updatedRun, player: safePlayer });
+      return reply.send(result);
     }
   );
 

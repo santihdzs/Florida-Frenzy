@@ -42,6 +42,7 @@ export class TutorialScene extends Phaser.Scene {
     }
 
     create() {
+        if (this.input.keyboard) this.input.keyboard.enabled = true;
         this.generateTextures();
         
         // background

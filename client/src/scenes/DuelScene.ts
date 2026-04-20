@@ -83,10 +83,8 @@ export class DuelScene extends Phaser.Scene {
   private levelsWon = 0; // count of duel victories in this run
   private level = 1; // current level value passed in from the run
   private runId = 0; // server-side run id, passed through from EvergladesScene
-  private totalCoins = 0; // coins earned before this duel
-  private totalXp = 0; // XP earned before this duel
-  private duelCoins = 0; // coins earned during this duel
-  private duelXp = 0; // XP earned during this duel
+  private totalCoins = 0; // coins accumulated across this run
+  private totalXp = 0; // XP accumulated across this run
 
   private playerDeck: Card[] = []; // player's draw deck
   private enemyDeck: Card[] = []; // enemy's draw deck
@@ -166,6 +164,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   create() {
+    if (this.input.keyboard) this.input.keyboard.enabled = true;
     console.log('DuelScene create() called');
     console.log('Active scenes:', this.scene.manager.getScenes(true).map((s: Phaser.Scene) => s.scene.key));
 
@@ -192,7 +191,7 @@ export class DuelScene extends Phaser.Scene {
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
     escKey?.on('down', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
-      this.scene.launch('PauseScene', { returnScene: 'DuelScene', runId: this.runId, totalCoins: this.totalCoins + this.duelCoins, totalXp: this.totalXp + this.duelXp, level: this.level }); // open the pause menu and tell it to return here when resuming
+      this.scene.launch('PauseScene', { returnScene: 'DuelScene', runId: this.runId, totalCoins: this.totalCoins, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
       this.scene.pause(); // pause the duel scene
     });
 
@@ -207,7 +206,7 @@ export class DuelScene extends Phaser.Scene {
     pauseButton.on('pointerdown', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
       this.scene.pause(); // pause the duel scene
-      this.scene.launch('PauseScene', { returnScene: 'DuelScene', runId: this.runId, totalCoins: this.totalCoins + this.duelCoins, totalXp: this.totalXp + this.duelXp, level: this.level }); // open the pause menu and tell it to return here when resuming
+      this.scene.launch('PauseScene', { returnScene: 'DuelScene', runId: this.runId, totalCoins: this.totalCoins, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
     });
 
     // Sidebar navigation guard — only active in DuelScene, not subclasses (e.g. TutorialScene2)
@@ -281,8 +280,8 @@ export class DuelScene extends Phaser.Scene {
     this.scene.start('EvergladesScene', { // transition back to the overworld progression scene
       level: this.level + 1, // advance to the next level
       step: 0, // reset step counter
-      totalCoins: this.totalCoins + this.duelCoins, // carry forward coins earned in this duel
-      totalXp: this.totalXp + this.duelXp, // carry forward XP earned in this duel
+      totalCoins: this.totalCoins,
+      totalXp: this.totalXp,
       runId: this.runId, // preserve run id for server persistence
     });
   }
@@ -300,8 +299,6 @@ export class DuelScene extends Phaser.Scene {
     this.enemyElementalEnergy = 0; // reset enemy elemental energy
     this.enemyInstinctEnergy = 0; // reset enemy instinct energy
     this.levelsWon = 0; // reset victory count
-    this.duelCoins = 0; // reset duel coin reward
-    this.duelXp = 0; // reset duel XP reward
     this.playerDeck = []; // clear player deck
     this.enemyDeck = []; // clear enemy deck
     this.playerHand = []; // clear player hand
@@ -502,8 +499,8 @@ export class DuelScene extends Phaser.Scene {
     this.enemyShieldText.setText(`Shield: ${this.enemyState.shield}`); // refresh enemy shield text
     this.deckCountText.setText(`Deck: ${this.playerDeck.length}`); // refresh player deck count
     this.discardCountText.setText(`Discard: ${this.discardPile.length}`); // refresh discard count
-    this.totalXpText.setText(`XP: ${this.totalXp + this.duelXp}`); // refresh total XP display
-    this.totalCoinsText.setText(`Coins: ${this.totalCoins + this.duelCoins}`); // refresh total coin display
+    this.totalXpText.setText(`XP: ${this.totalXp}`); // refresh total XP display
+    this.totalCoinsText.setText(`Coins: ${this.totalCoins}`); // refresh total coin display
   }
 
   private drawDeckPlaceholder(
@@ -1089,9 +1086,9 @@ export class DuelScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2; // center point for the victory overlay
     const centerY = this.cameras.main.height / 2; // vertical center for the victory overlay
 
-    const xpWon = 100 + (this.level * 50); // XP scales with level
-    this.duelXp += xpWon; // award XP for victory
-    this.duelCoins += 50; // award coins for victory
+    // Commit flat duel win rewards to RunData
+    this.totalCoins += 100;
+    this.totalXp    += 250;
     this.refreshHud(); // show updated totals immediately
 
     const overlay = this.add.graphics(); // overlay graphic for the victory screen
@@ -1099,8 +1096,8 @@ export class DuelScene extends Phaser.Scene {
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height); // cover the scene
 
     this.add.text(centerX, centerY - 80, 'Enemy Defeated!', { fontSize: '48px', color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5); // victory headline
-    this.add.text(centerX, centerY - 10, `+${xpWon} XP  |  +50 Coins`, { fontSize: '26px', color: '#ffffff' }).setOrigin(0.5); // reward summary
-    this.add.text(centerX, centerY + 30, `Run Total — XP: ${this.totalXp + this.duelXp}  Coins: ${this.totalCoins + this.duelCoins}`, { fontSize: '20px', color: '#ffd700' }).setOrigin(0.5); // updated totals
+    this.add.text(centerX, centerY - 10, `+250 XP  |  +100 Coins`, { fontSize: '26px', color: '#ffffff' }).setOrigin(0.5); // reward summary
+    this.add.text(centerX, centerY + 30, `Run Total — XP: ${this.totalXp}  Coins: ${this.totalCoins}`, { fontSize: '20px', color: '#ffd700' }).setOrigin(0.5); // updated totals
 
     const continueBtn = this.add.text(centerX, centerY + 120, 'Continue', { fontSize: '28px', color: '#ffffff' })
       .setOrigin(0.5).setInteractive({ useHandCursor: true })
@@ -1113,9 +1110,7 @@ export class DuelScene extends Phaser.Scene {
     console.log('endRun() called, runId:', this.runId);
     if (this.runEnded) return;
     this.runEnded = true;
-    // Use committed totals only — duelCoins/duelXp are only committed to RunData on a WIN (advanceToNextCycle)
-    console.log('completeRun args:', { runId: this.runId, coins: this.totalCoins, xp: this.totalXp, maxLevel: this.level });
-    completeRun(this.runId, this.totalCoins, this.totalXp, this.level)
+    completeRun(this.runId, this.totalCoins, this.totalXp, this.level, this.levelsWon)
       .catch((err: unknown) => console.error('completeRun failed:', err));
     if (this.sidebarNavHandler) {
       window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
@@ -1128,8 +1123,8 @@ export class DuelScene extends Phaser.Scene {
     this.endRun();
     const centerX = this.cameras.main.width / 2; // center point for the game over overlay
     const centerY = this.cameras.main.height / 2; // vertical center for the overlay
-    const grandCoins = this.totalCoins + this.duelCoins; // final coin total for the run
-    const grandXp = this.totalXp + this.duelXp; // final XP total for the run
+    const grandCoins = this.totalCoins;
+    const grandXp    = this.totalXp;
 
     const overlay = this.add.graphics(); // full-screen overlay graphic
     overlay.fillStyle(0x000000, 1.0); // solid black background

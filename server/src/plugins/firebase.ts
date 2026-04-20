@@ -20,8 +20,16 @@ const firebasePlugin: FastifyPluginAsync = fp(async (fastify) => {
   }
 
   if (admin.apps.length === 0) {
+    let parsed: object;
+    try {
+      parsed = JSON.parse(serviceAccount);
+    } catch {
+      fastify.log.warn('FIREBASE_SERVICE_ACCOUNT is not valid JSON — Firebase auth will be unavailable');
+      fastify.decorate('firebaseAdmin', admin);
+      return;
+    }
     admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(serviceAccount)),
+      credential: admin.credential.cert(parsed),
     });
   }
 

@@ -79,7 +79,11 @@ export class MenuScene extends Phaser.Scene {
       letterSpacing: -1,
     };
 
-    // ── Main area buttons: MULTIPLAYER, STORE, SETTINGS, LOG IN/OUT ──
+    // Apply mute state
+    const isMuted = localStorage.getItem('ff_muted') === 'true';
+    if (isMuted) this.sound.mute = true;
+
+    // ── Main area buttons: MULTIPLAYER, SHOP, FRIENDS, LOG IN/OUT ──
     const logoutLabel  = isLoggedIn() ? 'LOG OUT' : 'LOG IN';
     const logoutAction = isLoggedIn()
       ? () => logout()
@@ -90,8 +94,8 @@ export class MenuScene extends Phaser.Scene {
 
     this.createButton(cx, 320, mainW, mainH, 'PLAY',        () => this.startGame(),                 textStyle);
     this.createButton(cx, 410, mainW, mainH, 'MULTIPLAYER', () => this.Multiplayerfalse(),          textStyle);
-    this.createButton(cx, 490, mainW, mainH, 'STORE',       () => this.scene.start('ShopScene'),    textStyle);
-    this.createButton(cx, 570, mainW, mainH, 'SETTINGS',    () => this.settingsScene(),              textStyle);
+    this.createButton(cx, 490, mainW, mainH, 'SHOP',         () => this.scene.start('ShopScene'),    textStyle);
+    this.createButton(cx, 570, mainW, mainH, 'FRIENDS',     () => this.scene.start('FriendsScene'), textStyle);
     this.createButton(cx, 650, mainW, mainH, logoutLabel,   logoutAction,                            textStyle);
   }
 

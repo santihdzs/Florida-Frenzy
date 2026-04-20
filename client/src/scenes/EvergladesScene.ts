@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import evTilesUrl from '../assets/maps/everglades.png';
+import chrisAvatarUrl from '../assets/sprites/Chris.png';
 import { completeRun, createRun, getPlayer } from '../utils/auth.js';
 
 const TILE    = 48;
@@ -56,11 +57,10 @@ const COIN_COLLECT_R = 24;
 
 const PROJ_SIZE  = 8;
 const PROJ_SPEED = 420;
-const PROJ_DMG   = 20;
 
 const HEAL_PER_SEC = 12;
 
-const CAMERA_SCROLL_BASE = 30;
+const CAMERA_SCROLL_BASE = 67.5;
 
 const EVERGLADES_PER_CYCLE = 3;
 const END_COL         = COLS - 5;
@@ -75,11 +75,6 @@ const BARRIER_SEEDS = 22;
 const HOLE_SEEDS    = 7;
 const PUDDLE_SEEDS  = 2;
 
-const BASE_XP             = 100;
-const BASE_COINS          = 50;
-const TIME_BONUS_INTERVAL = 5;
-const TIME_BONUS_XP       = 10;
-const TIME_BONUS_COINS    = 5;
 
 function rectsOverlap(
   ax: number, ay: number, aw: number, ah: number,
@@ -268,7 +263,7 @@ export class EvergladesScene extends Phaser.Scene {
   private hp = MAX_HP;
   private playerImg!: Phaser.GameObjects.Image;
   private sprinting = false;
-  private stamina = STAMINA_MAX;
+  private stamina = STAMINA_MAX; // replaced by this.maxStamina at runtime via init()
   private lastSprintTime = -STAMINA_REGEN_DELAY;
 
   private level = 0;
@@ -278,11 +273,28 @@ export class EvergladesScene extends Phaser.Scene {
   private totalXp = 0;
   private leftStart = false;
   private done = false;
+  private runEnded = false;
   private isShowingQuitDialog = false;
   private sidebarNavHandler: EventListener | null = null;
   private timer = 0;
   private coinsCollected = 0;
   private deathReason: DeathReason = 'hp';
+  private enemiesKilledThisRun = 0;
+
+  private bulletDamage = 10;
+  private fireRateLevel = 1;
+  private reloadTimeLevel = 1;
+  private hasNoReloadUpgrade = false;
+  private maxAmmo = 10;
+  private ammo = 10;
+  private staminaPoolLevel = 1;
+  private staminaRegenLevel = 1;
+  private maxStamina = STAMINA_MAX;
+  private reloading = false;
+  private lastShootTime = 0;
+  private reloadingText!: Phaser.GameObjects.Text;
+  private ammoText!: Phaser.GameObjects.Text;
+  private levelIndicator!: Phaser.GameObjects.Text;
 
   private grid: number[][] = [];
   private barrierRects: Rect[] = [];
@@ -300,6 +312,8 @@ export class EvergladesScene extends Phaser.Scene {
   private hpLabel!:    Phaser.GameObjects.Text;
   private staminaBar!: Phaser.GameObjects.Graphics;
   private coinText!:   Phaser.GameObjects.Text;
+  private levelText!:  Phaser.GameObjects.Text;
+  private avatarMask!: Phaser.GameObjects.Graphics;
 
   private cursors!:  Phaser.Types.Input.Keyboard.CursorKeys;
   private keyW!:     Phaser.Input.Keyboard.Key;
@@ -318,15 +332,28 @@ export class EvergladesScene extends Phaser.Scene {
     this.totalCoins     = data.totalCoins ?? 0;
     this.totalXp        = data.totalXp ?? 0;
     this.done           = false;
+    this.runEnded       = false;
     this.maxHp          = (getPlayer()?.maxHp as number | undefined) ?? 50;
     this.hp             = this.maxHp;
-    this.stamina        = STAMINA_MAX;
     this.lastSprintTime = -STAMINA_REGEN_DELAY;
     this.sprinting      = false;
     this.leftStart      = false;
     this.timer          = 0;
-    this.coinsCollected = 0;
-    this.deathReason    = 'hp';
+    this.coinsCollected        = 0;
+    this.deathReason           = 'hp';
+    this.enemiesKilledThisRun  = 0;
+    this.bulletDamage          = (getPlayer()?.bulletDamage as number | undefined) ?? 10;
+    this.fireRateLevel         = (getPlayer()?.fireRate as number | undefined) ?? 1;
+    this.reloadTimeLevel       = (getPlayer()?.reloadTime as number | undefined) ?? 1;
+    this.hasNoReloadUpgrade    = (getPlayer()?.hasNoReload as boolean | undefined) ?? false;
+    this.maxAmmo               = (getPlayer()?.magSize as number | undefined) ?? 10;
+    this.ammo                  = this.maxAmmo;
+    this.staminaPoolLevel      = (getPlayer()?.staminaPool as number | undefined) ?? 1;
+    this.staminaRegenLevel     = (getPlayer()?.staminaRegen as number | undefined) ?? 1;
+    this.maxStamina            = STAMINA_MAX + (STAMINA_MAX * 0.15 * (this.staminaPoolLevel - 1));
+    this.stamina               = this.maxStamina;
+    this.reloading             = false;
+    this.lastShootTime         = 0;
     this.barrierRects   = [];
     this.holeRects      = [];
     this.puddleRects    = [];
@@ -343,14 +370,17 @@ export class EvergladesScene extends Phaser.Scene {
 
   preload() {
     this.load.spritesheet(KEY_EV_TILES, evTilesUrl, { frameWidth: 16, frameHeight: 16 });
+    this.load.image('chris-avatar', chrisAvatarUrl);
   }
 
   create() {
+    if (this.input.keyboard) this.input.keyboard.enabled = true;
     console.log('EvergladesScene create() called');
     console.log('Active scenes:', this.scene.manager.getScenes(true).map((s: Phaser.Scene) => s.scene.key));
 
     // Reset all flags — these persist across scene restarts since Phaser reuses the instance
     this.done = false;
+    this.runEnded = false;
     this.isShowingQuitDialog = false;
     this.sidebarNavHandler = null;
 
@@ -367,7 +397,26 @@ export class EvergladesScene extends Phaser.Scene {
     this.playerImg = this.add.image(this.px, this.py, KEY_SPR_PLAYER)
       .setOrigin(0, 0).setDepth(5);
 
+    const cw = this.cameras.main.width;
+    this.levelIndicator = this.add.text(cw / 2, 30, `Level ${this.level}`, {
+      fontFamily: 'Impact, Arial black, sans-serif',
+      fontSize: '22px',
+      color: '#c0ccd8',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(15);
+
     this.buildHud();
+    console.log('chris-avatar loaded?', this.textures.exists('chris-avatar'));
+
+    this.reloadingText = this.add.text(0, 0, 'Reloading...', {
+      fontFamily: 'Impact, Arial black, sans-serif',
+      fontSize: '16px',
+      color: '#ffaa00',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5, 1).setDepth(15).setVisible(false);
+
     this.setupInput();
 
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
@@ -377,15 +426,16 @@ export class EvergladesScene extends Phaser.Scene {
       this.scene.launch('PauseScene', { returnScene: 'EvergladesScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
     });
 
-    const pauseButton = this.add.text(20, 20, 'PAUSE', {
-      fontSize: '28px',
-      color: '#feec00',
-      fontStyle: 'bold',
-      backgroundColor: '#000000',
-      padding: { left: 10, right: 10, top: 4, bottom: 4 },
-    }).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true }); // on-screen pause button in the top-left corner
+    const pauseBg   = this.add.graphics();
+    pauseBg.fillStyle(0x000000, 0.7);
+    pauseBg.fillRoundedRect(-45, -18, 90, 36, 6);
+    const pauseLabel = this.add.text(0, 0, 'PAUSE', {
+      fontSize: '22px', color: '#feec00', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    const pauseContainer = this.add.container(1140, 30, [pauseBg, pauseLabel]);
+    pauseContainer.setScrollFactor(0).setDepth(1000).setSize(90, 36).setInteractive({ useHandCursor: true });
 
-    pauseButton.on('pointerdown', () => {
+    pauseContainer.on('pointerdown', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
       this.scene.launch('PauseScene', { returnScene: 'EvergladesScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
       this.scene.pause(); // pause the duel scene
@@ -480,17 +530,6 @@ export class EvergladesScene extends Phaser.Scene {
     this.checkEndZone();
     this.checkHoleDeath();
     this.refreshHud();
-  }
-
-  private getRunData(): RunData {
-    const { xp, coins } = this.calculateRewards();
-    return {
-      level: this.level,
-      step: this.step,
-      totalCoins: this.totalCoins + coins,
-      totalXp: this.totalXp + xp,
-      runId: this.runId,
-    };
   }
 
   // ── Textures ──
@@ -601,18 +640,11 @@ export class EvergladesScene extends Phaser.Scene {
     const gfx = this.add.graphics().setDepth(1);
     gfx.fillStyle(0x336677, 0.3);
     gfx.fillRect(0, 0, START_COLS * TILE, WORLD_H);
-    gfx.fillStyle(0x0e2e1a);
-    gfx.fillRect(END_COL * TILE, 0, (COLS - END_COL) * TILE, WORLD_H);
 
     this.endZone = {
       x: END_COL * TILE, y: 0,
       w: (COLS - END_COL) * TILE, h: WORLD_H,
     };
-
-    this.add.text(
-      END_COL * TILE + ((COLS - END_COL) * TILE) / 2, WORLD_H / 2,
-      'EXIT', { fontSize: '26px', color: '#8fcc60', fontStyle: 'bold' }
-    ).setOrigin(0.5).setDepth(1);
 
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
@@ -716,57 +748,74 @@ export class EvergladesScene extends Phaser.Scene {
   // ── HUD ──
 
   private buildHud() {
-    const BAR_X = 50;
+    const BAR_X = 75;
 
     const panel = this.add.graphics();
     panel.fillStyle(0x000000, 0.55);
-    panel.fillRoundedRect(0, 0, 250, 90, 8);
+    panel.fillRoundedRect(0, 0, 340, 140, 10);
 
-    const avatar = this.add.graphics();
-    avatar.fillStyle(0x4455aa);
-    avatar.fillCircle(25, 45, 20);
-    avatar.lineStyle(2, 0x8899cc);
-    avatar.strokeCircle(25, 45, 20);
+    const avatarOutline = this.add.graphics();
+    avatarOutline.lineStyle(2, 0x8899cc);
+    avatarOutline.strokeCircle(35, 55, 30);
+
+    const avatarSprite = this.add.image(35, 55, 'chris-avatar');
+    avatarSprite.setDisplaySize(56, 56);
+
+    this.avatarMask = this.add.graphics();
+    this.avatarMask.setScrollFactor(0);
+    const mask = this.avatarMask.createGeometryMask();
+    avatarSprite.setMask(mask);
+    this.avatarMask.fillStyle(0xffffff);
+    this.avatarMask.fillCircle(10 + 35, 10 + 55, 30);
 
     this.hpBar      = this.add.graphics();
     this.staminaBar = this.add.graphics();
-    this.hpLabel    = this.add.text(BAR_X, 6, '', { fontSize: '11px', color: '#dddddd' });
-    this.coinText   = this.add.text(BAR_X, 62, '', { fontSize: '12px', color: '#ffd700' });
+    this.hpLabel    = this.add.text(BAR_X, 10, '', { fontSize: '14px', color: '#dddddd' });
+    this.coinText   = this.add.text(BAR_X, 80, '', { fontSize: '15px', color: '#ffd700' });
+    this.levelText  = this.add.text(170, -20, '', { fontSize: '13px', color: '#c0ccd8' });
+    this.ammoText   = this.add.text(BAR_X, 100, '', { fontSize: '14px', color: '#aaddff' });
 
-    this.hudContainer = this.add.container(10, 648, [
-      panel, avatar, this.hpBar, this.staminaBar, this.hpLabel, this.coinText,
+    this.hudContainer = this.add.container(10, 10, [
+      panel, avatarSprite, avatarOutline, this.hpBar, this.staminaBar, this.hpLabel, this.coinText, this.levelText, this.ammoText,
     ]);
     this.hudContainer.setScrollFactor(0).setDepth(10);
-
-    this.add.text(1190, 740, `Level ${this.level}`, {
-      fontSize: '14px', color: '#c0ccd8',
-    }).setOrigin(1, 1).setScrollFactor(0).setDepth(12);
 
     this.refreshHud();
   }
 
   private refreshHud() {
-    const BAR_X = 50;
-    const BAR_W = 182;
+    const BAR_X = 75;
+    const BAR_W = 248;
 
     const hpRatio = Math.max(0, this.hp / this.maxHp);
     const hpCol   = hpRatio > 0.5 ? 0x44cc66 : hpRatio > 0.25 ? 0xffaa00 : 0xff3333;
     this.hpBar.clear();
     this.hpBar.fillStyle(0x333333);
-    this.hpBar.fillRoundedRect(BAR_X, 22, BAR_W, 12, 3);
+    this.hpBar.fillRoundedRect(BAR_X, 30, BAR_W, 16, 3);
     this.hpBar.fillStyle(hpCol);
-    this.hpBar.fillRoundedRect(BAR_X, 22, BAR_W * hpRatio, 12, 3);
+    this.hpBar.fillRoundedRect(BAR_X, 30, BAR_W * hpRatio, 16, 3);
     this.hpLabel.setText(`HP  ${Math.ceil(this.hp)} / ${this.maxHp}`);
 
-    const stRatio = this.stamina / STAMINA_MAX;
+    const stRatio = this.stamina / this.maxStamina;
     const stCol   = this.sprinting ? 0xffcc00 : 0x5599ff;
     this.staminaBar.clear();
     this.staminaBar.fillStyle(0x333333);
-    this.staminaBar.fillRoundedRect(BAR_X, 40, BAR_W, 8, 2);
+    this.staminaBar.fillRoundedRect(BAR_X, 54, BAR_W, 10, 2);
     this.staminaBar.fillStyle(stCol);
-    this.staminaBar.fillRoundedRect(BAR_X, 40, BAR_W * stRatio, 8, 2);
+    this.staminaBar.fillRoundedRect(BAR_X, 54, BAR_W * stRatio, 10, 2);
 
     this.coinText.setText(`Coins: ${this.totalCoins + this.coinsCollected}`);
+    this.levelText.setText(`Level ${this.level}`);
+    if (this.hasNoReloadUpgrade) {
+      this.ammoText.setText('Ammo: ∞');
+    } else {
+      this.ammoText.setText(`Ammo: ${this.ammo}/${this.maxAmmo}`);
+    }
+    this.ammoText.setColor(this.reloading ? '#ffaa00' : '#aaddff');
+    this.levelIndicator.setText(`Level ${this.level}`);
+    if (this.reloadingText?.visible) {
+      this.reloadingText.setPosition(this.px + PLAYER_SIZE / 2, this.py - 6);
+    }
   }
 
   // ── Input ──
@@ -781,11 +830,25 @@ export class EvergladesScene extends Phaser.Scene {
     this.keyP     = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P);
 
     this.keyP.on('down', () => {
-      if (!this.done) this.advanceStage();
+      if (!this.done) {
+        this.done = true;
+        this.totalCoins += this.coinsCollected + 100;
+        this.totalXp += 250;
+        this.coinsCollected = 0;
+        this.advanceStage();
+      }
     });
 
     this.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
-      if (!this.done) this.fireProjectile(ptr);
+      if (this.done) return;
+      if (this.reloading) return;
+      if (this.ammo <= 0) { this.startReload(); return; }
+      const baseCooldown = 300;
+      if (this.time.now - this.lastShootTime < baseCooldown / this.fireRateLevel) return;
+      this.lastShootTime = this.time.now;
+      this.ammo--;
+      this.fireProjectile(ptr);
+      if (this.ammo <= 0) this.startReload();
     });
   }
 
@@ -804,8 +867,8 @@ export class EvergladesScene extends Phaser.Scene {
     if (this.sprinting) {
       this.stamina = Math.max(0, this.stamina - STAMINA_DRAIN * dt);
       this.lastSprintTime = time;
-    } else if (time - this.lastSprintTime >= STAMINA_REGEN_DELAY) {
-      this.stamina = Math.min(STAMINA_MAX, this.stamina + STAMINA_REGEN * dt);
+    } else if (time - this.lastSprintTime >= STAMINA_REGEN_DELAY / this.staminaRegenLevel) {
+      this.stamina = Math.min(this.maxStamina, this.stamina + STAMINA_REGEN * this.staminaRegenLevel * dt);
     }
 
     const speed = this.sprinting ? PLAYER_SPRINT : PLAYER_SPEED;
@@ -845,6 +908,20 @@ export class EvergladesScene extends Phaser.Scene {
   }
 
   // ── Shooting ──
+
+  private startReload() {
+    if (this.reloading) return;
+    if (this.hasNoReloadUpgrade) { this.ammo = this.maxAmmo; return; }
+    this.reloading = true;
+    this.reloadingText.setPosition(this.px + PLAYER_SIZE / 2, this.py - 6);
+    this.reloadingText.setVisible(true);
+    const duration = 2000 / this.reloadTimeLevel;
+    this.time.delayedCall(duration, () => {
+      this.ammo = this.maxAmmo;
+      this.reloading = false;
+      this.reloadingText.setVisible(false);
+    });
+  }
 
   private fireProjectile(ptr: Phaser.Input.Pointer) {
     const wx = ptr.x + this.cameras.main.scrollX;
@@ -892,11 +969,12 @@ export class EvergladesScene extends Phaser.Scene {
           const e = this.enemies[j];
           if (rectsOverlap(p.x, p.y, PROJ_SIZE, PROJ_SIZE, e.x, e.y, ENEMY_SIZE, ENEMY_SIZE)) {
             if (this.leftStart) {
-              e.hp -= PROJ_DMG;
+              e.hp -= this.bulletDamage;
               if (e.hp <= 0) {
                 e.img.destroy();
                 e.hpBar.destroy();
                 this.enemies.splice(j, 1);
+                this.enemiesKilledThisRun++;
               }
             }
             hit = true;
@@ -1156,24 +1234,15 @@ export class EvergladesScene extends Phaser.Scene {
     }
   }
 
-  private calculateRewards() {
-    const secs = this.timer / 1000;
-    const intervals = secs < 60 ? Math.floor((60 - secs) / TIME_BONUS_INTERVAL) : 0;
-    return {
-      xp:    BASE_XP + intervals * TIME_BONUS_XP + 50 + (this.level * 25),
-      coins: BASE_COINS + intervals * TIME_BONUS_COINS + this.coinsCollected,
-    };
-  }
-
   // ── Stage progression ──
 
   private advanceStage() {
-    const run = this.getRunData();
     const nextStep = this.step + 1;
+    const runData: RunData = { level: this.level, step: nextStep, totalCoins: this.totalCoins, totalXp: this.totalXp, runId: this.runId };
     if (nextStep >= EVERGLADES_PER_CYCLE) {
-      this.scene.start('DuelScene', { ...run, step: nextStep });
+      this.scene.start('DuelScene', runData);
     } else {
-      this.scene.start('EvergladesScene', { ...run, step: nextStep });
+      this.scene.start('EvergladesScene', runData);
     }
   }
 
@@ -1183,7 +1252,12 @@ export class EvergladesScene extends Phaser.Scene {
     if (this.done) return;
     this.done = true;
 
-    const { xp, coins } = this.calculateRewards();
+    // Commit stage completion rewards to RunData
+    const collectedThisStage = this.coinsCollected;
+    this.totalCoins += collectedThisStage + 100;
+    this.totalXp    += 250;
+    this.coinsCollected = 0;
+
     const w  = this.cameras.main.width;
     const h  = this.cameras.main.height;
     const cx = w / 2, cy = h / 2;
@@ -1195,10 +1269,10 @@ export class EvergladesScene extends Phaser.Scene {
     const s = Math.floor(this.timer / 1000);
     const timeStr = `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
-    this.add.text(cx, cy - 110, 'Level Complete!', { fontSize: '28px', color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
+    this.add.text(cx, cy - 110, 'Stage Complete!', { fontSize: '28px', color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
     this.add.text(cx, cy - 55,  `Time: ${timeStr}`, { fontSize: '28px', color: '#aaffcc', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
-    this.add.text(cx, cy - 10,  `+${xp} XP`, { fontSize: '28px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
-    this.add.text(cx, cy + 34,  `+${coins} Coins`, { fontSize: '28px', color: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
+    this.add.text(cx, cy - 10,  `+250 XP`, { fontSize: '28px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
+    this.add.text(cx, cy + 34,  `+${collectedThisStage + 100} Coins`, { fontSize: '28px', color: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
 
     const btn = this.add.text(cx, cy + 100, 'Continue', { fontSize: '28px', color: '#ffffff' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21)
@@ -1209,12 +1283,13 @@ export class EvergladesScene extends Phaser.Scene {
   }
 
   endRun() {
-    console.log('endRun() called, runId:', this.runId);
-    if (this.done) return;
+    if (this.runEnded) return;
+    this.runEnded = true;
     this.done = true;
-    // Use committed totals only — current incomplete stage coins/XP are discarded on quit/death
-    console.log('completeRun args:', { runId: this.runId, coins: this.totalCoins, xp: this.totalXp, maxLevel: this.level });
-    completeRun(this.runId, this.totalCoins, this.totalXp, this.level)
+    // Commit any coins physically collected during the current incomplete stage
+    this.totalCoins += this.coinsCollected;
+    this.coinsCollected = 0;
+    completeRun(this.runId, this.totalCoins, this.totalXp, this.level, this.enemiesKilledThisRun)
       .catch((err: unknown) => console.error('completeRun failed:', err));
     if (this.sidebarNavHandler) {
       window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
@@ -1224,9 +1299,9 @@ export class EvergladesScene extends Phaser.Scene {
 
   private showGameOver() {
     if (this.done) return;
+    // endRun() commits coinsCollected, sets done=true, saves run — display-only after this
     this.endRun();
 
-    const run = this.getRunData();
     const w  = this.cameras.main.width;
     const h  = this.cameras.main.height;
     const cx = w / 2, cy = h / 2;
@@ -1245,7 +1320,7 @@ export class EvergladesScene extends Phaser.Scene {
       .setOrigin(0.5).setScrollFactor(0).setDepth(21);
     this.add.text(cx, cy - 40, `Level ${this.level}`, { fontSize: '24px', color: '#ffffff' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21);
-    this.add.text(cx, cy, `Total Coins: ${run.totalCoins}  |  Total XP: ${run.totalXp}`, { fontSize: '18px', color: '#ffd700' })
+    this.add.text(cx, cy, `Total Coins: ${this.totalCoins}  |  Total XP: ${this.totalXp}`, { fontSize: '18px', color: '#ffd700' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21);
 
     const retry = this.add.text(cx, cy + 50, 'Try Again', { fontSize: '28px', color: '#ffffff' })

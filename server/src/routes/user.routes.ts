@@ -1,24 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { computeClanRank } from '../services/user.service.js';
 import { notFound, conflict } from '../utils/errors.js';
+import { SAFE_PLAYER_SELECT } from '../utils/playerSelect.js';
 
 interface PatchMeBody {
   username?: string;
+  isMuted?: boolean;
 }
-
-const PLAYER_SELECT = {
-  id: true,
-  username: true,
-  email: true,
-  maxXp: true,
-  totalCoins: true,
-  maxHp: true,
-  isAdmin: true,
-  authProvider: true,
-  firebaseUid: true,
-  firstLogin: true,
-  lastLogin: true,
-} as const;
 
 const userRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -27,7 +15,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/me', async (request, reply) => {
     const player = await fastify.prisma.player.findUnique({
       where: { id: request.user.playerId },
-      select: PLAYER_SELECT,
+      select: SAFE_PLAYER_SELECT,
     });
 
     if (!player) {
@@ -46,13 +34,22 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'object',
           properties: {
             username: { type: 'string', minLength: 3, maxLength: 30 },
+            isMuted:  { type: 'boolean' },
           },
           additionalProperties: false,
         },
       },
     },
     async (request, reply) => {
-      const { username } = request.body;
+      const { username, isMuted } = request.body;
+
+      if (username === undefined && isMuted === undefined) {
+        const player = await fastify.prisma.player.findUniqueOrThrow({
+          where: { id: request.user.playerId },
+          select: SAFE_PLAYER_SELECT,
+        });
+        return reply.send({ ...player, clanRank: computeClanRank(player.maxXp) });
+      }
 
       if (username) {
         const existing = await fastify.prisma.player.findUnique({
@@ -67,8 +64,9 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
         where: { id: request.user.playerId },
         data: {
           ...(username !== undefined && { username }),
+          ...(isMuted  !== undefined && { isMuted }),
         },
-        select: PLAYER_SELECT,
+        select: SAFE_PLAYER_SELECT,
       });
 
       return reply.send({ ...updated, clanRank: computeClanRank(updated.maxXp) });

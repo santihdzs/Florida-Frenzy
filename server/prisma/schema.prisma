@@ -26,7 +26,7 @@ enum CardRarity {
   BASE
   EFFECT
   RARE
-  CLAN
+  LEGENDARY
 }
 
 enum EnemyType {
@@ -86,6 +86,11 @@ enum AuthProvider {
   BOTH
 }
 
+enum FriendStatus {
+  PENDING
+  ACCEPTED
+}
+
 // Dual auth model:
 //   - Firebase users: firebaseUid is set, passwordHash may be null
 //   - Local users: passwordHash is set (bcrypt of client-side SHA-256 hash), firebaseUid may be null
@@ -102,15 +107,29 @@ model Player {
   email        String       @unique
   maxXp        Int          @default(0)
   totalCoins   Int          @default(0)
-  isAdmin      Boolean      @default(false)
-  maxHp        Int          @default(50)
-  firstLogin   DateTime     @default(now())
-  lastLogin    DateTime?
+  isAdmin            Boolean      @default(false)
+  isMuted            Boolean      @default(false)
+  maxHp              Int          @default(50)
+  firstLogin         DateTime     @default(now())
+  lastLogin          DateTime?
+  totalGamesPlayed   Int          @default(0)
+  totalEnemiesKilled Int          @default(0)
+  bulletDamage       Int          @default(10)
+  fireRate           Int          @default(1)
+  reloadTime         Int          @default(1)
+  hasNoReload        Boolean      @default(false)
+  magSize            Int          @default(10)
+  staminaPool        Int          @default(1)
+  staminaRegen       Int          @default(1)
 
   playerCharacters PlayerCharacter[]
   playerCards      PlayerCard[]
   decks            Deck[]
   runs             Run[]
+  sentRequests     Friendship[]     @relation("SentRequests")
+  receivedRequests Friendship[]     @relation("ReceivedRequests")
+
+  @@index([maxXp])
 }
 
 model CharacterGame {
@@ -217,6 +236,7 @@ model Deck {
   runs      Run[]
 
   @@unique([playerId, deckName])
+  @@index([characterGameId])
 }
 
 model DeckCard {
@@ -236,17 +256,21 @@ model Run {
   endTime       DateTime?
   runStatus     RunStatus @default(IN_PROGRESS)
   zonesDone     Int       @default(0) // Cached counter — kept in sync by application logic
-  swampXpEarned Int       @default(0)
   xpEarned      Int       @default(0)
   coinsEarned   Int       @default(0)
   maxLevel      Int       @default(1)
   playerId      Int
   player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  deckId        Int
-  deck          Deck      @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  deckId        Int?
+  deck          Deck?     @relation(fields: [deckId], references: [id], onDelete: SetNull)
 
   runZones RunZone[]
   battles  Battle[]
+
+  @@index([playerId])
+  @@index([deckId])
+  @@index([runStatus])
+  @@index([endTime])
 }
 
 model RunZone {
@@ -277,9 +301,13 @@ model Battle {
   zoneGameId        Int
   zoneGame          ZoneGame     @relation(fields: [zoneGameId], references: [id], onDelete: Cascade)
   enemyId           Int
-  enemy             Enemy        @relation(fields: [enemyId], references: [id], onDelete: Cascade)
+  enemy             Enemy        @relation(fields: [enemyId], references: [id], onDelete: Restrict)
 
   battleRewards BattleReward[]
+
+  @@index([runId])
+  @@index([zoneGameId])
+  @@index([enemyId])
 }
 
 // CHECK: NOT (cardGameId IS NOT NULL AND characterGameId IS NOT NULL) — enforced at app level
@@ -311,4 +339,19 @@ model BattleReward {
   @@unique([battleId, rewardId])
   @@index([battleId])
   @@index([rewardId])
+}
+
+model Friendship {
+  id         Int          @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  status     FriendStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  sender     Player       @relation("SentRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   Player       @relation("ReceivedRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
 }

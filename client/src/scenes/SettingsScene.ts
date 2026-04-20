@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
-
-
+import { getPlayer, updatePreferences, isLoggedIn } from '../utils/auth.js';
 
 export class SettingsScene extends Phaser.Scene {
   private fromPause = false; // track if we came from the pause menu
@@ -15,6 +14,10 @@ export class SettingsScene extends Phaser.Scene {
     const centerX = width / 2;
 
     this.cameras.main.setBackgroundColor('#1a1a1a');
+
+    // Apply saved mute state
+    const isMuted = localStorage.getItem('ff_muted') === 'true';
+    this.sound.mute = isMuted;
 
     //text styles
     const titleStyle = {
@@ -100,8 +103,22 @@ export class SettingsScene extends Phaser.Scene {
       }
     });
 
+    // Sound mute toggle
+    this.add.text(centerX, 545, 'SOUND', labelStyle).setOrigin(0.5);
+    let currentMuted = localStorage.getItem('ff_muted') === 'true';
+    const muteBtn = this.createMetalBtn(centerX, 590, 180, 60, currentMuted ? 'OFF' : 'ON', () => {
+      currentMuted = !currentMuted;
+      localStorage.setItem('ff_muted', currentMuted ? 'true' : 'false');
+      this.sound.mute = currentMuted;
+      (muteBtn.getAt(1) as Phaser.GameObjects.Text).setText(currentMuted ? 'OFF' : 'ON');
+      if (isLoggedIn()) {
+        const player = getPlayer();
+        if (player) updatePreferences({ isMuted: currentMuted }).catch(() => {});
+      }
+    });
+
     // Back button
-    this.createMetalBtn(centerX, 590, 180, 60, 'BACK', () => {
+    this.createMetalBtn(centerX, 660, 180, 60, 'BACK', () => {
       if (this.fromPause) {
         this.scene.stop();
         this.scene.launch('PauseScene', { returnScene: this.returnScene });

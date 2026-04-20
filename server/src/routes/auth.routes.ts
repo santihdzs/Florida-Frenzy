@@ -10,7 +10,8 @@ import {
   generateToken,
   verifyFirebaseToken,
 } from '../services/auth.service.js';
-import { conflict, badRequest } from '../utils/errors.js';
+import { conflict, badRequest, unauthorized } from '../utils/errors.js';
+import { SAFE_PLAYER_SELECT } from '../utils/playerSelect.js';
 
 interface RegisterBody {
   username: string;
@@ -45,19 +46,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       const hashed = await hashPassword(passwordHash);
       const player = await fastify.prisma.player.create({
         data: { username, email, passwordHash: hashed, authProvider: 'LOCAL' },
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          maxXp: true,
-          totalCoins: true,
-          maxHp: true,
-          isAdmin: true,
-          authProvider: true,
-          firebaseUid: true,
-          firstLogin: true,
-          lastLogin: true,
-        },
+        select: SAFE_PLAYER_SELECT,
       });
 
       const token = generateToken(fastify, player);
@@ -72,33 +61,26 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { email, passwordHash } = request.body;
 
-      const player = await fastify.prisma.player.findUnique({ where: { email } });
-      if (!player) {
-        return reply
-          .code(401)
-          .send({ statusCode: 401, error: 'Unauthorized', message: 'Invalid credentials' });
+      const playerWithPw = await fastify.prisma.player.findUnique({
+        where: { email },
+        select: { id: true, passwordHash: true, authProvider: true },
+      });
+      if (!playerWithPw || !playerWithPw.passwordHash) {
+        return reply.code(401).send(unauthorized('Invalid credentials'));
       }
 
-      if (!player.passwordHash) {
-        return reply
-          .code(400)
-          .send(badRequest('This account uses Firebase login — no password set'));
-      }
-
-      const valid = await verifyPassword(passwordHash, player.passwordHash);
+      const valid = await verifyPassword(passwordHash, playerWithPw.passwordHash);
       if (!valid) {
-        return reply
-          .code(401)
-          .send({ statusCode: 401, error: 'Unauthorized', message: 'Invalid credentials' });
+        return reply.code(401).send(unauthorized('Invalid credentials'));
       }
 
-      await fastify.prisma.player.update({
-        where: { id: player.id },
+      const safePlayer = await fastify.prisma.player.update({
+        where: { id: playerWithPw.id },
         data: { lastLogin: new Date() },
+        select: SAFE_PLAYER_SELECT,
       });
 
-      const { passwordHash: _pw, ...safePlayer } = player;
-      const token = generateToken(fastify, player);
+      const token = generateToken(fastify, playerWithPw);
       return reply.send({ token, player: safePlayer });
     }
   );
@@ -114,17 +96,17 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         decoded = await verifyFirebaseToken(fastify, idToken);
       } catch {
-        return reply
-          .code(401)
-          .send({ statusCode: 401, error: 'Unauthorized', message: 'Invalid Firebase token' });
+        return reply.code(401).send(unauthorized('Invalid Firebase token'));
       }
 
-      let player = await fastify.prisma.player.findUnique({
+      let safePlayer;
+      const existing = await fastify.prisma.player.findUnique({
         where: { firebaseUid: decoded.uid },
+        select: { id: true, authProvider: true },
       });
 
-      if (!player) {
-        const email = decoded.email ?? `${decoded.uid}@firebase.local`;
+      if (!existing) {
+        const email = decoded.email ?? `firebase_${decoded.uid}@firebase.local`;
         const rawUsername =
           decoded.name?.replace(/\s+/g, '_').slice(0, 30) ?? `user_${decoded.uid.slice(0, 12)}`;
         const usernameExists = await fastify.prisma.player.findUnique({
@@ -134,18 +116,19 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           ? `${rawUsername}_${Date.now()}`.slice(0, 30)
           : rawUsername;
 
-        player = await fastify.prisma.player.create({
+        safePlayer = await fastify.prisma.player.create({
           data: { firebaseUid: decoded.uid, email, username, authProvider: 'FIREBASE' },
+          select: SAFE_PLAYER_SELECT,
         });
       } else {
-        await fastify.prisma.player.update({
-          where: { id: player.id },
+        safePlayer = await fastify.prisma.player.update({
+          where: { id: existing.id },
           data: { lastLogin: new Date() },
+          select: SAFE_PLAYER_SELECT,
         });
       }
 
-      const { passwordHash: _pw, ...safePlayer } = player;
-      const token = generateToken(fastify, player);
+      const token = generateToken(fastify, { id: safePlayer.id, authProvider: safePlayer.authProvider });
       return reply.send({ token, player: safePlayer });
     }
   );
@@ -161,9 +144,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         decoded = await verifyFirebaseToken(fastify, idToken);
       } catch {
-        return reply
-          .code(401)
-          .send({ statusCode: 401, error: 'Unauthorized', message: 'Invalid Firebase token' });
+        return reply.code(401).send(unauthorized('Invalid Firebase token'));
       }
 
       const existing = await fastify.prisma.player.findUnique({
@@ -178,19 +159,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       const updated = await fastify.prisma.player.update({
         where: { id: request.user.playerId },
         data: { firebaseUid: decoded.uid, authProvider: 'BOTH' },
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          maxXp: true,
-          totalCoins: true,
-          maxHp: true,
-          isAdmin: true,
-          authProvider: true,
-          firebaseUid: true,
-          firstLogin: true,
-          lastLogin: true,
-        },
+        select: SAFE_PLAYER_SELECT,
       });
 
       return reply.send({ player: updated });

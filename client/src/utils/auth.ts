@@ -97,12 +97,13 @@ export async function createRun(): Promise<number | null> {
   return data.id ?? null;
 }
 
-// API: Complete a run — saves coins, XP, and max level reached to the server
+// API: Complete a run — saves coins, XP, max level, and enemies killed to the server
 export async function completeRun(
   runId: number,
   coinsEarned: number,
   xpEarned: number,
-  maxLevel: number
+  maxLevel: number,
+  enemiesKilled: number = 0
 ): Promise<Record<string, unknown> | null> {
   const token = getToken();
   if (!token) return null;
@@ -112,7 +113,7 @@ export async function completeRun(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({ runId, coinsEarned, xpEarned, maxLevel }),
+    body: JSON.stringify({ runId, coinsEarned, xpEarned, maxLevel, enemiesKilled }),
   });
   const data = await res.json() as { run?: unknown; player?: Record<string, unknown>; message?: string };
   console.log('completeRun response:', data);
@@ -157,4 +158,227 @@ export async function fetchMyRuns(): Promise<any[]> {
 export function logout(): void {
   clearToken();
   window.location.reload();
+}
+
+export async function updatePreferences(prefs: { isMuted?: boolean }) {
+  const token = getToken();
+  if (!token) return;
+  const res = await fetch(`${API_URL}/api/users/me`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(prefs),
+  });
+  const data = await res.json() as Record<string, unknown>;
+  if (res.ok && data) setPlayer(data);
+  return data;
+}
+
+export async function upgradeGunDamage(): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/upgrade-damage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({}),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Upgrade failed');
+  if (data.player) setPlayer(data.player);
+  return data as Record<string, unknown>;
+}
+
+export async function upgradeFireRate(): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/upgrade-fire-rate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({}),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Upgrade failed');
+  if (data.player) setPlayer(data.player);
+  return data as Record<string, unknown>;
+}
+
+export async function upgradeReloadTime(): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/upgrade-reload-time`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({}),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Upgrade failed');
+  if (data.player) setPlayer(data.player);
+  return data as Record<string, unknown>;
+}
+
+export async function upgradeStaminaPool() {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/upgrade-stamina-pool`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({}),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Upgrade failed');
+  if (data.player) setPlayer(data.player);
+  return data;
+}
+
+export async function upgradeStaminaRegen() {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/upgrade-stamina-regen`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({}),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Upgrade failed');
+  if (data.player) setPlayer(data.player);
+  return data;
+}
+
+export async function upgradeMagSize() {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/upgrade-mag-size`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({}),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Upgrade failed');
+  if (data.player) setPlayer(data.player);
+  return data;
+}
+
+export async function upgradeNoReload(): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/upgrade-no-reload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({}),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Upgrade failed');
+  if (data.player) setPlayer(data.player);
+  return data as Record<string, unknown>;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function searchPlayers(username: string): Promise<any[]> {
+  const token = getToken();
+  if (!token) return [];
+  const res = await fetch(`${API_URL}/api/friends/search?username=${encodeURIComponent(username)}`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await res.json() as any[];
+  if (!res.ok) return [];
+  return data;
+}
+
+export async function sendFriendRequest(receiverId: number): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/friends/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ receiverId }),
+  });
+  const data = await res.json() as { message?: string } & Record<string, unknown>;
+  if (!res.ok) throw new Error(data.message ?? 'Failed');
+  return data;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getFriendRequests(): Promise<any[]> {
+  const token = getToken();
+  if (!token) return [];
+  const res = await fetch(`${API_URL}/api/friends/requests`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await res.json() as any[];
+  if (!res.ok) return [];
+  return data;
+}
+
+export async function acceptFriend(friendshipId: number): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/friends/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ friendshipId }),
+  });
+  const data = await res.json() as { message?: string } & Record<string, unknown>;
+  if (!res.ok) throw new Error(data.message ?? 'Failed');
+  return data;
+}
+
+export async function rejectFriend(friendshipId: number): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/friends/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ friendshipId }),
+  });
+  const data = await res.json() as { message?: string } & Record<string, unknown>;
+  if (!res.ok) throw new Error(data.message ?? 'Failed');
+  return data;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getFriends(): Promise<any[]> {
+  const token = getToken();
+  if (!token) return [];
+  const res = await fetch(`${API_URL}/api/friends`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await res.json() as any[];
+  if (!res.ok) return [];
+  return data;
+}
+
+export async function removeFriend(friendshipId: number): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/friends/${friendshipId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  const data = await res.json() as { message?: string } & Record<string, unknown>;
+  if (!res.ok) throw new Error(data.message ?? 'Failed');
+  return data;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchGlobalLeaderboard(limit = 5): Promise<any[]> {
+  const res = await fetch(`${API_URL}/api/leaderboard?limit=${limit}`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await res.json() as any[];
+  if (!res.ok) return [];
+  return data;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchFriendsLeaderboard(): Promise<any[]> {
+  const token = getToken();
+  if (!token) return [];
+  const res = await fetch(`${API_URL}/api/leaderboard/friends`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await res.json() as any[];
+  if (!res.ok) return [];
+  return data;
 }

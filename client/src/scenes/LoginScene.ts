@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.png';
-import { register, login, hasCompletedTutorial } from '../utils/auth.js';
+import { register, login } from '../utils/auth.js';
 
 type Mode = 'login' | 'register';
 
@@ -155,6 +155,15 @@ export class LoginScene extends Phaser.Scene {
             duration: 300,
             delay: 200,
         });
+
+        this.events.on('shutdown', () => {
+            const kb = (this.game as any).input.keyboard;
+            if (kb) kb.enabled = true;
+        });
+        this.events.on('destroy', () => {
+            const kb = (this.game as any).input.keyboard;
+            if (kb) kb.enabled = true;
+        });
     }
 
     private async handleSubmit(): Promise<void> {
@@ -178,17 +187,11 @@ export class LoginScene extends Phaser.Scene {
                 }
                 await register(username, email, password);
                 this.scene.stop('LoginScene');
-                this.scene.stop('MenuScene');
-                this.scene.start('TutorialScene');
+                this.scene.start('MenuScene');
             } else {
                 await login(email, password);
                 this.scene.stop('LoginScene');
-                this.scene.stop('MenuScene');
-                if (hasCompletedTutorial()) {
-                    this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 });
-                } else {
-                    this.scene.start('TutorialScene');
-                }
+                this.scene.start('MenuScene');
             }
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Something went wrong.';

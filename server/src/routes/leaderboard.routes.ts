@@ -39,6 +39,44 @@ const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
       );
     }
   );
+
+  // GET /api/leaderboard/friends — requires auth
+  fastify.get(
+    '/friends',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const playerId = request.user.playerId;
+
+      // Get all accepted friendships involving this player
+      const friendships = await fastify.prisma.friendship.findMany({
+        where: {
+          status: 'ACCEPTED',
+          OR: [{ senderId: playerId }, { receiverId: playerId }],
+        },
+        select: {
+          senderId: true,
+          receiverId: true,
+        },
+      });
+
+      // Collect all friend IDs plus the current player
+      const friendIds = friendships.map(f =>
+        f.senderId === playerId ? f.receiverId : f.senderId
+      );
+      const allIds = [playerId, ...friendIds];
+
+      const players = await fastify.prisma.player.findMany({
+        where: { id: { in: allIds } },
+        orderBy: { maxXp: 'desc' },
+        take: 10,
+        select: { id: true, username: true, maxXp: true },
+      });
+
+      return reply.send(
+        players.map((p) => ({ ...p, clanRank: computeClanRank(p.maxXp) }))
+      );
+    }
+  );
 };
 
 export default leaderboardRoutes;

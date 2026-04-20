@@ -16,6 +16,9 @@ declare module 'fastify' {
 }
 
 const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
+  if (!process.env.JWT_SECRET) {
+    fastify.log.warn('JWT_SECRET not set — using insecure default. Do NOT use in production.');
+  }
   fastify.register(fastifyJwt, {
     secret: process.env.JWT_SECRET ?? 'dev-secret-change-me',
   });
