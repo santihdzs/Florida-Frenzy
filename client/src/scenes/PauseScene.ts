@@ -28,6 +28,10 @@ export class PauseScene extends Phaser.Scene {
         const centerX = width / 2;
         const centerY = height / 2;
 
+        //for sounds in different scenes, we want to resume any paused music when resuming the game, so we don't have to worry about which scene we came from
+        const globalMusic = this.registry.get('music') as Phaser.Sound.BaseSound;
+        if (globalMusic) globalMusic.pause();
+
         this.add.rectangle(0, 0, width, height, 0x000000, 0.65).setOrigin(0); // semi-transparent background
 
         this.add.text(centerX, centerY - 120, 'PAUSED', {
@@ -53,9 +57,14 @@ export class PauseScene extends Phaser.Scene {
             color: '#ffffff',
         }).setOrigin(0.5).setInteractive({ useHandCursor: true }); // back to menu button
 
-        resume.on('pointerdown', () => {
+        const doResume = () => {
+            if(globalMusic) globalMusic.resume(); // resume the music when resuming the game
             this.scene.stop();
             this.scene.resume(this.returnScene);
+        };
+
+        resume.on('pointerdown', () => {
+            doResume();
         }); // resume game on click
 
         settings.on('pointerdown', () => {
@@ -67,6 +76,10 @@ export class PauseScene extends Phaser.Scene {
         }); // open settings on click, passing info that we came from pause menu
 
         menu.on('pointerdown', () => {
+            if(globalMusic){
+                globalMusic.stop(); // stop the music when returning to menu
+                this.registry.remove('music'); // clear the music from the registry so it doesn't accidentally get resumed later
+            }
             this.time.delayedCall(100, () => {
                 const parentScene = this.scene.get(this.returnScene);
                 if (parentScene && typeof (parentScene as any).endRun === 'function') {
@@ -79,8 +92,7 @@ export class PauseScene extends Phaser.Scene {
         }); // return to main menu on click, calling endRun() on the game scene then navigating to menu
 
         this.input.keyboard?.on('keydown-ESC',() => {
-            this.scene.stop();
-            this.scene.resume(this.returnScene);
+            doResume();
         }); // allow resuming with ESC key as well
 
     }

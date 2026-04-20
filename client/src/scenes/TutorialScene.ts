@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import evTilesUrl from '../assets/maps/everglades.png';
-// Importamos la imagen recortada de Klancy
-import klanUrl from '../assets/sprites/Klan.png';
+import klanUrl from '../assets/sprites/Klan.png'; //klancy image
+import music from '../assets/music/Lowland_Hymn.mp3'
+
 
 const TILE = 48;
 const WORLD_W = 1200;
@@ -39,10 +40,23 @@ export class TutorialScene extends Phaser.Scene {
         this.load.spritesheet(KEY_EV_TILES, evTilesUrl, { frameWidth: 16, frameHeight: 16 });
         // Charge photo
         this.load.image(KEY_KLAN, klanUrl);
+        this.load.audio('tutorial-music', music);
     }
 
     create() {
         this.generateTextures();
+
+        //music
+        let currentMusic = this.registry.get('music');
+        if (currentMusic && currentMusic.key !== 'tutorial-music') {
+            currentMusic.stop();
+            currentMusic = null; // Limpiamos para crear la nueva
+        }
+        if (!currentMusic || !currentMusic.isPlaying) {
+            const tutorialMusic = this.sound.add('tutorial-music', { loop: true, volume: 0.5 });
+            this.registry.set('music', tutorialMusic);
+            tutorialMusic.play();
+        }
         
         // background
         this.add.tileSprite(0, 0, WORLD_W, WORLD_H, KEY_EV_TILES, 75)
@@ -194,7 +208,7 @@ export class TutorialScene extends Phaser.Scene {
     }
 
     private updateTutorialProgress() {
-        // Lógica secuencial (else if)
+        // secuencial logic (else if)
         if (this.step === 0 && this.px > 350) {
             this.step = 1;
             this.klanDialog('¡Good! Hold SHIFT to run.\nBe careful with your stamina, Crock.');
