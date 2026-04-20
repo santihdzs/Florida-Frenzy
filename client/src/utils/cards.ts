@@ -639,7 +639,7 @@ export const ICE_CARD_POOL: Card[] = [
     rarity: 'rare',
     power: null,
     effect: 'STUN',
-    effectDescription: 'Congela al enemigo',
+    effectDescription: 'Congela al rival por 1 turno',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 1,
@@ -658,11 +658,11 @@ export const ICE_CARD_POOL: Card[] = [
     rarity: 'rare',
     power: null,
     effect: 'JAM',
-    effectDescription: 'Deshabilita las cartas de efecto del enemigo',
+    effectDescription: 'Bloquea las especiales rivales por 2 turnos',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 1,
-    effectDuration: 1,
+    effectDuration: 2,
     effectValueSecondary: 0,
     energyEGain: 3,
     energyIGain: 3,
@@ -677,7 +677,7 @@ export const ICE_CARD_POOL: Card[] = [
     rarity: 'rare',
     power: null,
     effect: 'DOUBLE_PLAY',
-    effectDescription: 'Permite jugar 2 cartas en 1 turno',
+    effectDescription: 'Puedes jugar 2 cartas este turno',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 1,
@@ -695,8 +695,8 @@ export const ICE_CARD_POOL: Card[] = [
     category: 'special',
     rarity: 'rare',
     power: null,
-    effect: 'WILDCARD',
-    effectDescription: 'Comodín general (se juega contra cualquier numero y/o elemento)',
+    effect: 'HAND_RESET',
+    effectDescription: 'La mano rival va a discard. Roba una nueva desde la discard pile',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 1,
@@ -714,13 +714,13 @@ export const ICE_CARD_POOL: Card[] = [
     category: 'special',
     rarity: 'rare',
     power: null,
-    effect: 'FORCE_DRAW',
-    effectDescription: 'Obliga al enemigo a robar de la pila de descarte, hasta encontrar un elemento designado por el jugador',
-    baseDamage: 0,
-    shieldValue: 0,
-    effectValue: 1,
+    effect: 'AMPLIFY',
+    effectDescription: 'Si copia una base, fuerza respuesta por número. Si copia una especial, da 15 HP y 15 escudo',
+    baseDamage: 15,
+    shieldValue: 15,
+    effectValue: 15,
     effectDuration: 0,
-    effectValueSecondary: 0,
+    effectValueSecondary: 15,
     energyEGain: 3,
     energyIGain: 3,
     energyECost: 3,
@@ -899,6 +899,19 @@ export function isCounterBonusTrigger(selected: Card, tableCard: Card): boolean 
 export function canPlayCard(selected: Card, tableCard: Card): boolean {
   if (selected.element === 'ice') {
     return true; // Ice card logic
+  }
+
+  // Special interactions for Ice cards
+  const tableIsIceRare = tableCard.rarity === 'rare' && tableCard.element === 'ice';
+  const tableIsIceJam = tableCard.name === 'Ice Jam';
+  const tableIsIceFlood = tableCard.name === 'Ice Flood';
+
+  if (tableIsIceJam) {
+    return selected.rarity === 'base'; // Only base cards can be played against Ice Jam
+  }
+
+  if (tableIsIceRare && !tableIsIceFlood) {
+    return true; // Any card can be played against Ice rares, except for specific counters
   }
 
   if (selected.rarity === 'effect') { // Special card logic

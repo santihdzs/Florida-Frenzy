@@ -25,6 +25,9 @@ export interface CombatState {
   energyBoostPercent: number;
   discardDrawTurnCounter: number;
   blockedNumberTurnCounter: number | null;
+  doublePlayTurnCounter: number;
+  forcedResponseNumber: number | null;
+  iceFloodLockTurnCounter: number;
 }
 
 export function createEmptyCombatState(): CombatState { // factory function to create a new combat state with default values
@@ -48,5 +51,8 @@ export function createEmptyCombatState(): CombatState { // factory function to c
     energyBoostPercent: 0,
     discardDrawTurnCounter: 0,
     blockedNumberTurnCounter: null,
+    doublePlayTurnCounter: 0,
+    forcedResponseNumber: null,
+    iceFloodLockTurnCounter: 0,
   };
 }
