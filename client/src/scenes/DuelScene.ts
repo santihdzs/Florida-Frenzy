@@ -1714,20 +1714,6 @@ export class DuelScene extends Phaser.Scene {
     }
   }
 
-  endRun() {
-    console.log('endRun() called, runId:', this.runId);
-    if (this.runEnded) return;
-    this.runEnded = true;
-    // Use committed totals only — duelCoins/duelXp are only committed to RunData on a WIN (advanceToNextCycle)
-    console.log('completeRun args:', { runId: this.runId, coins: this.totalCoins, xp: this.totalXp, maxLevel: this.level });
-    completeRun(this.runId, this.totalCoins, this.totalXp, this.level)
-      .catch((err: unknown) => console.error('completeRun failed:', err));
-    if (this.sidebarNavHandler) {
-      window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
-      this.sidebarNavHandler = null;
-    }
-  }
-
   private gameOver() {
     if (this.runEnded) return;
     this.endRun();
