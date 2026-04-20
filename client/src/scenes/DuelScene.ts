@@ -680,7 +680,7 @@ export class DuelScene extends Phaser.Scene {
     this.currentTableCardObject.setScale(1.12); // slightly smaller than hand cards to fit the table area
   }
 
-  private createCardContainer(x: number, y: number, card: Card, isPlayable: boolean, isStatic = false, outlineColor = 0xffffff, footerOverride?: string): // renders a card with the appropriate visuals based on its properties and whether it's interactable
+  private createCardContainer(x: number, y: number, card: Card, isPlayable: boolean, isStatic = false, outlineColor = 0xffffff, footerOverride?: string, frameOffsetX = 0): // renders a card with the appropriate visuals based on its properties and whether it's interactable
   Phaser.GameObjects.Container {
     const container = this.add.container(x, y); // wrapper for all card visuals and interactions
 
@@ -710,7 +710,7 @@ export class DuelScene extends Phaser.Scene {
     }
 
     const frameKey = this.getCardFrameKey(card); // determine which frame to use based on card properties
-    const frame = this.add.image(0, 0, frameKey); // card frame image
+    const frame = this.add.image(frameOffsetX, 0, frameKey); // card frame image
     frame.setDisplaySize(cardWidth, cardHeight); // scale the frame to fit the card dimensions
 
     const rarityY = isEffectCard ? -61 : -48; // adjust rarity label position for effect cards to fit within the special frame design
@@ -875,7 +875,7 @@ export class DuelScene extends Phaser.Scene {
       return;
     }
 
-    this.discardTopCardObject = this.createCardContainer(discardX, discardY, topCard, true, true, 0xffffff, 'DISC'); // render the top discard card as static
+    this.discardTopCardObject = this.createCardContainer(discardX, discardY, topCard, true, true, 0xffffff, 'DISC', 1); // render the top discard card as static
     this.discardTopCardObject.setScale(0.68); // shrink the preview to fit the pile area
     
     this.discardClickZone = this.add.zone(discardX, discardY, 150, 110) // invisible hotspot over the discard pile
@@ -1275,7 +1275,8 @@ export class DuelScene extends Phaser.Scene {
       
       case 'JAM': 
         defenderState.jamTurnCounter = Math.max(defenderState.jamTurnCounter, card.effectDuration || 1); 
-        damage = 0; 
+        damage = 0;
+        selfDamage = 0;
         break; // block non-base enemy cards
 
       case 'HAND_RESET': {
@@ -1296,19 +1297,73 @@ export class DuelScene extends Phaser.Scene {
         break;
       }
 
+      // case 'AMPLIFY': {
+      //   if (previousTableCard?.rarity === 'base') {
+      //     defenderState.forcedResponseNumber = previousTableCard.power;
+      //     defenderState.iceFloodLockTurnCounter = 1;
+      //     damage = 0;
+      //   } 
+        
+      //   else {
+      //     attackerState.shield += 15;
+      //     this.healSide(attacker, 15);
+      //     damage = 0;
+      //   }
+
+      //   break;
+      // }
+
       case 'AMPLIFY': {
-        if (previousTableCard?.rarity === 'base') {
-          defenderState.forcedResponseNumber = previousTableCard.power;
-          defenderState.iceFloodLockTurnCounter = 1;
-          damage = 0;
+        if (previousTableCard?.rarity === 'base') { // if the previous card is a base card, 
+          defenderState.forcedResponseNumber = previousTableCard.power; // lock the defender into responding to that card's power with an ice card, 
+          defenderState.iceFloodLockTurnCounter = 1; // and store the locked number for reference in the enemy's play restrictions
+
+          switch (previousTableCard.element) {
+            case 'fire':
+              damage = previousTableCard.baseDamage;
+              break; // if the previous card is a fire card, amplify by dealing extra damage equal to that card's base damage
+
+            case 'water':
+              attackerState.shield += previousTableCard.shieldValue;
+              damage = 0;
+              break; // if the previous card is a water card, amplify by granting extra shield equal to that card's shield value
+
+            case 'swamp':
+              damage = 0;
+              defenderState.poisonTurnCounter = Math.max(
+                defenderState.poisonTurnCounter,
+                previousTableCard.effectDuration
+              ); // if the previous card is a swamp card, amplify by applying extra poison
+              defenderState.poisonDamage = Math.max(
+                defenderState.poisonDamage,
+                previousTableCard.effectValue
+              );
+              break; // use the previous card's poison values for the amplified poison effect
+
+            case 'sand':
+              damage = previousTableCard.baseDamage;
+              defenderState.weakenTurnCounter = Math.max(
+                defenderState.weakenTurnCounter,
+                previousTableCard.effectDuration || 1
+              ); // if the previous card is a sand card, amplify by applying extra weaken equal to that card's base damage and duration
+              defenderState.weakenEffectValue = Math.max(
+                defenderState.weakenEffectValue,
+                previousTableCard.effectValue
+              ); // use the previous card's weaken values for the amplified weaken effect
+              break;
+
+            default:
+              damage = 0;
+              break;
+          }
         } 
         
-        else {
+        else { // if the previous card is not a base card, provide a default amplification effect of granting shield and healing for 15 HP
           attackerState.shield += 15;
           this.healSide(attacker, 15);
           damage = 0;
         }
-
+        
         break;
       }
       
@@ -1322,6 +1377,12 @@ export class DuelScene extends Phaser.Scene {
 
       default: break; // ignore unsupported effects
     }
+
+    if (card.effect === 'JAM') {
+      damage = 0; // explicitly ensure jam does no damage even if the card has a base damage value, as its primary function is to block enemy cards rather than deal damage
+      selfDamage = 0; // also ensure that jam does not cause self-damage, as it is meant to be a tactical control card rather than a risky attack
+    }
+
     if (damage > 0) this.applyAttackDamage(attacker, damage, card.element); // resolve normal attack damage
     if (selfDamage > 0) this.applyDirectDamage(attacker, selfDamage, `${selfDamage} recoil`); // resolve self-damage separately
     this.refreshHud(); // update the UI after effect resolution

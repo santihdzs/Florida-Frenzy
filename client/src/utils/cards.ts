@@ -907,7 +907,7 @@ export function canPlayCard(selected: Card, tableCard: Card): boolean {
   const tableIsIceFlood = tableCard.name === 'Ice Flood';
 
   if (tableIsIceJam) {
-    return selected.rarity === 'base'; // Ice cards are already handled by the early return above
+    return selected.rarity === 'base'; // Only base cards can be played against Ice Jam
   }
 
   if (tableIsIceRare && !tableIsIceFlood) {
