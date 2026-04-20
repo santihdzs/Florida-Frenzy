@@ -76,6 +76,10 @@ body {
     box-shadow: 0 12px 20px rgba(0,0,0,0.18);
 }
 
+.card-text {
+    font-size: 0.95rem;
+}
+
 .list-group-item {
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
