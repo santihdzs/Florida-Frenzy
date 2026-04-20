@@ -28,7 +28,7 @@ export class InstructionScene extends Phaser.Scene {
         bgGraphics.lineStyle(4, 0x666666);
         bgGraphics.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 10);
 
-        //Tittle
+        // Title
         this.add.text(centerX, 60, 'HOW TO PLAY', {
             fontFamily: 'Impact', fontSize: '42px', color: '#acacac', stroke: '#000', strokeThickness: 6
         }).setOrigin(0.5);
@@ -42,7 +42,7 @@ export class InstructionScene extends Phaser.Scene {
         const contentWidth = bgWidth * 0.75;
 
         const createSection = (title: string, content: string, color = '#acacac') => {
-            //Titulo centrado
+            // Centered title
             const titleText = this.add.text(bgWidth / 2, yOffset, title, {
                 fontFamily: 'Impact, Arial',
                 fontSize: '26px',
@@ -106,13 +106,17 @@ export class InstructionScene extends Phaser.Scene {
 
         // scroll logic
         this.input.on('wheel', (_pointer: unknown, _gameObjects: unknown, _deltaX: number, deltaY: number) => {
-            this.scrollContainer.y -= deltaY * 0.5; //scroll más suave
+            this.scrollContainer.y -= deltaY * 0.5; // Smoother scrolling
             this.limitScroll(bgY + 20, bgHeight);
         });
 
         // back to menu button
         this.createMetalBtn(centerX, height - 50, 250, 50, 'BACK TO MENU', () => {
             this.scene.start('MenuScene');
+        });
+
+        this.events.on('shutdown', () => {
+            this.input.off('wheel');
         });
     }
 

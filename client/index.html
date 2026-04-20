@@ -272,7 +272,7 @@
       if (activeScenes.some(function(s) { return s.scene.key === key; })) return;
 
       /* If a gameplay scene is running, let it decide whether to allow the switch */
-      var gameplayScenes = ['EvergladesScene', 'DuelScene'];
+      var gameplayScenes = ['RunScene', 'DuelScene'];
       if (activeScenes.some(function(s) { return gameplayScenes.indexOf(s.scene.key) !== -1; })) {
         window.dispatchEvent(new CustomEvent('sidebar-nav-request', { detail: { target: key } }));
         return;

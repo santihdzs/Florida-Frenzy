@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3001';
+const API_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
 
 // SHA-256 hash a string (returns hex string)
 export async function sha256(message: string): Promise<string> {
@@ -92,7 +92,6 @@ export async function createRun(): Promise<number | null> {
     body: JSON.stringify({}),
   });
   const data = await res.json() as { id?: number };
-  console.log('createRun result:', data);
   if (!res.ok) return null;
   return data.id ?? null;
 }
@@ -116,7 +115,6 @@ export async function completeRun(
     body: JSON.stringify({ runId, coinsEarned, xpEarned, maxLevel, enemiesKilled }),
   });
   const data = await res.json() as { run?: unknown; player?: Record<string, unknown>; message?: string };
-  console.log('completeRun response:', data);
   if (!res.ok) throw new Error(data.message ?? 'Failed to complete run');
   if (data.player) setPlayer(data.player);
   return data as Record<string, unknown>;
@@ -215,7 +213,7 @@ export async function upgradeReloadTime(): Promise<Record<string, unknown>> {
   return data as Record<string, unknown>;
 }
 
-export async function upgradeStaminaPool() {
+export async function upgradeStaminaPool(): Promise<Record<string, unknown>> {
   const token = getToken();
   if (!token) throw new Error('Not logged in');
   const res = await fetch(`${API_URL}/api/shop/upgrade-stamina-pool`, {
@@ -229,7 +227,7 @@ export async function upgradeStaminaPool() {
   return data;
 }
 
-export async function upgradeStaminaRegen() {
+export async function upgradeStaminaRegen(): Promise<Record<string, unknown>> {
   const token = getToken();
   if (!token) throw new Error('Not logged in');
   const res = await fetch(`${API_URL}/api/shop/upgrade-stamina-regen`, {

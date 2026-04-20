@@ -276,7 +276,7 @@ export class ShopScene extends Phaser.Scene {
     bg.fillStyle(0x000000, 0.55);
     bg.fillRoundedRect(cardX, y, CARD_W, CARD_H, CARD_RADIUS);
     bg.lineStyle(1, 0x555555, 0.8);
-    bg.strokeRoundedRect(cardX, y, CARD_W, CARD_RADIUS);
+    bg.strokeRoundedRect(cardX, y, CARD_W, CARD_H, CARD_RADIUS);
 
     const baseStyle = {
       fontFamily: 'Impact, Arial black, sans-serif',
@@ -366,7 +366,7 @@ export class ShopScene extends Phaser.Scene {
     bg.fillStyle(0x000000, 0.55);
     bg.fillRoundedRect(cardX, y, CARD_W, CARD_H, CARD_RADIUS);
     bg.lineStyle(1, 0x555555, 0.8);
-    bg.strokeRoundedRect(cardX, y, CARD_W, CARD_RADIUS);
+    bg.strokeRoundedRect(cardX, y, CARD_W, CARD_H, CARD_RADIUS);
 
     const baseStyle = {
       fontFamily: 'Impact, Arial black, sans-serif',

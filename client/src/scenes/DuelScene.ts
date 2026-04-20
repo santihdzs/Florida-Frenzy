@@ -44,8 +44,8 @@ import { updateHpBar, updateEnergyBar } from '../utils/duelUi'; // reusable UI r
 
 import { CombatState, createEmptyCombatState } from '../utils/combatState'; // combat status container and reset helper
 
-import type { RunData } from './EvergladesScene'; // run-progress data passed into this scene
-import { completeRun } from '../utils/auth.js'; // API call to save run result
+import type { RunData } from './RunScene'; // run-progress data passed into this scene
+import { completeRun, getPlayer } from '../utils/auth.js'; // API call to save run result
 
 import backgroundImg from '../assets/backgrounds/everglades.jpg'; // duel background image
 
@@ -54,12 +54,6 @@ import christianAttack1 from '../assets/characters/christian/Christian_attack-1.
 import christianAttack2 from '../assets/characters/christian/Christian_attack-2.png'; // Christian attack animation frame 2
 import christianDamage1 from '../assets/characters/christian/Christian_damage-1.png'; // Christian hurt sprite 1
 import christianDamage2 from '../assets/characters/christian/Christian_damage-2.png'; // Christian hurt sprite 2
-
-// import enemyDefault from '../assets/characters/default/enemy-gator.png'; // enemy idle sprite
-// import enemyAttack1 from '../assets/characters/default/attack-1.png'; // enemy attack animation frame 1
-// import enemyAttack2 from '../assets/characters/default/attack-2.png'; // enemy attack animation frame 2
-// import enemyHurt1 from '../assets/characters/default/hurt-1.png'; // enemy hurt sprite 1
-// import enemyHurt2 from '../assets/characters/default/hurt-2.png'; // enemy hurt sprite 2
 
 import skawlIdle from '../assets/characters/skawl/Skawl_resized.png'; // Skawl idle sprite
 import skawlAttack1 from '../assets/characters/skawl/Skawl_attack-1.png'; // Skawl attack animation frame 1
@@ -82,7 +76,7 @@ export class DuelScene extends Phaser.Scene {
 
   private levelsWon = 0; // count of duel victories in this run
   private level = 1; // current level value passed in from the run
-  private runId = 0; // server-side run id, passed through from EvergladesScene
+  private runId = 0; // server-side run id, passed through from RunScene
   private totalCoins = 0; // coins accumulated across this run
   private totalXp = 0; // XP accumulated across this run
 
@@ -150,11 +144,6 @@ export class DuelScene extends Phaser.Scene {
     this.load.image('christian-attack-2', christianAttack2); // load Christian attack sprite 2
     this.load.image('christian-damage-1', christianDamage1); // load Christian hurt sprite 1
     this.load.image('christian-damage-2', christianDamage2); // load Christian hurt sprite 2
-    // this.load.image('enemy-default',  enemyDefault); // load enemy idle sprite
-    // this.load.image('enemy-attack-1', enemyAttack1); // load enemy attack sprite 1
-    // this.load.image('enemy-attack-2', enemyAttack2); // load enemy attack sprite 2
-    // this.load.image('enemy-hurt-1',   enemyHurt1); // load enemy hurt sprite 1
-    // this.load.image('enemy-hurt-2',   enemyHurt2); // load enemy hurt sprite 2
     this.load.image('enemy-default', skawlIdle); // load Skawl idle sprite
     this.load.image('enemy-attack-1', skawlAttack1); // load Skawl attack sprite 1
     this.load.image('enemy-attack-2', skawlAttack2); // load Skawl attack sprite 2
@@ -165,8 +154,6 @@ export class DuelScene extends Phaser.Scene {
 
   create() {
     if (this.input.keyboard) this.input.keyboard.enabled = true;
-    console.log('DuelScene create() called');
-    console.log('Active scenes:', this.scene.manager.getScenes(true).map((s: Phaser.Scene) => s.scene.key));
 
     const { width, height } = this.cameras.main; // current scene dimensions
     const centerX = width / 2; // horizontal center point
@@ -185,8 +172,10 @@ export class DuelScene extends Phaser.Scene {
     this.refreshHud(); // sync HUD values with current state
     // this.updateInstruction(); // kept commented out as in your current code
 
-    const keyP = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P); // shortcut for advancing the run
-    keyP.on('down', () => this.advanceToNextCycle()); // move to the next Everglades scene on P press
+    if (getPlayer()?.isAdmin) {
+      const keyP = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P); // shortcut for advancing the run
+      keyP.on('down', () => this.advanceToNextCycle()); // move to the next run scene on P press
+    }
 
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
     escKey?.on('down', () => {
@@ -277,7 +266,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private advanceToNextCycle() {
-    this.scene.start('EvergladesScene', { // transition back to the overworld progression scene
+    this.scene.start('RunScene', { // transition back to the overworld progression scene
       level: this.level + 1, // advance to the next level
       step: 0, // reset step counter
       totalCoins: this.totalCoins,
@@ -1107,7 +1096,6 @@ export class DuelScene extends Phaser.Scene {
   }
 
   endRun() {
-    console.log('endRun() called, runId:', this.runId);
     if (this.runEnded) return;
     this.runEnded = true;
     completeRun(this.runId, this.totalCoins, this.totalXp, this.level, this.levelsWon)
@@ -1138,7 +1126,7 @@ export class DuelScene extends Phaser.Scene {
       .setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerover', () => restartBtn.setColor('#00ff88')) // hover feedback
       .on('pointerout', () => restartBtn.setColor('#ffffff')) // restore default color
-      .on('pointerdown', () => this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 })); // start a fresh run
+      .on('pointerdown', () => this.scene.start('RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 })); // start a fresh run
 
     const menuBtn = this.add.text(centerX, centerY + 150, 'Menu', { fontSize: '24px', color: '#888888' })
       .setOrigin(0.5).setInteractive({ useHandCursor: true })

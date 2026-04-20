@@ -34,8 +34,22 @@ const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
         },
       });
 
+      const playerIds = players.map(p => p.id);
+      const bestLevels = await fastify.prisma.run.groupBy({
+        by: ['playerId'],
+        where: { playerId: { in: playerIds } },
+        _max: { maxLevel: true },
+      });
+
+      const bestLevelMap = new Map(
+        bestLevels.map(r => [r.playerId, r._max.maxLevel ?? 0])
+      );
+
       return reply.send(
-        players.map((p) => ({ ...p, clanRank: computeClanRank(p.maxXp) }))
+        players.map(p => {
+          const bestLevel = bestLevelMap.get(p.id) ?? 0;
+          return { ...p, bestLevel, clanRank: computeClanRank(bestLevel) };
+        })
       );
     }
   );
@@ -72,8 +86,21 @@ const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
         select: { id: true, username: true, maxXp: true },
       });
 
+      const bestLevels = await fastify.prisma.run.groupBy({
+        by: ['playerId'],
+        where: { playerId: { in: allIds } },
+        _max: { maxLevel: true },
+      });
+
+      const bestLevelMap = new Map(
+        bestLevels.map(r => [r.playerId, r._max.maxLevel ?? 0])
+      );
+
       return reply.send(
-        players.map((p) => ({ ...p, clanRank: computeClanRank(p.maxXp) }))
+        players.map(p => {
+          const bestLevel = bestLevelMap.get(p.id) ?? 0;
+          return { ...p, bestLevel, clanRank: computeClanRank(bestLevel) };
+        })
       );
     }
   );

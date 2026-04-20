@@ -62,7 +62,7 @@ const HEAL_PER_SEC = 12;
 
 const CAMERA_SCROLL_BASE = 67.5;
 
-const EVERGLADES_PER_CYCLE = 3;
+const RUNS_PER_CYCLE = 3;
 const END_COL         = COLS - 5;
 const START_COLS      = 4;
 
@@ -255,7 +255,7 @@ export interface RunData {
   runId: number;
 }
 
-export class EvergladesScene extends Phaser.Scene {
+export class RunScene extends Phaser.Scene {
 
   private px = 0;
   private py = 0;
@@ -323,7 +323,7 @@ export class EvergladesScene extends Phaser.Scene {
   private keyShift!: Phaser.Input.Keyboard.Key;
   private keyP!:     Phaser.Input.Keyboard.Key;
 
-  constructor() { super({ key: 'EvergladesScene' }); }
+  constructor() { super({ key: 'RunScene' }); }
 
   init(data: Partial<RunData>) {
     this.level          = data.level ?? 1;
@@ -375,8 +375,6 @@ export class EvergladesScene extends Phaser.Scene {
 
   create() {
     if (this.input.keyboard) this.input.keyboard.enabled = true;
-    console.log('EvergladesScene create() called');
-    console.log('Active scenes:', this.scene.manager.getScenes(true).map((s: Phaser.Scene) => s.scene.key));
 
     // Reset all flags — these persist across scene restarts since Phaser reuses the instance
     this.done = false;
@@ -407,7 +405,6 @@ export class EvergladesScene extends Phaser.Scene {
     }).setOrigin(0.5).setScrollFactor(0).setDepth(15);
 
     this.buildHud();
-    console.log('chris-avatar loaded?', this.textures.exists('chris-avatar'));
 
     this.reloadingText = this.add.text(0, 0, 'Reloading...', {
       fontFamily: 'Impact, Arial black, sans-serif',
@@ -423,7 +420,7 @@ export class EvergladesScene extends Phaser.Scene {
     escKey?.on('down', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
       this.scene.pause(); // pause the duel scene
-      this.scene.launch('PauseScene', { returnScene: 'EvergladesScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
+      this.scene.launch('PauseScene', { returnScene: 'RunScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
     });
 
     const pauseBg   = this.add.graphics();
@@ -437,7 +434,7 @@ export class EvergladesScene extends Phaser.Scene {
 
     pauseContainer.on('pointerdown', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
-      this.scene.launch('PauseScene', { returnScene: 'EvergladesScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
+      this.scene.launch('PauseScene', { returnScene: 'RunScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
       this.scene.pause(); // pause the duel scene
     });
 
@@ -830,7 +827,8 @@ export class EvergladesScene extends Phaser.Scene {
     this.keyP     = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P);
 
     this.keyP.on('down', () => {
-      if (!this.done) {
+      const player = getPlayer();
+      if (player?.isAdmin && !this.done) {
         this.done = true;
         this.totalCoins += this.coinsCollected + 100;
         this.totalXp += 250;
@@ -1239,10 +1237,10 @@ export class EvergladesScene extends Phaser.Scene {
   private advanceStage() {
     const nextStep = this.step + 1;
     const runData: RunData = { level: this.level, step: nextStep, totalCoins: this.totalCoins, totalXp: this.totalXp, runId: this.runId };
-    if (nextStep >= EVERGLADES_PER_CYCLE) {
+    if (nextStep >= RUNS_PER_CYCLE) {
       this.scene.start('DuelScene', runData);
     } else {
-      this.scene.start('EvergladesScene', runData);
+      this.scene.start('RunScene', runData);
     }
   }
 
@@ -1328,7 +1326,7 @@ export class EvergladesScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => retry.setColor('#00ff88'))
       .on('pointerout',  () => retry.setColor('#ffffff'))
-      .on('pointerdown', () => this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 }));
+      .on('pointerdown', () => this.scene.start('RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 }));
 
     const menu = this.add.text(cx, cy + 120, 'Menu', { fontSize: '24px', color: '#888888' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21)

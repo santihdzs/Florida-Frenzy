@@ -1,8 +1,14 @@
 import Phaser from 'phaser';
+
+declare global {
+  interface Window {
+    __phaserGame?: Phaser.Game;
+  }
+}
 import { isLoggedIn } from './utils/auth.js';
 import { MenuScene } from './scenes/MenuScene';
 import { DuelScene } from './scenes/DuelScene';
-import { EvergladesScene } from './scenes/EvergladesScene';
+import { RunScene } from './scenes/RunScene';
 import { PlatformerScene } from './scenes/PlatformerScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { InstructionScene } from './scenes/InstructionScene';
@@ -30,21 +36,21 @@ const config: Phaser.Types.Core.GameConfig = { // Phaser game configuration obje
     mode: Phaser.Scale.FIT, // scale the game to fit the available space while maintaining aspect ratio
     autoCenter: Phaser.Scale.CENTER_BOTH, // center the game canvas both horizontally and vertically
   },
-  scene: [MenuScene, DuelScene, EvergladesScene, PlatformerScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene],
+  scene: [MenuScene, DuelScene, RunScene, PlatformerScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene],
 };
 
 const game = new Phaser.Game(config); // create a new Phaser game instance with the specified configuration
-(window as any).__phaserGame = game; // expose game instance for HTML sidebar navigation
+window.__phaserGame = game; // expose game instance for HTML sidebar navigation
 
 document.addEventListener('focusin', (e) => {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-    (window as any).__phaserGame?.input.keyboard?.enabled && ((window as any).__phaserGame.input.keyboard.enabled = false);
+    window.__phaserGame?.input.keyboard?.enabled && (window.__phaserGame.input.keyboard.enabled = false);
   }
 });
 
 document.addEventListener('focusout', (e) => {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-    const kb = (window as any).__phaserGame?.input?.keyboard;
+    const kb = window.__phaserGame?.input?.keyboard;
     if (kb) kb.enabled = true;
   }
 });

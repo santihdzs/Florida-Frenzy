@@ -16,10 +16,10 @@ function fmtDate(iso: string): string {
   });
 }
 
-function clanRank(xp: number): string {
-  if (xp >= 5000) return 'LEGEND';
-  if (xp >= 2000) return 'ELITE';
-  if (xp >= 500)  return 'VETERAN';
+function clanRank(level: number): string {
+  if (level >= 15) return 'LEGEND';
+  if (level >= 10) return 'ELITE';
+  if (level >= 5)  return 'VETERAN';
   return 'ROOKIE';
 }
 
@@ -116,8 +116,8 @@ export class StatsScene extends Phaser.Scene {
     const LABEL_X      = LEFT_X + 18;
     const VALUE_X      = LEFT_X + LEFT_W - 18;
 
-    const maxXp = Number(player?.maxXp ?? 0);
-    const rank   = clanRank(maxXp);
+    const maxXp  = Number(player?.maxXp ?? 0);
+    const rank   = String(player?.clanRank ?? clanRank(Number(player?.bestLevel ?? 0)));
 
     const avgLevel = myRuns.length > 0
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,7 +133,7 @@ export class StatsScene extends Phaser.Scene {
       { label: 'Joined',         value: joined },
       { label: 'Enemies Killed', value: String(player?.totalEnemiesKilled ?? 0) },
       { label: 'Average Level',  value: String(avgLevel) },
-      { label: 'Clan Rank',      value: rank, highlight: rankColor(rank) },
+      { label: 'Rank',           value: rank, highlight: rankColor(rank) },
       { label: 'Best XP',        value: String(maxXp) },
       { label: 'Total Coins',    value: String(player?.totalCoins         ?? 0) },
     ];
@@ -238,7 +238,7 @@ export class StatsScene extends Phaser.Scene {
       top.forEach((run: any, i: number) => {
         const y    = LIST_Y + i * ROW_H;
         const date = run.endTime ? fmtDate(String(run.endTime)) : '—';
-        const row  = `#${i + 1}  Lv ${String(run.maxLevel ?? 1)}  |  XP: ${String(run.xpEarned ?? 0)}  |  Coins: ${String(run.coinsEarned ?? 0)}  |  ${date}`;
+        const row  = `#${i + 1}  Level ${String(run.maxLevel ?? 1)}  |  XP: ${String(run.xpEarned ?? 0)}  |  Coins: ${String(run.coinsEarned ?? 0)}  |  ${date}`;
         listObjs.push(this.add.text(LIST_X, y + ROW_H / 2, row, {
           ...base, fontSize: '15px', color: '#c2baba',
         }).setOrigin(0, 0.5));
@@ -257,9 +257,12 @@ export class StatsScene extends Phaser.Scene {
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data.slice(0, MAX_ROWS).forEach((p: any, i: number) => {
-        const y   = LIST_Y + i * ROW_H;
-        const xp  = Number(p.maxXp ?? 0);
-        const row = `#${i + 1}  ${String(p.username)}  |  XP: ${String(xp)}  |  Clan: ${clanRank(xp)}`;
+        const y        = LIST_Y + i * ROW_H;
+        const xp       = Number(p.maxXp ?? 0);
+        const level    = Number(p.bestLevel ?? 0);
+        const rank     = String(p.clanRank ?? clanRank(level));
+        const levelStr = level > 0 ? `Level ${level}  |  ` : '';
+        const row      = `#${i + 1}  ${String(p.username)}  |  ${levelStr}XP: ${String(xp)}  |  Rank: ${rank}`;
         listObjs.push(this.add.text(LIST_X, y + ROW_H / 2, row, {
           ...base, fontSize: '15px', color: '#c2baba',
         }).setOrigin(0, 0.5));

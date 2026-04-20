@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import evTilesUrl from '../assets/maps/everglades.png';
-// Importamos la imagen recortada de Klancy
-import klanUrl from '../assets/sprites/Klan.png';
+// Import cropped Clancy image
+import clanUrl from '../assets/sprites/Klan.png';
 
 const TILE = 48;
 const WORLD_W = 1200;
@@ -10,7 +10,7 @@ const WORLD_H = 800;
 const KEY_EV_TILES = 'ev-tiles';
 const KEY_SPR_PLAYER = 'spr-player';
 const KEY_SPR_PROJ = 'spr-projectile';
-const KEY_KLAN = 'spr-klan'; // photo key
+const KEY_CLAN = 'spr-clan'; // portrait key
 
 const PLAYER_SIZE = 48;
 const PLAYER_SPEED = 220;
@@ -23,7 +23,7 @@ export class TutorialScene extends Phaser.Scene {
     private px = 100;
     private py = 300;
     private playerImg!: Phaser.GameObjects.Image;
-    private klanPortrait!: Phaser.GameObjects.Image; // cutted photo
+    private clanPortrait!: Phaser.GameObjects.Image; // cutted photo
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private instructionText!: Phaser.GameObjects.Text;
     private step = 0;
@@ -37,8 +37,8 @@ export class TutorialScene extends Phaser.Scene {
 
     preload() {
         this.load.spritesheet(KEY_EV_TILES, evTilesUrl, { frameWidth: 16, frameHeight: 16 });
-        // Charge photo
-        this.load.image(KEY_KLAN, klanUrl);
+        // Load portrait image
+        this.load.image(KEY_CLAN, clanUrl);
     }
 
     create() {
@@ -52,20 +52,20 @@ export class TutorialScene extends Phaser.Scene {
         // player
         this.playerImg = this.add.image(this.px, this.py, KEY_SPR_PLAYER).setOrigin(0, 0).setDepth(5);
 
-        //HUB Klan
+        //HUB Clan
         const HUD_X = 800; // X position
         const HUD_Y = 50;  // Y position 
         const HUD_W = 380; // widht
         const HUD_H = 100; // height 
 
-        // Fondo del recuadro (oscuro y estilizado)
+        // Dark styled dialog background
         const bg = this.add.graphics();
-        bg.fillStyle(0x000000, 0.85); // Fondo casi opaco
+        bg.fillStyle(0x000000, 0.85); // Nearly opaque fill
         bg.fillRoundedRect(0, 0, HUD_W, HUD_H, 12);
-        bg.lineStyle(2, 0x8899cc).strokeRoundedRect(0, 0, HUD_W, HUD_H, 12); // Borde azul
+        bg.lineStyle(2, 0x8899cc).strokeRoundedRect(0, 0, HUD_W, HUD_H, 12); // Blue border
 
-        // Klan photo in the corner
-        this.klanPortrait = this.add.image(10, 10, KEY_KLAN)
+        // Clan portrait in the corner
+        this.clanPortrait = this.add.image(10, 10, KEY_CLAN)
             .setOrigin(0, 0)
             .setDisplaySize(80, 80); // space in the corner
 
@@ -83,8 +83,8 @@ export class TutorialScene extends Phaser.Scene {
         this.instructionText = this.add.text(100, 15, 'Hey Crock, ¡Let´s do it!\nUse WASD or the arrow keys to move.', textStyle)
             .setAlign('left');
 
-        // container for the HUD and agrup by the text
-        this.dialogContainer = this.add.container(HUD_X, HUD_Y, [bg, this.klanPortrait, this.instructionText]);
+        // Container grouping the HUD background, portrait, and text
+        this.dialogContainer = this.add.container(HUD_X, HUD_Y, [bg, this.clanPortrait, this.instructionText]);
         this.dialogContainer.setScrollFactor(0).setDepth(100);
 
         this.setupInput();
@@ -107,7 +107,7 @@ export class TutorialScene extends Phaser.Scene {
                 this.fireProjectile(ptr);
                 if (this.step === 2) {
                     this.step = 3;
-                    this.klanDialog('¡Crock-Níal! Press the spacebar to continue.', '#00ff88');
+                    this.clanDialog('¡Crock-Níal! Press the spacebar to continue.', '#00ff88');
                 }
             }
         });
@@ -120,12 +120,12 @@ export class TutorialScene extends Phaser.Scene {
         });
     }
 
-    // Función auxiliar para que Klancy "hable" (cambie de texto y color)
-    private klanDialog(text: string, color: string = '#ffffff') {
+    // Helper: update Clancy's dialog text and color with a brief flash effect
+    private clanDialog(text: string, color: string = '#ffffff') {
         this.instructionText.setText(text);
         this.instructionText.setColor(color);
-        
-        // Pequeño efecto de brillo al cambiar de diálogo
+
+        // Brief flash effect on dialog change
         this.tweens.add({
             targets: this.instructionText,
             alpha: 0.5,
@@ -169,7 +169,7 @@ export class TutorialScene extends Phaser.Scene {
         const dt = delta / 1000;
         const speed = this.keys.SHIFT.isDown ? PLAYER_SPRINT : PLAYER_SPEED;
 
-        // Movimiento
+        // Movement
         if (this.cursors.left.isDown || this.keys.A.isDown) this.px -= speed * dt;
         else if (this.cursors.right.isDown || this.keys.D.isDown) this.px += speed * dt;
         if (this.cursors.up.isDown || this.keys.W.isDown) this.py -= speed * dt;
@@ -179,7 +179,7 @@ export class TutorialScene extends Phaser.Scene {
         this.px = Phaser.Math.Clamp(this.px, 0, WORLD_W - PLAYER_SIZE);
         this.py = Phaser.Math.Clamp(this.py, 0, WORLD_H - PLAYER_SIZE);
 
-        // Proyectiles
+        // Projectiles
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const p = this.projectiles[i];
             p.x += p.vx * dt;
@@ -195,14 +195,14 @@ export class TutorialScene extends Phaser.Scene {
     }
 
     private updateTutorialProgress() {
-        // Lógica secuencial (else if)
+        // Sequential step progression
         if (this.step === 0 && this.px > 350) {
             this.step = 1;
-            this.klanDialog('¡Good! Hold SHIFT to run.\nBe careful with your stamina, Crock.');
+            this.clanDialog('¡Good! Hold SHIFT to run.\nBe careful with your stamina, Crock.');
         } 
         else if (this.step === 1 && this.px > 700) {
             this.step = 2;
-            this.klanDialog('Click to shoot.\nAim with the mouse (8 directions).');
+            this.clanDialog('Click to shoot.\nAim with the mouse (8 directions).');
         } 
     }
 }

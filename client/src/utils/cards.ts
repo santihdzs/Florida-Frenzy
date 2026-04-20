@@ -855,10 +855,6 @@ export function generateDeck(size = 12): Card[] {
   });
 }
 
-export function drawCards(deck: Card[], count: number): Card[] {
-  return deck.slice(0, count);
-}
-
 export function drawOneCard(deck: Card[]): Card | null {
   if (deck.length === 0) return null;
   return deck.shift() ?? null;
@@ -897,30 +893,3 @@ export function resolveCardEffect(card: Card): CardResolution {
   };
 }
 
-// Unfinished temporal demo for current DuelScene implementation, to be expanded with actual effect logic
-export function compareCards(playerCard: Card, enemyCard: Card): 'win' | 'lose' | 'draw' {
-  const playerResolution = resolveCardEffect(playerCard);
-  const enemyResolution = resolveCardEffect(enemyCard);
-
-  const playerScore = playerResolution.damage + playerResolution.shield + playerResolution.effectValue + playerCard.energyEGain + playerCard.energyIGain;
-  const enemyScore = enemyResolution.damage + enemyResolution.shield + enemyResolution.effectValue + enemyCard.energyEGain + enemyCard.energyIGain;
-
-  if (canPlayCard(playerCard, enemyCard) && !canPlayCard(enemyCard, playerCard)) {
-    return 'win';
-  }
-
-  if (!canPlayCard(playerCard, enemyCard) && canPlayCard(enemyCard, playerCard)) {
-    return 'lose';
-  }
-
-  if (playerCard.element === enemyCard.element) {
-    const playerP = playerCard.power ?? 0;
-    const enemyP = enemyCard.power ?? 0;
-    if (playerP > enemyP) return 'win';
-    if (playerP < enemyP) return 'lose';
-  }
-
-  if (playerScore > enemyScore) return 'win';
-  if (playerScore < enemyScore) return 'lose';
-  return 'draw';
-}
