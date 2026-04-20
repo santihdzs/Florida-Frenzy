@@ -134,9 +134,9 @@ export class DuelScene extends Phaser.Scene {
   }
 
   init(data: Partial<RunData>) {
-    this.level      = data.level ?? 0; // restore level if passed in, otherwise start at zero
+    this.level = data.level ?? 0; // restore level if passed in, otherwise start at one
     this.totalCoins = data.totalCoins ?? 0; // restore accumulated coins
-    this.totalXp    = data.totalXp ?? 0; // restore accumulated XP
+    this.totalXp = data.totalXp ?? 0; // restore accumulated XP
   }
 
   preload() {
@@ -251,7 +251,7 @@ export class DuelScene extends Phaser.Scene {
   private createHud() {
     const centerX = this.cameras.main.width / 2; // shared horizontal center for top HUD
 
-    this.levelText = this.add.text(centerX, 50, `Level ${this.level}`, {
+    this.levelText = this.add.text(centerX, 50, `Level ${this.level + 1}`, {
       fontSize: '36px',
       color: '#ffaa00',
       fontStyle: 'bold',
