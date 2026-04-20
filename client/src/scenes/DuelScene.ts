@@ -82,6 +82,8 @@ import skawlDamage1 from '../assets/characters/skawl/Skawl_damage-1.png'; // Ska
 import skawlDamage2 from '../assets/characters/skawl/Skawl_damage-2.png'; // Skawl hurt sprite 2
 import skawlDefeated from '../assets/characters/skawl/Skawl_defeated.png'; // Skawl defeated sprite
 
+import music from '../assets/music/Cane_Field_Siege.mp3'; // background music for the duel, imported directly for Vite compatibility
+
 export class DuelScene extends Phaser.Scene {
   private isShowingQuitDialog = false;
   private runEnded = false;
@@ -160,6 +162,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.audio('duel-music', music); // load background music for the duel
     this.load.image('background', backgroundImg); // load duel background
     this.load.image('card-frame', cardFrame); // load card frame image
     this.load.image('card-fire-special', cardFireSpecial); // load fire element card art
@@ -191,6 +194,24 @@ export class DuelScene extends Phaser.Scene {
 
     const { width, height } = this.cameras.main; // current scene dimensions
     const centerX = width / 2; // horizontal center point
+
+    let currentMusic = this.registry.get('music');
+    if (currentMusic && currentMusic.key !== 'duel-music') {
+        currentMusic.stop();
+        currentMusic = null; // Limpiamos para crear la nueva
+    }
+    if (!currentMusic || !currentMusic.isPlaying) {
+        const duelMusic = this.sound.add('duel-music', { loop: true, volume: 0.5 });
+        this.registry.set('music', duelMusic);
+        duelMusic.play();
+    } 
+
+    this.events.once('shutdown', () => {
+        const currentMusic = this.registry.get('music');
+        if (currentMusic) {
+            currentMusic.stop();
+        }
+    });
 
     this.resetDuelState(); // clear all duel state before building the scene
 
@@ -339,14 +360,14 @@ export class DuelScene extends Phaser.Scene {
     const { width, height } = this.cameras.main; // use camera size so UI scales with the scene
     const centerX = width / 2; // center point for symmetric panels
     const panels = this.add.graphics(); // graphics object used to draw HUD boxes
-    // panels.setDepth(20); // ensure panels are on top of the sprites but behind the text and cards
-    panels.fillStyle(0x000000, 0.72); // translucent black for readability
-    panels.fillRoundedRect(25, 20, 315, 195, 18); // left player HUD panel
-    panels.fillRoundedRect(width - 340, 20, 315, 195, 18); // right enemy HUD panel
-    panels.fillRoundedRect(centerX - 190, 24, 380, 90, 18); // top center level/message panel
-    panels.fillRoundedRect(centerX - 120, 165, 240, 260, 24); // table card area panel
-    panels.fillRoundedRect(centerX - 430, height - 235, 860, 210, 24); // deck/discard area panel
-    panels.fillRoundedRect(centerX - 310, 440, 620, 78, 18); // instruction bar panel
+    panels.setDepth(1); // ensure panels are on top of the sprites but behind the text and cards
+    this.drawMetalPlate(panels, 315, 195, false, 25, 20); // player panel
+    this.drawMetalPlate(panels, 315, 195, false, width - 340, 20); // enemy panel
+    this.drawMetalPlate(panels, 380, 90, false, centerX - 190, 24); // top center panel for level and messages
+    this.drawMetalPlate(panels, 240, 260, false, centerX - 120, 165); // center panel for hand cards and deck/discard info
+    this.drawMetalPlate(panels, 860, 210, false, centerX - 430, height - 235); // bottom panel for the table card
+    this.drawMetalPlate(panels, 620, 78, false, centerX - 310, 440); // instruction panel above the hand
+
   }
 
   private createHud() {
@@ -356,132 +377,160 @@ export class DuelScene extends Phaser.Scene {
       fontSize: '36px',
       color: '#ffaa00',
       fontStyle: 'bold',
-    }).setOrigin(0.5); // center the level title
+      stroke: '#ffa101',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(6); // center the level title and ensure it's above the panels but below the cards
+    this.levelText.setShadow(1, 1, '#ffaa00', 2, false, true); // add a shadow to the level text for better visibility
+    this.levelText.setAlpha(0.9);
+
 
     this.battleMessageText = this.add.text(centerX, 86, '', {
       fontSize: '20px',
       color: '#ffffff',
       fontStyle: 'bold',
-    }).setOrigin(0.5); // short combat feedback line
+    }).setOrigin(0.5).setDepth(5); // short combat feedback line and position it just below the level text
+    this.battleMessageText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the battle message text for better visibility
+    this.battleMessageText.setAlpha(0.9); // slightly fade the battle message text for a more integrated look
 
     this.tableCardLabel = this.add.text(centerX, 192, 'Table Card', {
       fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold',
-    }).setOrigin(0.5); // label above the main card in play
+    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // label above the main card in play
 
     this.instructionText = this.add.text(centerX, 540, 'Choose a valid card or right-click to discard.', {
       fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold',
-    }).setOrigin(0.5); // player guidance text
+    }).setOrigin(0.5).setDepth(5); // player guidance text
+    this.instructionText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the instruction text for better visibility
+    this.instructionText.setAlpha(0.9); // slightly fade the instruction text for a more integrated look
+
 
     this.add.text(48, 34, 'Player', {
       fontSize: '22px',
       color: '#00ff88',
       fontStyle: 'bold',
-    }); // player panel label
+      stroke: '#003311',
+      strokeThickness: 4
+    }).setDepth(6).setShadow(2, 2, '#000000', 2); // player panel label
 
-    this.playerHpBar = this.add.graphics(); // player HP bar renderer
+    this.playerHpBar = this.add.graphics().setDepth(5); // player HP bar renderer
     this.playerHpText = this.add.text(48, 86, '', { 
       fontSize: '16px', 
-      color: '#ffffff' 
-    }); // player HP text
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setDepth(6); // player HP text is on a higher depth than the bar so it appears on top
+    this.playerHpText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the player HP text for better visibility
+    this.playerHpText.setAlpha(0.9); // slightly fade the player HP text for a more integrated look
 
     this.playerShieldText = this.add.text(48, 116, '', { 
       fontSize: '15px', 
-      color: '#7fd7ff' 
-    }); // player shield text
+      color: '#7fd7ff',
+      fontStyle: 'bold',
+    }).setDepth(5); // player shield text
+    this.playerShieldText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the player shield text for better visibility
+    this.playerShieldText.setAlpha(0.9); // slightly fade the player shield text for a more integrated look
 
     this.add.text(48, 136, 'EE', { 
       fontSize: '15px', 
       color: '#9ae66e', 
       fontStyle: 'bold' 
-    }); // elemental energy label
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // elemental energy label
 
-    this.playerEeBar = this.add.graphics(); // player elemental energy bar renderer
+    this.playerEeBar = this.add.graphics().setDepth(5); // player elemental energy bar renderer
     this.add.text(48, 166, 'EI', { 
       fontSize: '15px', 
       color: '#69c0ff', 
       fontStyle: 'bold' 
-    }); // instinct energy label
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // instinct energy label
 
-    this.playerEiBar = this.add.graphics(); // player instinct energy bar renderer
+    this.playerEiBar = this.add.graphics().setDepth(5); // player instinct energy bar renderer
 
     this.totalXpText = this.add.text(48, 188, `XP: ${this.totalXp}`, {
       fontSize: '14px',
       color: '#66ccff',
-    }); // running XP total
+      fontStyle: 'bold'
+    }).setDepth(5); // running XP total
+    this.totalXpText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the total XP text for better visibility
+    this.totalXpText.setAlpha(0.9); // slightly fade the total XP text for a more integrated look
 
     this.totalCoinsText = this.add.text(170, 188, `Coins: ${this.totalCoins}`, {
       fontSize: '14px',
       color: '#ffd700',
-    }); // running coin total
+      fontStyle: 'bold'
+    }).setDepth(5); // running coin total
+    this.totalCoinsText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the total coins text for better visibility
+    this.totalCoinsText.setAlpha(0.9); // slightly fade the total coins text for a more integrated look
 
     this.add.text(this.cameras.main.width - 292, 34, 'Enemy', {
       fontSize: '22px',
       color: '#ff6666',
       fontStyle: 'bold',
-    }); // enemy panel label
+      stroke: '#330000',
+      strokeThickness: 4
+    }).setDepth(5).setShadow(2, 2, '#000000', 2); // enemy panel label
 
-    this.enemyHpBar = this.add.graphics(); // enemy HP bar renderer
+    this.enemyHpBar = this.add.graphics().setDepth(5); // enemy HP bar renderer
     this.enemyHpText = this.add.text(this.cameras.main.width - 292, 86, '', {
       fontSize: '16px',
       color: '#ffffff',
-    }); // enemy HP text
+      fontStyle: 'bold',
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // enemy HP text
 
     this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 116, '', {
       fontSize: '15px',
       color: '#7fd7ff',
-    }); // enemy shield text
+      fontStyle: 'bold',
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // enemy shield text
 
     this.add.text(this.cameras.main.width - 292, 136, 'EE', {
       fontSize: '15px',
       color: '#9ae66e',
       fontStyle: 'bold',
-    }); // enemy elemental energy label
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // enemy elemental energy label
 
-    this.enemyEeBar = this.add.graphics(); // enemy elemental energy bar renderer
+    this.enemyEeBar = this.add.graphics().setDepth(5); // enemy elemental energy bar renderer
 
     this.add.text(this.cameras.main.width - 292, 166, 'EI', {
       fontSize: '15px',
       color: '#69c0ff',
       fontStyle: 'bold',
-    }); // enemy instinct energy label
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // enemy instinct energy label
 
-    this.enemyEiBar = this.add.graphics(); // enemy instinct energy bar renderer
+    this.enemyEiBar = this.add.graphics().setDepth(5); // enemy instinct energy bar renderer
 
     this.playerDamageText = this.add.text(215, 85, '', {
       fontSize: '18px',
       color: '#ff6666',
       fontStyle: 'bold',
-    }); // floating damage text for the player
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // floating damage text for the player
 
     this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 85, '', {
       fontSize: '18px',
       color: '#ff6666',
       fontStyle: 'bold',
-    }); // floating damage text for the enemy
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // floating damage text for the enemy
 
     this.deckCountText = this.add.text(centerX - 248, 466, '', {
       fontSize: '16px',
       color: '#ffffff',
       fontStyle: 'bold',
-    }).setOrigin(0.5); // deck counter display
+    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // deck counter display
 
     this.discardCountText = this.add.text(centerX + 245, 466, '', {
       fontSize: '16px',
       color: '#ffffff',
       fontStyle: 'bold',
-    }).setOrigin(0.5); // discard counter display
+    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // discard counter display
 
-    this.drawDeckPlaceholder(centerX - 135, 478, 'Deck'); // visual placeholder for the deck pile
+    this.drawDeckPlaceholder(centerX - 135, 478, 'Deck').setDepth(5); // visual placeholder for the deck pile
 
     this.discardDrawHintText = this.add.text(centerX + 243, 486, '<- Click to draw', {
       fontSize: '12px',
       color: '#eed112',
       fontStyle: 'bold',
-    }).setOrigin(0.5); // hint under the discard pile
+    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // hint under the discard pile
   }
 
   private createCharacters() {
@@ -669,6 +718,7 @@ export class DuelScene extends Phaser.Scene {
       const isPlayable = this.isPlayerCardPlayable(card); // determine whether the card can be selected
 
       const cardContainer = this.createCardContainer(x, cardY, card, isPlayable); // render the card UI
+      cardContainer.setDepth(10); // ensure cards are on top of all other UI elements
       this.cardObjects.push(cardContainer); // keep reference for cleanup
     });
   }
@@ -677,6 +727,7 @@ export class DuelScene extends Phaser.Scene {
     this.currentTableCardObject?.destroy(); // remove the previous table card render
     const centerX = this.cameras.main.width / 2; // center the table card
     this.currentTableCardObject = this.createCardContainer(centerX, 305, this.tableCard, true, true, highlightColor); // render the active table card as static
+    this.currentTableCardObject.setDepth(10); // ensure the table card is above the background and panels but below the hand cards
     this.currentTableCardObject.setScale(1.12); // slightly smaller than hand cards to fit the table area
   }
 
@@ -876,7 +927,7 @@ export class DuelScene extends Phaser.Scene {
     }
 
     this.discardTopCardObject = this.createCardContainer(discardX, discardY, topCard, true, true, 0xffffff, 'DISC', 1); // render the top discard card as static
-    this.discardTopCardObject.setScale(0.68); // shrink the preview to fit the pile area
+    this.discardTopCardObject.setScale(0.68).setDepth(5); // shrink the preview to fit the pile area and set depth below the hand cards
     
     this.discardClickZone = this.add.zone(discardX, discardY, 150, 110) // invisible hotspot over the discard pile
       .setInteractive({ useHandCursor: true })
@@ -1636,16 +1687,31 @@ export class DuelScene extends Phaser.Scene {
     const overlay = this.add.graphics(); // overlay graphic for the victory screen
     overlay.fillStyle(0x000000, 1.0); // full-screen dark overlay
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height); // cover the scene
+    overlay.setDepth(15);
 
-    this.add.text(centerX, centerY - 80, 'Enemy Defeated!', { fontSize: '48px', color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5); // victory headline
-    this.add.text(centerX, centerY - 10, `+${xpWon} XP  |  +50 Coins`, { fontSize: '26px', color: '#ffffff' }).setOrigin(0.5); // reward summary
-    this.add.text(centerX, centerY + 30, `Run Total — XP: ${this.totalXp + this.duelXp}  Coins: ${this.totalCoins + this.duelCoins}`, { fontSize: '20px', color: '#ffd700' }).setOrigin(0.5); // updated totals
+    this.add.text(centerX, centerY - 80, 'Enemy Defeated!', { fontSize: '48px', color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5).setDepth(16); // victory headline
+    this.add.text(centerX, centerY - 10, `+${xpWon} XP  |  +50 Coins`, { fontSize: '26px', color: '#ffffff' }).setOrigin(0.5).setDepth(16); // reward summary
+    this.add.text(centerX, centerY + 30, `Run Total — XP: ${this.totalXp + this.duelXp}  Coins: ${this.totalCoins + this.duelCoins}`, { fontSize: '20px', color: '#ffd700' }).setOrigin(0.5).setDepth(16); // updated totals
 
     const continueBtn = this.add.text(centerX, centerY + 120, 'Continue', { fontSize: '28px', color: '#ffffff' })
       .setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerover', () => continueBtn.setColor('#00ff88')) // hover feedback
       .on('pointerout', () => continueBtn.setColor('#ffffff')) // restore default color
-      .on('pointerdown', () => this.advanceToNextCycle()); // proceed to next cycle
+      .on('pointerdown', () => this.advanceToNextCycle()).setDepth(16); // proceed to next cycle
+  }
+
+  endRun() {
+    console.log('endRun() called, runId:', this.runId);
+    if (this.runEnded) return;
+    this.runEnded = true;
+    // Use committed totals only — duelCoins/duelXp are only committed to RunData on a WIN (advanceToNextCycle)
+    console.log('completeRun args:', { runId: this.runId, coins: this.totalCoins, xp: this.totalXp, maxLevel: this.level });
+    completeRun(this.runId, this.totalCoins, this.totalXp, this.level)
+      .catch((err: unknown) => console.error('completeRun failed:', err));
+    if (this.sidebarNavHandler) {
+      window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
+      this.sidebarNavHandler = null;
+    }
   }
 
   endRun() {
@@ -1673,21 +1739,60 @@ export class DuelScene extends Phaser.Scene {
     const overlay = this.add.graphics(); // full-screen overlay graphic
     overlay.fillStyle(0x000000, 1.0); // solid black background
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height); // cover the whole scene
+    overlay.setDepth(15);
 
-    this.add.text(centerX, centerY - 100, 'Game Over', { fontSize: '64px', color: '#ff4444', fontStyle: 'bold' }).setOrigin(0.5); // game over title
-    this.add.text(centerX, centerY - 20, `Levels Won: ${this.levelsWon}`, { fontSize: '32px', color: '#ffffff' }).setOrigin(0.5); // run victory count
-    this.add.text(centerX, centerY + 20, `Total XP: ${grandXp}  |  Total Coins: ${grandCoins}`, { fontSize: '24px', color: '#ffd700' }).setOrigin(0.5); // final rewards summary
+    this.add.text(centerX, centerY - 100, 'Game Over', { fontSize: '64px', color: '#ff4444', fontStyle: 'bold' }).setOrigin(0.5).setDepth(16); // game over title
+    this.add.text(centerX, centerY - 20, `Levels Won: ${this.levelsWon}`, { fontSize: '32px', color: '#ffffff' }).setOrigin(0.5).setDepth(16); // run victory count
+    this.add.text(centerX, centerY + 20, `Total XP: ${grandXp}  |  Total Coins: ${grandCoins}`, { fontSize: '24px', color: '#ffd700' }).setOrigin(0.5).setDepth(16); // final rewards summary
 
     const restartBtn = this.add.text(centerX, centerY + 90, 'Play Again', { fontSize: '32px', color: '#ffffff' })
       .setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerover', () => restartBtn.setColor('#00ff88')) // hover feedback
       .on('pointerout', () => restartBtn.setColor('#ffffff')) // restore default color
-      .on('pointerdown', () => this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 })); // start a fresh run
+      .on('pointerdown', () => this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 })).setDepth(16); // start a fresh run
 
     const menuBtn = this.add.text(centerX, centerY + 150, 'Menu', { fontSize: '24px', color: '#888888' })
       .setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerover', () => menuBtn.setColor('#ffffff')) // hover feedback
       .on('pointerout', () => menuBtn.setColor('#888888')) // restore default color
-      .on('pointerdown', () => { this.time.delayedCall(100, () => { this.scene.start('MenuScene'); }); }); // return to the main menu
+      .on('pointerdown', () => { this.time.delayedCall(100, () => { this.scene.start('MenuScene'); }); }).setDepth(16); // return to the main menu
+  }
+
+  private drawMetalPlate(graphics: Phaser.GameObjects.Graphics, width: number, height: number, pressed: boolean, x: number, y: number) {
+    // Drop shadow for depth
+    graphics.fillStyle(0x000000, 0.4);
+    graphics.fillRoundedRect(x + 4, y + 4, width, height, 6);
+    // Body of the plate
+    graphics.fillStyle(pressed ? 0x222222 : 0x444444, 1);
+    graphics.fillRoundedRect(x, y, width, height, 4);
+    const topColor = pressed ? 0x333333 : 0x999999;
+    const bottomColor = pressed ? 0x111111 : 0x666666;
+    // Light source is from the top, so the top half is lighter and the bottom half is darker to create a beveled effect
+    graphics.fillStyle(topColor, 1);
+    graphics.fillRect(x + 4, y + 4, width - 8, (height / 2) - 4);
+    graphics.fillStyle(bottomColor, 1);
+    graphics.fillRect(x + 4, y + (height / 2), width - 8, (height / 2) - 4);
+    if (!pressed) {
+        graphics.lineStyle(2, 0xffffff, 0.3);
+        graphics.lineBetween(x + 5, y + 5, x + width - 5, y + 5);
+    }
+    // Rivets
+    const rivetColor = pressed ? 0x000000 : 0x222222;
+    const offset = 12;
+    const rSize = 4;
+    const corners = [
+        [x + offset, y + offset], 
+        [x + width - offset, y + offset], 
+        [x + offset, y + height - offset], 
+        [x + width - offset, y + height - offset]
+    ];
+    corners.forEach(pos => {
+        graphics.fillStyle(rivetColor, 1);
+        graphics.fillCircle(pos[0], pos[1], rSize);
+        if(!pressed) {
+            graphics.fillStyle(0xffffff, 0.2);
+            graphics.fillCircle(pos[0] - 1, pos[1] - 1, rSize / 2);
+        }
+    });
   }
 }

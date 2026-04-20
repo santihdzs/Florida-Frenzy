@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { rectIntersect } from '../physics/customPhysics';
+import music from '../assets/music/Lowland_Hymn.mp3';
 
 // World
 const TILE = 48;
@@ -102,6 +103,10 @@ export class PlatformerScene extends Phaser.Scene {
     super({ key: 'PlatformerScene' });
   }
 
+  preload() {
+    this.load.audio('platformer-music', music); // load background music for the platformer, imported directly for Vite compatibility
+  }
+
   init(data: { levelCount?: number }) {
     this.levelCount = data.levelCount ?? 0;
     this.done       = false;
@@ -113,6 +118,11 @@ export class PlatformerScene extends Phaser.Scene {
   }
 
   create() {
+    // Music
+    this.sound.stopAll(); // stop any music that might be playing (e.g. from the tutorial)
+    const currentMusic = this.sound.add('platformer-music', { loop: true, volume: 0.5 });
+    currentMusic.play();
+
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
 
     const grid = this.generateGrid();
