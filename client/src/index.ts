@@ -1,8 +1,14 @@
 import Phaser from 'phaser';
+
+declare global {
+  interface Window {
+    __phaserGame?: Phaser.Game;
+  }
+}
 import { isLoggedIn } from './utils/auth.js';
 import { MenuScene } from './scenes/MenuScene';
 import { DuelScene } from './scenes/DuelScene';
-import { EvergladesScene } from './scenes/EvergladesScene';
+import { RunScene } from './scenes/RunScene';
 import { PlatformerScene } from './scenes/PlatformerScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { InstructionScene } from './scenes/InstructionScene';
@@ -12,6 +18,7 @@ import { TutorialScene } from './scenes/TutorialScene';
 import { TutorialScene2 } from './scenes/TutorialScene2';
 import { ShopScene } from './scenes/ShopScene';
 import { StatsScene } from './scenes/StatsScene';
+import { FriendsScene } from './scenes/FriendsScene';
 
 // Skip the welcome screen narrative if the player is already logged in
 if (isLoggedIn()) {
@@ -29,11 +36,29 @@ const config: Phaser.Types.Core.GameConfig = { // Phaser game configuration obje
     mode: Phaser.Scale.FIT, // scale the game to fit the available space while maintaining aspect ratio
     autoCenter: Phaser.Scale.CENTER_BOTH, // center the game canvas both horizontally and vertically
   },
-  scene: [MenuScene, DuelScene, EvergladesScene, PlatformerScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene],
+  scene: [MenuScene, DuelScene, RunScene, PlatformerScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene],
 };
 
 const game = new Phaser.Game(config); // create a new Phaser game instance with the specified configuration
-(window as any).__phaserGame = game; // expose game instance for HTML sidebar navigation
+window.__phaserGame = game; // expose game instance for HTML sidebar navigation
+
+document.addEventListener('focusin', (e) => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    window.__phaserGame?.input.keyboard?.enabled && (window.__phaserGame.input.keyboard.enabled = false);
+  }
+});
+
+document.addEventListener('focusout', (e) => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    const kb = window.__phaserGame?.input?.keyboard;
+    if (kb) kb.enabled = true;
+  }
+});
+
+// Apply saved mute state on boot
+if (localStorage.getItem('ff_muted') === 'true') {
+  game.sound.mute = true;
+}
 
 // Global F key fullscreen toggle — same logic as SettingsScene so both stay in sync
 window.addEventListener('keydown', (e: KeyboardEvent) => {

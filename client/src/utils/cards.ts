@@ -11,7 +11,7 @@
 // Element types, card categories, and rarities for the game
 export type Element = 'fire' | 'water' | 'swamp' | 'sand' | 'ice';
 export type CardCategory = 'attack' | 'defense' | 'status' | 'special';
-export type CardRarity = 'base' | 'effect' | 'rare' | 'clan';
+export type CardRarity = 'base' | 'effect' | 'rare' | 'legendary';
 
 // Possible effects that a card can have in the game
 export type CardEffect =
@@ -729,13 +729,13 @@ export const ICE_CARD_POOL: Card[] = [
 ]
 
 
-// Clan (legendary) Cards (5 cards)
-export const CLAN_CARD_POOL: Card[] = [
+// Legendary Cards (5 cards)
+export const LEGENDARY_CARD_POOL: Card[] = [
   createCard({
     name: 'Crocodile',
     element: 'swamp',
     category: 'special',
-    rarity: 'clan',
+    rarity: 'legendary',
     power: null,
     effect: 'AMPLIFY',
     effectDescription: 'Imita la carta en juego, e incrementa su efecto/daño un 5%',
@@ -754,7 +754,7 @@ export const CLAN_CARD_POOL: Card[] = [
     name: 'Alligator',
     element: 'water',
     category: 'special',
-    rarity: 'clan',
+    rarity: 'legendary',
     power: null,
     effect: 'IMMUNITY',
     effectDescription: 'Convierte todo el daño recibido en escudo durante 1 turno',
@@ -773,7 +773,7 @@ export const CLAN_CARD_POOL: Card[] = [
     name: 'Gavial',
     element: 'sand',
     category: 'special',
-    rarity: 'clan',
+    rarity: 'legendary',
     power: null,
     effect: 'HAND_RESET',
     effectDescription: 'Permite reorganizar la mano completamente',
@@ -791,7 +791,7 @@ export const CLAN_CARD_POOL: Card[] = [
     name: 'Caiman',
     element: 'swamp',
     category: 'special',
-    rarity: 'clan',
+    rarity: 'legendary',
     power: null,
     effect: 'RANDOM_STATUS',
     effectDescription: 'Aplica un estado aleatorio al enemigo',
@@ -810,7 +810,7 @@ export const CLAN_CARD_POOL: Card[] = [
     name: 'Sarcosuchus',
     element: 'fire',
     category: 'special',
-    rarity: 'clan',
+    rarity: 'legendary',
     power: null,
     effect: 'EXECUTE',
     effectDescription: 'Reduce al enemigo a 1 HP y 1 escudo',
@@ -839,12 +839,12 @@ export function getIceCardPool(): Card[] {
   return ICE_CARD_POOL.map(cloneCard);
 }
 
-export function getClanCardPool(): Card[] {
-  return CLAN_CARD_POOL.map(cloneCard);
+export function getLegendaryCardPool(): Card[] {
+  return LEGENDARY_CARD_POOL.map(cloneCard);
 }
 
 export function getFullCardPool(): Card[] {
-  return [ ...getBaseCardPool(), ...getSpecialCardPool(), ...getIceCardPool(), ...getClanCardPool() ];
+  return [ ...getBaseCardPool(), ...getSpecialCardPool(), ...getIceCardPool(), ...getLegendaryCardPool() ];
 }
 
 
@@ -865,10 +865,6 @@ export function generateDeck(size = 12): Card[] {
     const preparedCard = cloneCard(card);
     return withUniqueID(preparedCard, `deck-${index}-${Date.now()}`);
   });
-}
-
-export function drawCards(deck: Card[], count: number): Card[] {
-  return deck.slice(0, count);
 }
 
 export function drawOneCard(deck: Card[]): Card | null {
@@ -940,30 +936,3 @@ export function resolveCardEffect(card: Card): CardResolution {
   };
 }
 
-// Unfinished temporal demo for current DuelScene implementation, to be expanded with actual effect logic
-export function compareCards(playerCard: Card, enemyCard: Card): 'win' | 'lose' | 'draw' {
-  const playerResolution = resolveCardEffect(playerCard);
-  const enemyResolution = resolveCardEffect(enemyCard);
-
-  const playerScore = playerResolution.damage + playerResolution.shield + playerResolution.effectValue + playerCard.energyEGain + playerCard.energyIGain;
-  const enemyScore = enemyResolution.damage + enemyResolution.shield + enemyResolution.effectValue + enemyCard.energyEGain + enemyCard.energyIGain;
-
-  if (canPlayCard(playerCard, enemyCard) && !canPlayCard(enemyCard, playerCard)) {
-    return 'win';
-  }
-
-  if (!canPlayCard(playerCard, enemyCard) && canPlayCard(enemyCard, playerCard)) {
-    return 'lose';
-  }
-
-  if (playerCard.element === enemyCard.element) {
-    const playerP = playerCard.power ?? 0;
-    const enemyP = enemyCard.power ?? 0;
-    if (playerP > enemyP) return 'win';
-    if (playerP < enemyP) return 'lose';
-  }
-
-  if (playerScore > enemyScore) return 'win';
-  if (playerScore < enemyScore) return 'lose';
-  return 'draw';
-}

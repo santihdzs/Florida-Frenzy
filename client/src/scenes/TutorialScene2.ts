@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
 import { DuelScene } from './DuelScene';
-import klanUrl from '../assets/sprites/Klan.png';
+import clanUrl from '../assets/sprites/Klan.png';
 import { markTutorialComplete } from '../utils/auth.js';
 
 export class TutorialScene2 extends DuelScene { // extends of the DuelScene because it inherits from it
-    private klanPortrait!: Phaser.GameObjects.Image;
+    private clanPortrait!: Phaser.GameObjects.Image;
     private tutorialText!: Phaser.GameObjects.Text;
     private tutorialStep = 0;
     private tutorialContainer!: Phaser.GameObjects.Container;
@@ -15,16 +15,16 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
 
     preload() {
         super.preload(); 
-        this.load.image('spr-klan', klanUrl);
+        this.load.image('spr-clan', clanUrl);
     }
 
     create() {
         super.create(); 
-        this.createKlanTutorialHud();
+        this.createClanTutorialHud();
         this.startTutorial();
     }
 
-    private createKlanTutorialHud() {
+    private createClanTutorialHud() {
         const { width, height } = this.cameras.main;
         
         const bg = this.add.graphics();
@@ -32,7 +32,7 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
         bg.fillRoundedRect(0, 0, 450, 110, 15);
         bg.lineStyle(3, 0x00ff88).strokeRoundedRect(0, 0, 450, 110, 15);
 
-        this.klanPortrait = this.add.image(10, 10, 'spr-klan').setDisplaySize(90, 90).setOrigin(0);
+        this.clanPortrait = this.add.image(10, 10, 'spr-clan').setDisplaySize(90, 90).setOrigin(0);
 
         const textStyle = {
             fontFamily: 'Impact, Arial black, sans-serif',
@@ -44,7 +44,7 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
         this.tutorialText = this.add.text(115, 20, '', textStyle);
 
         // position for the container of instructions
-        this.tutorialContainer = this.add.container(width / 2 - 225, height - 250, [bg, this.klanPortrait, this.tutorialText]);
+        this.tutorialContainer = this.add.container(width / 2 - 225, height - 250, [bg, this.clanPortrait, this.tutorialText]);
         this.tutorialContainer.setDepth(10000); 
     }
 
@@ -92,8 +92,8 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
         this.tutorialText.setColor(color);
         
         this.tweens.add({
-            targets: this.klanPortrait,
-            scale: (95/this.klanPortrait.width), // Pulso basado en escala real
+            targets: this.clanPortrait,
+            scale: (95/this.clanPortrait.width), // Pulso basado en escala real
             duration: 100,
             yoyo: true
         });

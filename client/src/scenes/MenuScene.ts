@@ -1,3 +1,5 @@
+// Santiago Hernandez, Yael Ordaz
+
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.png';
 import titleLogo from '../assets/logos/logo.png';
@@ -79,7 +81,11 @@ export class MenuScene extends Phaser.Scene {
       letterSpacing: -1,
     };
 
-    // ── Main area buttons: MULTIPLAYER, STORE, SETTINGS, LOG IN/OUT ──
+    // Apply mute state
+    const isMuted = localStorage.getItem('ff_muted') === 'true';
+    if (isMuted) this.sound.mute = true;
+
+    // ── Main area buttons: MULTIPLAYER, SHOP, FRIENDS, LOG IN/OUT ──
     const logoutLabel  = isLoggedIn() ? 'LOG OUT' : 'LOG IN';
     const logoutAction = isLoggedIn()
       ? () => logout()
@@ -89,9 +95,9 @@ export class MenuScene extends Phaser.Scene {
     const mainH = 68;
 
     this.createButton(cx, 320, mainW, mainH, 'PLAY',        () => this.startGame(),                 textStyle);
-    this.createButton(cx, 410, mainW, mainH, 'MULTIPLAYER', () => this.Multiplayerfalse(),          textStyle);
-    this.createButton(cx, 490, mainW, mainH, 'STORE',       () => this.scene.start('ShopScene'),    textStyle);
-    this.createButton(cx, 570, mainW, mainH, 'SETTINGS',    () => this.settingsScene(),              textStyle);
+    this.createButton(cx, 410, mainW, mainH, 'MULTIPLAYER', () => this.showMultiplayerComingSoon(), textStyle);
+    this.createButton(cx, 490, mainW, mainH, 'SHOP',         () => this.scene.start('ShopScene'),    textStyle);
+    this.createButton(cx, 570, mainW, mainH, 'FRIENDS',     () => this.scene.start('FriendsScene'), textStyle);
     this.createButton(cx, 650, mainW, mainH, logoutLabel,   logoutAction,                            textStyle);
   }
 
@@ -175,21 +181,13 @@ export class MenuScene extends Phaser.Scene {
     }
     this.sound.stopByKey('menu-music');
     if (hasCompletedTutorial()) {
-      this.scene.start('EvergladesScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 });
+      this.scene.start('RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 });
     } else {
       this.scene.start('TutorialScene');
     }
   }
 
-  settingsScene() {
-    this.scene.start('SettingsScene');
-  }
-
-  instruction() {
-    this.scene.start('InstructionScene');
-  }
-
-  Multiplayerfalse() {
+  showMultiplayerComingSoon() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
@@ -219,54 +217,4 @@ export class MenuScene extends Phaser.Scene {
     okBtn.setDepth(101);
   }
 
-  exitGame() {
-    this.sound.stopByKey('menu-music');
-    this.input.enabled = false;
-    const overlay = this.add.graphics();
-    overlay.fillStyle(0x000000, 1);
-    overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
-    overlay.setAlpha(0).setDepth(100);
-    this.tweens.add({
-      targets: overlay, alpha: 1, duration: 800, ease: 'Power2',
-      onComplete: () => { window.location.reload(); },
-    });
-  }
-
-  showExit() {
-    const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
-
-    const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6)
-      .setOrigin(0).setDepth(90).setInteractive();
-
-    const modal = this.add.container(centerX, centerY).setDepth(101);
-    const width = 500; const height = 280;
-    const background = this.add.graphics();
-    this.drawMetalPlate(background, width, height, false);
-
-    const text = this.add.text(0, -50, 'ARE YOU SURE?', {
-      fontFamily: 'Impact, Arial black, sans-serif',
-      fontSize: '32px', color: '#c2baba',
-      stroke: '#000000', strokeThickness: 3, align: 'center',
-    }).setOrigin(0.5);
-
-    const textStyle = {
-      fontFamily: 'Impact, Arial black, sans-serif',
-      fontSize: '28px', color: '#c2baba',
-      stroke: '#000000', strokeThickness: 2,
-    };
-
-    const yesBtn = this.createButton(-100, 60, 140, 60, 'YES', () => this.exitGame(), textStyle);
-    const noBtn  = this.createButton( 100, 60, 140, 60, 'NO',  () => {
-      overlay.destroy();
-      modal.destroy();
-      this.input.enabled = true;
-    }, textStyle);
-
-    modal.add([background, text, yesBtn, noBtn]);
-    modal.setScale(0.5).setAlpha(0);
-    this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 300, ease: 'Back.easeOut' });
-    yesBtn.setDepth(101);
-    noBtn.setDepth(101);
-  }
 }

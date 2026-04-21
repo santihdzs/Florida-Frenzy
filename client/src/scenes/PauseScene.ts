@@ -35,7 +35,7 @@ export class PauseScene extends Phaser.Scene {
         this.add.rectangle(0, 0, width, height, 0x000000, 0.65).setOrigin(0); // semi-transparent background
 
         this.add.text(centerX, centerY - 120, 'PAUSED', {
-            fontFamily: 'IMpact, sans-serif',
+            fontFamily: 'Impact, sans-serif',
             fontSize: '52px',
             color: '#feec00',
             stroke: '#000000',

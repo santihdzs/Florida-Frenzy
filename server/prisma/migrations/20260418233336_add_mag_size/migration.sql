@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Player" ADD COLUMN     "magSize" INTEGER NOT NULL DEFAULT 10;

@@ -34,8 +34,73 @@ const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
         },
       });
 
+      const playerIds = players.map(p => p.id);
+      const bestLevels = await fastify.prisma.run.groupBy({
+        by: ['playerId'],
+        where: { playerId: { in: playerIds } },
+        _max: { maxLevel: true },
+      });
+
+      const bestLevelMap = new Map(
+        bestLevels.map(r => [r.playerId, r._max.maxLevel ?? 0])
+      );
+
       return reply.send(
-        players.map((p) => ({ ...p, clanRank: computeClanRank(p.maxXp) }))
+        players.map(p => {
+          const bestLevel = bestLevelMap.get(p.id) ?? 0;
+          return { ...p, bestLevel, clanRank: computeClanRank(bestLevel) };
+        })
+      );
+    }
+  );
+
+  // GET /api/leaderboard/friends — requires auth
+  fastify.get(
+    '/friends',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const playerId = request.user.playerId;
+
+      // Get all accepted friendships involving this player
+      const friendships = await fastify.prisma.friendship.findMany({
+        where: {
+          status: 'ACCEPTED',
+          OR: [{ senderId: playerId }, { receiverId: playerId }],
+        },
+        select: {
+          senderId: true,
+          receiverId: true,
+        },
+      });
+
+      // Collect all friend IDs plus the current player
+      const friendIds = friendships.map(f =>
+        f.senderId === playerId ? f.receiverId : f.senderId
+      );
+      const allIds = [playerId, ...friendIds];
+
+      const players = await fastify.prisma.player.findMany({
+        where: { id: { in: allIds } },
+        orderBy: { maxXp: 'desc' },
+        take: 10,
+        select: { id: true, username: true, maxXp: true },
+      });
+
+      const bestLevels = await fastify.prisma.run.groupBy({
+        by: ['playerId'],
+        where: { playerId: { in: allIds } },
+        _max: { maxLevel: true },
+      });
+
+      const bestLevelMap = new Map(
+        bestLevels.map(r => [r.playerId, r._max.maxLevel ?? 0])
+      );
+
+      return reply.send(
+        players.map(p => {
+          const bestLevel = bestLevelMap.get(p.id) ?? 0;
+          return { ...p, bestLevel, clanRank: computeClanRank(bestLevel) };
+        })
       );
     }
   );

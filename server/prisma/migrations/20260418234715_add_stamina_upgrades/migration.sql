@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Player" ADD COLUMN     "staminaPool" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "staminaRegen" INTEGER NOT NULL DEFAULT 1;
