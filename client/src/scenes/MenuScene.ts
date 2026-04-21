@@ -1,3 +1,5 @@
+// Santiago Hernandez, Yael Ordaz
+
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.png';
 import titleLogo from '../assets/logos/logo.png';

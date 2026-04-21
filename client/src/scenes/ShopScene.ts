@@ -1,3 +1,5 @@
+// Santiago Hernandez - A01787550
+
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.png';
 import { getPlayer, upgradeHp, upgradeGunDamage, upgradeFireRate, upgradeReloadTime, upgradeNoReload, upgradeMagSize, upgradeStaminaPool, upgradeStaminaRegen } from '../utils/auth.js';

@@ -1,3 +1,5 @@
+// Santiago Hernandez - A01787550
+
 const API_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
 
 // SHA-256 hash a string (returns hex string)

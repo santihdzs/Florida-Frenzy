@@ -1,3 +1,5 @@
+// Santiago Hernandez - A01787550
+
 import Phaser from 'phaser';
 import evTilesUrl from '../assets/maps/everglades.png';
 import chrisAvatarUrl from '../assets/sprites/Chris.png';
@@ -60,10 +62,10 @@ const PROJ_SPEED = 420;
 
 const HEAL_PER_SEC = 12;
 
-const CAMERA_SCROLL_BASE = 67.5;
+const CAMERA_SCROLL_BASE = 100;
 
 const RUNS_PER_CYCLE = 3;
-const END_COL         = COLS - 5;
+const END_COL         = COLS - 1;
 const START_COLS      = 4;
 
 const FLOOR   = 0;
@@ -1194,7 +1196,7 @@ export class RunScene extends Phaser.Scene {
     const cam  = this.cameras.main;
     const camW = cam.width;
     const camH = cam.height;
-    const spd  = CAMERA_SCROLL_BASE * Math.min(3.5, 1 + 0.05 * (this.level - 1));
+    const spd  = CAMERA_SCROLL_BASE * Math.min(2, 1 + 0.05 * (this.level - 1));
     const maxX = Math.max(0, WORLD_W - camW);
     const maxY = Math.max(0, WORLD_H - camH);
 

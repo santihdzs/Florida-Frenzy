@@ -1,3 +1,5 @@
+// Yael Ordaz, Santiago Hernandez
+
 import Phaser from 'phaser';
 import { getPlayer, updatePreferences, isLoggedIn } from '../utils/auth.js';
 
