@@ -44,7 +44,7 @@ import {
 
 import { createBaseDiscardPile } from '../utils/duelSetup';
 
-import { updateHpBar, updateEnergyBar } from '../utils/duelUi'; // reusable UI rendering functions for HP and energy bars
+import { updateHpBar, updateEnergyBar, updateShieldBar } from '../utils/duelUi'; // reusable UI rendering functions for HP and energy bars
 
 import { CombatState, createEmptyCombatState } from '../utils/combatState'; // combat status container and reset helper
 
@@ -117,6 +117,8 @@ export class DuelScene extends Phaser.Scene {
   protected tableCardLabel!: Phaser.GameObjects.Text; // label above the table card
   private discardCountText!: Phaser.GameObjects.Text; // discard count display
   private deckCountText!: Phaser.GameObjects.Text; // deck count display
+  private playerShieldBar!: Phaser.GameObjects.Graphics; // player shield bar graphics
+  private enemyShieldBar!: Phaser.GameObjects.Graphics; // enemy shield bar graphics  
   private playerShieldText!: Phaser.GameObjects.Text; // player shield display
   private enemyShieldText!: Phaser.GameObjects.Text; // enemy shield display
 
@@ -416,11 +418,14 @@ export class DuelScene extends Phaser.Scene {
     this.playerHpText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the player HP text for better visibility
     this.playerHpText.setAlpha(0.9); // slightly fade the player HP text for a more integrated look
 
-    this.playerShieldText = this.add.text(48, 86, '', { 
+    this.playerShieldBar = this.add.graphics().setDepth(5); // player shield bar renderer
+    this.playerShieldText = this.add.text(150, 86, '', { 
       fontSize: '15px', 
-      color: '#7fd7ff',
+      color: '#ffffff',
       fontStyle: 'bold',
-    }).setDepth(5); // player shield text
+      stroke: '#003311',
+      strokeThickness: 4
+    }).setDepth(6); // player shield text
     this.playerShieldText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the player shield text for better visibility
     this.playerShieldText.setAlpha(0.9); // slightly fade the player shield text for a more integrated look
 
@@ -472,10 +477,13 @@ export class DuelScene extends Phaser.Scene {
       strokeThickness: 4
     }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // enemy HP text
 
-    this.enemyShieldText = this.add.text(this.cameras.main.width - 140, 86, '', {
+    this.enemyShieldBar = this.add.graphics().setDepth(5); // enemy shield bar renderer
+    this.enemyShieldText = this.add.text(this.cameras.main.width - 190, 86, '', {
       fontSize: '15px',
-      color: '#7fd7ff',
+      color: '#ffffff',
       fontStyle: 'bold',
+      stroke: '#003311',
+      strokeThickness: 4
     }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // enemy shield text
 
     this.add.text(this.cameras.main.width - 292, 136, 'EE', {
@@ -600,8 +608,8 @@ export class DuelScene extends Phaser.Scene {
     updateEnergyBar(this.playerEiBar, this.playerInstinctEnergy, 82, 166, 220, 12, 0x4db8ff); // update player instinct energy
     updateEnergyBar(this.enemyEeBar, this.enemyElementalEnergy, this.cameras.main.width - 258, 138, 220, 12, 0x7cd957); // update enemy elemental energy
     updateEnergyBar(this.enemyEiBar, this.enemyInstinctEnergy, this.cameras.main.width - 258, 166, 220, 12, 0x4db8ff); // update enemy instinct energy
-    this.playerShieldText.setText(`Shield: ${this.playerState.shield}`); // refresh player shield text
-    this.enemyShieldText.setText(`Shield: ${this.enemyState.shield}`); // refresh enemy shield text
+    updateShieldBar(this.playerShieldBar, this.playerState.shield, 48, 84, this.playerShieldText); // update player shield visuals
+    updateShieldBar(this.enemyShieldBar, this.enemyState.shield, this.cameras.main.width - 292, 84, this.enemyShieldText); // update enemy shield visuals
     this.deckCountText.setText(`Deck: ${this.playerDeck.length}`); // refresh player deck count
     this.discardCountText.setText(`Discard: ${this.discardPile.length}`); // refresh discard count
     this.totalXpText.setText(`XP: ${this.totalXp}`); // refresh total XP display
@@ -948,6 +956,14 @@ export class DuelScene extends Phaser.Scene {
   private isPlayerCardPlayable(card: Card): boolean {
     if (!canPlayCard(card, this.tableCard)) return false; // enforce element/power compatibility
     if (this.playerState.blockedNumberTurnCounter !== null && card.power === this.playerState.blockedNumberTurnCounter) return false; // block forbidden number plays
+    if (this.playerState.jamTurnCounter > 0 && card.rarity !== 'base') return false; // jam status blocks all non-base cards
+    if (this.playerState.blockFireTurnCounter > 0 && card.element === 'fire') return false; // block fire cards during the block fire status
+    
+    if (this.playerState.iceFloodLockTurnCounter > 0) { // if the enemy is currently locked into the Ice Flood wildcard power, enforce that restriction
+      if (card.rarity === 'effect' && card.element !== 'ice') return false; // effects other than ice are blocked during the lock
+      if (card.rarity === 'base' && card.power !== this.playerState.forcedResponseNumber) return false; // base cards that don't match the locked power are blocked during the lock
+    }
+    
     return true; // card is legal to play
   }
 
@@ -1236,10 +1252,12 @@ export class DuelScene extends Phaser.Scene {
         defenderState.blockFireTurnCounter = Math.max(defenderState.blockFireTurnCounter, card.effectDuration || 1); 
         break; // prevent fire cards for a short time
 
-      case 'RAGE': 
-        if ((isPlayer ? this.playerHp : this.enemyHp) <= MAX_HP / 2) damage *= 2; 
-        break; // double damage when under half HP
-      
+      case 'RAGE': {
+        const defenderHP = isPlayer ? this.enemyHp : this.playerHp;
+        if (defenderHP <= MAX_HP / 2) damage *= 2; // double damage if the opponent is below half health
+        break; // conditional damage boost based on opponent's HP
+      }
+
       case 'EXPLOSION': 
         selfDamage = card.effectValue; 
         break; // explosion damages the attacker too
@@ -1249,8 +1267,8 @@ export class DuelScene extends Phaser.Scene {
       
       case 'HEAL': 
         attackerState.shield += card.shieldValue; 
-        this.healSide(attacker, Math.ceil(card.shieldValue * (card.effectValue / 100))); 
-        damage = 0; 
+        this.healSide(attacker, card.effectValue);
+        damage = 0;
         break; // heal and grant shield
 
       case 'DOUBLE_SHIELD': 
