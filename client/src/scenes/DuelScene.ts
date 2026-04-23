@@ -361,12 +361,12 @@ export class DuelScene extends Phaser.Scene {
 
     this.levelText = this.add.text(centerX, 50, `Level ${this.level}`, {
       fontSize: '36px',
-      color: '#ffaa00',
+      color: '#d1fcb2',
       fontStyle: 'bold',
-      stroke: '#ffa101',
+      stroke: '#080808',
       strokeThickness: 3
     }).setOrigin(0.5).setDepth(6); // center the level title and ensure it's above the panels but below the cards
-    this.levelText.setShadow(1, 1, '#ffaa00', 2, false, true); // add a shadow to the level text for better visibility
+    this.levelText.setShadow(1, 1, '#84ff00', 2, false, true); // add a shadow to the level text for better visibility
     this.levelText.setAlpha(0.9);
 
 
@@ -378,22 +378,26 @@ export class DuelScene extends Phaser.Scene {
     this.battleMessageText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the battle message text for better visibility
     this.battleMessageText.setAlpha(0.9); // slightly fade the battle message text for a more integrated look
 
-    this.tableCardLabel = this.add.text(centerX, 192, 'Table Card', {
+    this.tableCardLabel = this.add.text(centerX, 185, 'Table Card', {
       fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // label above the main card in play
+      stroke: '#000000',
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#84ff00', 2, false, true).setAlpha(0.9); // label above the main card in play
 
     this.instructionText = this.add.text(centerX, 540, 'Choose a valid card or right-click to discard.', {
       fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 5,
     }).setOrigin(0.5).setDepth(5); // player guidance text
     this.instructionText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the instruction text for better visibility
     this.instructionText.setAlpha(0.9); // slightly fade the instruction text for a more integrated look
 
 
-    this.add.text(48, 34, 'Player', {
+    this.add.text(125, 28, 'PLAYER', {
       fontSize: '22px',
       color: '#00ff88',
       fontStyle: 'bold',
@@ -402,15 +406,17 @@ export class DuelScene extends Phaser.Scene {
     }).setDepth(6).setShadow(2, 2, '#000000', 2); // player panel label
 
     this.playerHpBar = this.add.graphics().setDepth(5); // player HP bar renderer
-    this.playerHpText = this.add.text(48, 86, '', { 
+    this.playerHpText = this.add.text(120, 59, '', { 
       fontSize: '16px', 
       color: '#ffffff',
       fontStyle: 'bold',
+      stroke: '#003311',
+      strokeThickness: 4
     }).setDepth(6); // player HP text is on a higher depth than the bar so it appears on top
     this.playerHpText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the player HP text for better visibility
     this.playerHpText.setAlpha(0.9); // slightly fade the player HP text for a more integrated look
 
-    this.playerShieldText = this.add.text(48, 116, '', { 
+    this.playerShieldText = this.add.text(48, 86, '', { 
       fontSize: '15px', 
       color: '#7fd7ff',
       fontStyle: 'bold',
@@ -449,22 +455,24 @@ export class DuelScene extends Phaser.Scene {
     this.totalCoinsText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the total coins text for better visibility
     this.totalCoinsText.setAlpha(0.9); // slightly fade the total coins text for a more integrated look
 
-    this.add.text(this.cameras.main.width - 292, 34, 'Enemy', {
+    this.add.text(this.cameras.main.width - 220, 28, 'ENEMY', {
       fontSize: '22px',
       color: '#ff6666',
       fontStyle: 'bold',
-      stroke: '#330000',
+      stroke: '#003311',
       strokeThickness: 4
     }).setDepth(5).setShadow(2, 2, '#000000', 2); // enemy panel label
 
     this.enemyHpBar = this.add.graphics().setDepth(5); // enemy HP bar renderer
-    this.enemyHpText = this.add.text(this.cameras.main.width - 292, 86, '', {
+    this.enemyHpText = this.add.text(this.cameras.main.width - 220, 59, '', {
       fontSize: '16px',
       color: '#ffffff',
       fontStyle: 'bold',
+      stroke: '#003311',
+      strokeThickness: 4
     }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // enemy HP text
 
-    this.enemyShieldText = this.add.text(this.cameras.main.width - 292, 116, '', {
+    this.enemyShieldText = this.add.text(this.cameras.main.width - 140, 86, '', {
       fontSize: '15px',
       color: '#7fd7ff',
       fontStyle: 'bold',
@@ -486,37 +494,46 @@ export class DuelScene extends Phaser.Scene {
 
     this.enemyEiBar = this.add.graphics().setDepth(5); // enemy instinct energy bar renderer
 
-    this.playerDamageText = this.add.text(215, 85, '', {
+    this.playerDamageText = this.add.text(215, 58, '', {
       fontSize: '18px',
       color: '#ff6666',
       fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
     }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // floating damage text for the player
 
-    this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 85, '', {
+    this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 58, '', {
       fontSize: '18px',
       color: '#ff6666',
       fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
     }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // floating damage text for the enemy
 
-    this.deckCountText = this.add.text(centerX - 248, 466, '', {
+    this.deckCountText = this.add.text(centerX - 230, 462, '', {
       fontSize: '16px',
       color: '#ffffff',
       fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // deck counter display
+      stroke: '#000000',
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#84ff00', 2, false, true).setAlpha(0.9); // deck counter display
 
-    this.discardCountText = this.add.text(centerX + 245, 466, '', {
+    this.discardCountText = this.add.text(centerX + 240, 462, '', {
       fontSize: '16px',
       color: '#ffffff',
       fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // discard counter display
+      stroke: '#000000',
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#84ff00', 2, false, true).setAlpha(0.9); // discard counter display
 
     this.drawDeckPlaceholder(centerX - 135, 478, 'Deck').setDepth(5); // visual placeholder for the deck pile
 
-    this.discardDrawHintText = this.add.text(centerX + 243, 486, '<- Click to draw', {
+    this.discardDrawHintText = this.add.text(centerX + 243, 489, '<- CLICK TO DRAW', {
       fontSize: '12px',
       color: '#eed112',
       fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // hint under the discard pile
+      stroke: '#fffb00',
+    }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#373600', 2, false, true).setAlpha(0.9); // hint under the discard pile
   }
 
   private createCharacters() {
@@ -960,9 +977,14 @@ export class DuelScene extends Phaser.Scene {
     const previousTableCard = this.tableCard; // keep the previous table card for energy rules
 
     const resolvedCard =
-      card.name === 'Ice Flood' && previousTableCard.rarity === 'base'
-        ? { ...card, power: previousTableCard.power }
-        : { ...card, power: null }; // if the player is playing the Ice Flood wildcard card and the table card is a base card, copy the table card's power value for this play; otherwise, resolve the card normally
+      card.name === 'Ice Flood' 
+      ? (
+        previousTableCard.rarity === 'base'
+        ? { ...card, power: previousTableCard.power } // if the table card is a base card, copy its power value for this play
+        : { ...card, power: null } // if the table card is not a base card, the power is variable and determined by the effect, so we set it to null to indicate it should display as 'FX' and be resolved in the effect logic
+      )
+      : card; // for all other cards, the resolved card is the same as the played card
+
 
     this.playerHand = this.playerHand.filter((handCard) => handCard.id !== card.id); // remove the selected card from the hand
     this.discardPile.push(resolvedCard); // send played card to discard
@@ -1675,9 +1697,9 @@ export class DuelScene extends Phaser.Scene {
     overlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height); // cover the scene
     overlay.setDepth(15);
 
-    this.add.text(centerX, centerY - 80, 'Enemy Defeated!', { fontSize: '48px', color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5); // victory headline
-    this.add.text(centerX, centerY - 10, `+250 XP  |  +100 Coins`, { fontSize: '26px', color: '#ffffff' }).setOrigin(0.5); // reward summary
-    this.add.text(centerX, centerY + 30, `Run Total — XP: ${this.totalXp}  Coins: ${this.totalCoins}`, { fontSize: '20px', color: '#ffd700' }).setOrigin(0.5); // updated totals
+    this.add.text(centerX, centerY - 80, 'Enemy Defeated!', { fontSize: '48px', color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5).setDepth(16); // victory headline
+    this.add.text(centerX, centerY - 10, `+250 XP  |  +100 Coins`, { fontSize: '26px', color: '#ffffff' }).setOrigin(0.5).setDepth(16); // reward summary
+    this.add.text(centerX, centerY + 30, `Run Total — XP: ${this.totalXp}  Coins: ${this.totalCoins}`, { fontSize: '20px', color: '#ffd700' }).setOrigin(0.5).setDepth(16); // updated totals
 
     const continueBtn = this.add.text(centerX, centerY + 120, 'Continue', { fontSize: '28px', color: '#ffffff' })
       .setOrigin(0.5).setInteractive({ useHandCursor: true })

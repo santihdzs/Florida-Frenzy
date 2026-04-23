@@ -1,6 +1,11 @@
 import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
 import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
+import path from 'node:path';
+
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+console.log('DATABASE_URL loaded: ', !!process.env.DATABASE_URL);
 
 declare module 'fastify' {
   interface FastifyInstance {
