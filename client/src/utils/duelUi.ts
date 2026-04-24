@@ -30,6 +30,27 @@ export function updateHpBar( // function that contains the logic for rendering a
     hpText.setText(`${Math.max(0, hp)}/${MAX_HP} HP`); // show numeric HP value
 }
 
+export function updateShieldBar( // function that contains the logic for rendering a shield bar based on current shield value, with color coding and scaling
+    graphics: Phaser.GameObjects.Graphics,
+    shield: number,
+    x: number,
+    y: number,
+    shieldText: Phaser.GameObjects.Text
+) {
+    graphics.clear(); // clear previous shield bar
+    graphics.fillStyle(0x333333, 0.95); // dark background for the shield bar
+    graphics.fillRoundedRect(x, y, 240, 20, 8); // draw the bar track
+
+    const visibleShield = Math.max(0, Math.min(shield, MAX_HP)); // clamp shield to max HP for display
+    graphics.fillStyle(0x4db8ff, 1); // bright blue for shield
+    graphics.fillRoundedRect(x, y, (visibleShield / MAX_HP) * 240, 20, 8); // draw the shield fill
+
+    graphics.lineStyle(2, 0xffffff, 1); // white border for contrast
+    graphics.strokeRoundedRect(x, y, 240, 20, 8); // outline the shield bar
+
+    shieldText.setText(`${Math.max(0, shield)} SH`); // show numeric shield value
+}
+
 export function updateEnergyBar( // function that contains the logic for rendering an energy bar based on current energy, with color coding and scaling
     graphics: Phaser.GameObjects.Graphics,
     value: number,
