@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { listCardsSchema } from '../schemas/card.schema.js';
-import { listCards } from '../services/card.service.js';
+import { listCardsSchema } from '../schemas/cards.schema.js';
+import { listCards } from '../services/cards.service.js';
 
 interface CardsQuery { // Define the query parameters for listing cards
     rarity?: string;

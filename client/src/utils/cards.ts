@@ -844,7 +844,12 @@ export function getLegendaryCardPool(): Card[] {
 }
 
 export function getFullCardPool(): Card[] {
-  return [ ...getBaseCardPool(), ...getSpecialCardPool(), ...getIceCardPool(), ...getLegendaryCardPool() ];
+  return [ 
+    ...getBaseCardPool(), 
+    ...getSpecialCardPool(), 
+    ...getIceCardPool(), 
+    ...getLegendaryCardPool() 
+  ];
 }
 
 

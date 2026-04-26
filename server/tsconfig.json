@@ -1,3 +1,5 @@
+// TypeScript configuration file for the server, 
+// specifying compiler options and included/excluded files
 {
   "compilerOptions": {
     "target": "ES2020",
