@@ -14,17 +14,25 @@
 */ 
 
 import Phaser from 'phaser'; // direct import to ensure Phaser types are available in this file
+
+import { fetchCards } from '../api/cardsApi'; // API function to fetch card data from the server
+import { mapCardData } from '../utils/cardsMapper'; // utility function to convert database card format to the Card type used in the client application
+// import { getBaseCardPool, type Card } from '../utils/cards'; // import the Card type for type annotations in this scene
+
 import {
   Card, // card data model used throughout the duel scene
   buildHand, // utility for drawing an opening hand from a deck
   canPlayCard, // shared legality check for card/table matching
   drawOneCard, // utility for drawing a single card from a pile
   ELEMENT_COLORS, // element-to-color map used when rendering cards
-  generateDeck, // utility for creating a shuffled deck
+  // generateDeck, // utility for creating a shuffled deck
   getSpecialCardPool, // utility for generating the pool of special effect cards based on level and rarity
   shuffleCards, // utility for randomizing card order in a pile
   isCounterBonusTrigger, // checks if a card play should trigger a counter bonus based on the current table card
-  ICE_CARD_POOL, // predefined pool of Ice wildcard cards used in certain effects and enemy decks
+  // ICE_CARD_POOL,  // predefined pool of Ice wildcard cards used in certain effects and enemy decks
+  getBaseCardPool,
+  getIceCardPool,
+  getLegendaryCardPool, // utility for generating the pool of base cards, used for guaranteed deck content and table card generation
 } from '../utils/cards'; // from cards.ts module
 
 import {
@@ -42,7 +50,7 @@ import {
   ENEMY_HURT2_SCALE,
 } from '../utils/duelConfig'; // constants for duel mechanics and rendering parameters
 
-import { createBaseDiscardPile } from '../utils/duelSetup';
+// import { createBaseDiscardPile } from '../utils/duelSetup';
 
 import { updateHpBar, updateEnergyBar, updateShieldBar } from '../utils/duelUi'; // reusable UI rendering functions for HP and energy bars
 
@@ -68,6 +76,7 @@ import christianAttack1 from '../assets/characters/christian/Christian_attack-1.
 import christianAttack2 from '../assets/characters/christian/Christian_attack-2.png'; // Christian attack animation frame 2
 import christianDamage1 from '../assets/characters/christian/Christian_damage-1.png'; // Christian hurt sprite 1
 import christianDamage2 from '../assets/characters/christian/Christian_damage-2.png'; // Christian hurt sprite 2
+import christinDefeated from '../assets/characters/christian/Christian_defeated.png'; // Christian defeated sprite
 
 import skawlIdle from '../assets/characters/skawl/Skawl_resized.png'; // Skawl idle sprite
 import skawlAttack1 from '../assets/characters/skawl/Skawl_attack-1.png'; // Skawl attack animation frame 1
@@ -79,6 +88,12 @@ import skawlDefeated from '../assets/characters/skawl/Skawl_defeated.png'; // Sk
 import music from '../assets/music/Cane_Field_Siege.mp3'; // background music for the duel, imported directly for Vite compatibility
 
 export class DuelScene extends Phaser.Scene {
+  private allDbCards: Card[] = []; // full card list fetched from the server, used for deck generation 
+  private baseCardsFromDb: Card[] = []; // subset of allDbCards that are the base cards, used for guaranteed deck content and table card generation
+  private effectCardsFromDb: Card[] = []; // subset of allDbCards that are the effect cards, used for populating the special card pool for deck generation
+  private rareCardsFromDb: Card[] = []; // subset of allDbCards that are the rare cards, used for populating the special card pool for deck generation
+  private legendaryCardsFromDb: Card[] = []; // subset of allDbCards that are the legendary cards, used for populating the special card pool for deck generation
+
   private isShowingQuitDialog = false;
   private runEnded = false;
   private sidebarNavHandler: EventListener | null = null;
@@ -169,12 +184,56 @@ export class DuelScene extends Phaser.Scene {
     this.load.image('christian-attack-2', christianAttack2); // load Christian attack sprite 2
     this.load.image('christian-damage-1', christianDamage1); // load Christian hurt sprite 1
     this.load.image('christian-damage-2', christianDamage2); // load Christian hurt sprite 2
+    this.load.image('christian-defeated', christinDefeated); // load Christian defeated sprite
     this.load.image('enemy-default', skawlIdle); // load Skawl idle sprite
     this.load.image('enemy-attack-1', skawlAttack1); // load Skawl attack sprite 1
     this.load.image('enemy-attack-2', skawlAttack2); // load Skawl attack sprite 2
     this.load.image('enemy-hurt-1', skawlDamage1); // load Skawl hurt sprite 1
     this.load.image('enemy-hurt-2', skawlDamage2); // load Skawl hurt sprite 2
     this.load.image('enemy-defeated', skawlDefeated); // load Skawl defeated sprite
+  }
+
+  private async loadCardsFromBackend(): Promise<void> {
+    const rawCards = await fetchCards(); // fetch raw card data from the server
+    const mappedCards: Card[] = rawCards.map(mapCardData); // convert raw card data to Card type used in the client
+
+    this.allDbCards = mappedCards; // store the full card list for reference
+    this.baseCardsFromDb = mappedCards.filter((card: Card) => card.rarity === 'base'); // extract base cards for guaranteed deck content and table card generation
+    this.effectCardsFromDb = mappedCards.filter((card: Card) => card.rarity === 'effect'); // extract effect cards for populating the special card pool for deck generation
+    this.rareCardsFromDb = mappedCards.filter((card: Card) => card.rarity === 'rare'); // extract rare cards for populating the special card pool for deck generation
+    this.legendaryCardsFromDb = mappedCards.filter((card: Card) => card.rarity === 'legendary'); // extract legendary cards for populating the special card pool for deck generation
+  }
+
+  private async tryLoadCards(): Promise<void> {
+    try {
+      await this.loadCardsFromBackend(); // attempt to load card data from the server
+      console.log('Cards loaded successfully from backend: ', this.allDbCards.length);
+    } 
+    
+    catch (error) {
+      console.error('Failed to load cards from backend (using local fallback): ', error);
+
+      this.baseCardsFromDb = getBaseCardPool(); // use local fallback for base cards if server load fails
+      this.effectCardsFromDb = getSpecialCardPool(); // empty effect card pool if server load fails, resulting in simpler decks
+      this.rareCardsFromDb = getIceCardPool(); // empty rare card pool if server load fails
+      this.legendaryCardsFromDb = getLegendaryCardPool(); // use local fallback for legendary cards if server load fails, ensuring legendary cards are still available in the game
+      this.allDbCards = [
+        ...this.baseCardsFromDb, 
+        ...this.effectCardsFromDb, 
+        ...this.rareCardsFromDb, 
+        ...this.legendaryCardsFromDb
+      ]; // reconstruct the full card list from the subsets}
+    }
+  }
+
+  private async initializeDuel():Promise<void> {
+    await this.tryLoadCards(); // ensure card data is loaded before proceeding with duel setup
+
+    this.setupDecks(); // create and populate player and enemy decks
+    this.renderTableCard(); // generate and render the initial table card
+    this.renderDiscardTopCard(); // render the top card of the discard pile
+    this.renderCards(); // draw the starting hand for both player and enemy
+    this.refreshHud(); // sync the HUD with the initial state of the duel
   }
 
   create() {
@@ -208,11 +267,7 @@ export class DuelScene extends Phaser.Scene {
     this.createCharacters(); // place player and enemy sprites
     this.drawHudPanels(); // draw the dark HUD containers behind the UI
     this.createHud(); // build the text bars and labels
-    this.setupDecks(); // create and populate decks, hands, and discard pile
-    this.renderTableCard(); // render the initial table card
-    this.renderDiscardTopCard(); // render the top discard card
-    this.renderCards(); // render the starting hand
-    this.refreshHud(); // sync HUD values with current state
+    void this.initializeDuel(); // initialize the duel with loaded card data
     // this.updateInstruction(); // kept commented out as in your current code
 
     if (getPlayer()?.isAdmin) {
@@ -557,41 +612,76 @@ export class DuelScene extends Phaser.Scene {
     // this.enemyShadow.setDepth(5); // ensure shadows are behind the characters but above the background
 
     this.playerCharacter = this.add.image(185, centerY + 5, 'christian-idle').setScale(PLAYER_IDLE_SCALE); // player sprite on the left
-    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(true); // flipped enemy sprite on the right
+    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(false); // flipped enemy sprite on the right
   }
 
   private setupDecks() {
-    this.playerDeck = this.generateSpecialDeck(PLAYER_DECK_SIZE); // build the player's starting deck
-    this.enemyDeck = this.generateSpecialDeck(PLAYER_DECK_SIZE); // build the enemy's starting deck
-    
+    const basePool = this.baseCardsFromDb.length > 0 ? this.baseCardsFromDb : getBaseCardPool(); // ensure we have a base card pool to draw from, even if the server load failed
+    const effectPool = this.effectCardsFromDb.length > 0 ? this.effectCardsFromDb : getSpecialCardPool(); // ensure we have an effect card pool to draw from, even if the server load failed
+    const rarePool = this.rareCardsFromDb.length > 0 ? this.rareCardsFromDb : getIceCardPool(); // ensure we have a rare card pool to draw from, even if the server load failed
+    const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
+
+    this.playerDeck = this.generateDeckFromPool(effectPool, PLAYER_DECK_SIZE); // build the player's starting deck
+    this.enemyDeck = this.generateDeckFromPool(effectPool, PLAYER_DECK_SIZE); // build the enemy's starting deck
+
     // this.playerHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the player's starting hand
-    this.playerHand = ICE_CARD_POOL.map((card, index) => ({
+    this.playerHand = rarePool.map((card, index) => ({
       ...card,
       id: `${card.id}-icehand-${index}-${Math.random().toString(36).slice(2, 7)}`,
     })); // for testing purposes, start with a hand of Ice wildcard cards to demonstrate the mechanic
 
-    this.enemyHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the enemy's starting hand
+    this.enemyHand = buildHand(this.generateDeckFromPool(basePool, HAND_SIZE), HAND_SIZE); // draw the enemy's starting hand
     // this.enemyHand = ICE_CARD_POOL.map((card, index) => ({
     //   ...card,
     //   id: `${card.id}-icehand-${index}-${Math.random().toString(36).slice(2, 7)}`,
     // })); // for testing purposes, start the enemy with a hand of Ice wildcard cards to demonstrate the mechanic
     
-    this.discardPile = createBaseDiscardPile(DISCARD_BASE_SIZE); // seed the discard pile from the base card pool
+    this.discardPile = this.createDiscardPileFromPool(basePool, DISCARD_BASE_SIZE); // seed the discard pile from the base card pool
 
-    const openingPool = createBaseDiscardPile(DISCARD_BASE_SIZE); // create a pool of cards to choose the opening table card from, using the same base as the discard pile
+    const openingPool = this.createDiscardPileFromPool(basePool, DISCARD_BASE_SIZE); // create a pool of cards to choose the opening table card from, using the same base as the discard pile
     const openingCard = openingPool[0]; 
     
     if (!openingCard) throw new Error('Could not generate initial table card.'); // fail early if setup data is invalid
     this.tableCard = openingCard; // place the opening card on the table
   }
 
-  // temporal special effect deck generator
-  private generateSpecialDeck(size: number): Card[] {
-    const pool = shuffleCards(getSpecialCardPool()); // get the pool of special cards and shuffle it for randomness
+  private generateDeckFromPool(pool: Card[], size: number): Card[] {
+    const shuffled = shuffleCards(pool);
     const deck: Card[] = [];
 
     for (let i = 0; i < size; i++) {
-      const source = pool[i % pool.length]; // loop through the pool if we need more cards than it contains
+      const source = shuffled[i % shuffled.length];
+      deck.push({
+        ...source,
+        id: `${source.id}-deck-${i}-${Math.random().toString(36).slice(2, 7)}`,
+      });
+    }
+
+    return shuffleCards(deck);
+  }
+
+  private createDiscardPileFromPool(pool: Card[], size: number): Card[] {
+    const shuffled = shuffleCards(pool);
+    const pile: Card[] = [];
+
+    for (let i = 0; i < size; i++) {
+      const source = shuffled[i % shuffled.length];
+      pile.push({
+        ...source,
+        id: `${source.id}-discard-${i}-${Math.random().toString(36).slice(2, 7)}`,
+      });
+    }
+
+    return pile;
+  }
+
+  // temporal special effect deck generator
+  private generateSpecialDeck(pool: Card[], size: number): Card[] {
+    const shuffledPool = shuffleCards(pool);
+    const deck: Card[] = [];
+
+    for (let i = 0; i < size; i++) {
+      const source = shuffledPool[i % shuffledPool.length];
       deck.push({
         ...source,
         id: `${source.id}-specialdeck-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1621,10 +1711,15 @@ export class DuelScene extends Phaser.Scene {
 
   private animateEnemyAttack() {
     const attackImage = Math.random() < 0.5 ? 'enemy-attack-1' : 'enemy-attack-2'; // randomize enemy attack pose
-    this.enemyCharacter.setTexture(attackImage).setScale(ENEMY_ATTACK_SCALE).setFlipX(true).setY(327); // switch to attack pose and keep flip
+    this.enemyCharacter.setTexture(attackImage).setScale(ENEMY_ATTACK_SCALE).setFlipX(false).setY(327); // switch to attack pose and keep flip
   }
 
   private updatePlayerPose() {
+    if (this.playerHp <= 0) { 
+      this.playerCharacter.setTexture('christian-defeated').setScale(PLAYER_HURT_SCALE).setY(335);
+      return;
+    } // defeated pose
+
     if (this.playerHp <= 25) { 
       this.playerCharacter.setTexture('christian-damage-2').setScale(PLAYER_HURT_SCALE).setY(335); // critical HP pose
       return; 
@@ -1641,24 +1736,24 @@ export class DuelScene extends Phaser.Scene {
   private updateEnemyPose() {
     if (this.enemyHp <= 0) { 
       this.currentEnemyImage = 'enemy-defeated'; 
-      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(true).setY(340); // defeated pose with slight position adjustment
+      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(false).setY(340); // defeated pose with slight position adjustment
       return; 
     } // defeated pose
 
     if (this.enemyHp <= 25) { 
       this.currentEnemyImage = 'enemy-hurt-2'; 
-      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_HURT2_SCALE).setFlipX(true).setY(327); // critical enemy pose
+      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_HURT2_SCALE).setFlipX(false).setY(327); // critical enemy pose
       return; 
     }
 
     if (this.enemyHp <= 50) { 
       this.currentEnemyImage = 'enemy-hurt-1'; 
-      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_HURT1_SCALE).setFlipX(true).setY(327); // wounded enemy pose
+      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_HURT1_SCALE).setFlipX(false).setY(327); // wounded enemy pose
       return; 
     }
 
     this.currentEnemyImage = 'enemy-default'; // restore the default enemy texture
-    this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(true).setY(327); // healthy idle pose
+    this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(false).setY(327); // healthy idle pose
   }
 
   private discardPlayerCard(card: Card) {
@@ -1683,7 +1778,11 @@ export class DuelScene extends Phaser.Scene {
   private checkCombatEnded(): boolean {
     this.refreshHud(); // make sure final values are visible before transition
     if (this.playerHp <= 0) { 
-      this.gameOver(); 
+      this.updatePlayerPose(); // show the defeated player pose before transitioning
+      this.time.delayedCall(500, () => { // brief pause to let the defeated pose register before showing the game over screen
+        this.gameOver(); 
+      });
+
       return true; 
     } // player lost
 
