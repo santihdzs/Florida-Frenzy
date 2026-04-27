@@ -146,6 +146,10 @@ export class DuelScene extends Phaser.Scene {
   private enemyEeBar!: Phaser.GameObjects.Graphics; // enemy elemental energy bar renderer
   private enemyEiBar!: Phaser.GameObjects.Graphics; // enemy instinct energy bar renderer
 
+  private playerHealText!: Phaser.GameObjects.Text; // floating player heal text
+  private enemyHealText!: Phaser.GameObjects.Text; // floating enemy heal text
+  private playerShieldDeltaText!: Phaser.GameObjects.Text; // floating player shield gain/loss text
+  private enemyShieldDeltaText!: Phaser.GameObjects.Text; // floating enemy shield gain/loss text
   private playerDamageText!: Phaser.GameObjects.Text; // floating player damage text
   private enemyDamageText!: Phaser.GameObjects.Text; // floating enemy damage text
   private totalXpText!: Phaser.GameObjects.Text; // total XP display
@@ -381,10 +385,10 @@ export class DuelScene extends Phaser.Scene {
 
     this.playerHp = MAX_HP; // restore player HP
     this.enemyHp = MAX_HP; // restore enemy HP
-    this.playerElementalEnergy = 0; // reset player elemental energy
-    this.playerInstinctEnergy = 0; // reset player instinct energy
-    this.enemyElementalEnergy = 0; // reset enemy elemental energy
-    this.enemyInstinctEnergy = 0; // reset enemy instinct energy
+    this.playerElementalEnergy = 10; // reset player elemental energy (all set at 10 for testing purposes)
+    this.playerInstinctEnergy = 10; // reset player instinct energy
+    this.enemyElementalEnergy = 10; // reset enemy elemental energy
+    this.enemyInstinctEnergy = 10; // reset enemy instinct energy
     this.levelsWon = 0; // reset victory count
     this.playerDeck = []; // clear player deck
     this.enemyDeck = []; // clear enemy deck
@@ -407,9 +411,9 @@ export class DuelScene extends Phaser.Scene {
     this.drawMetalPlate(panels, 315, 195, false, 25, 20); // player panel
     this.drawMetalPlate(panels, 315, 195, false, width - 340, 20); // enemy panel
     this.drawMetalPlate(panels, 380, 90, false, centerX - 190, 24); // top center panel for level and messages
-    this.drawMetalPlate(panels, 240, 260, false, centerX - 120, 165); // center panel for hand cards and deck/discard info
-    this.drawMetalPlate(panels, 860, 210, false, centerX - 430, height - 235); // bottom panel for the table card
-    this.drawMetalPlate(panels, 620, 78, false, centerX - 310, 440); // instruction panel above the hand
+    this.drawMetalPlate(panels, 240, 260, false, centerX - 120, 165); // center panel for deck cards and deck/discard info
+    this.drawMetalPlate(panels, 720, 210, false, centerX - 360, height - 235); // bottom panel for the table card (hand bar)
+    this.drawMetalPlate(panels, 620, 78, false, centerX - 310, 440); // deck and discard panel above the hand bar
 
   }
 
@@ -491,7 +495,7 @@ export class DuelScene extends Phaser.Scene {
     }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // elemental energy label
 
     this.playerEeBar = this.add.graphics().setDepth(5); // player elemental energy bar renderer
-    this.add.text(48, 166, 'EI', { 
+    this.add.text(48, 166, 'IE', { 
       fontSize: '15px', 
       color: '#69c0ff', 
       fontStyle: 'bold' 
@@ -549,7 +553,7 @@ export class DuelScene extends Phaser.Scene {
 
     this.enemyEeBar = this.add.graphics().setDepth(5); // enemy elemental energy bar renderer
 
-    this.add.text(this.cameras.main.width - 292, 166, 'EI', {
+    this.add.text(this.cameras.main.width - 292, 166, 'IE', {
       fontSize: '15px',
       color: '#69c0ff',
       fontStyle: 'bold',
@@ -557,13 +561,29 @@ export class DuelScene extends Phaser.Scene {
 
     this.enemyEiBar = this.add.graphics().setDepth(5); // enemy instinct energy bar renderer
 
+    this.playerHealText = this.add.text(215, 58, '', {
+      fontSize: '18px',
+      color: '#ff66cc',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating heal text for the player, positioned above the player HP bar
+
+    this.enemyHealText = this.add.text(this.cameras.main.width - 125, 58, '', {
+      fontSize: '18px',
+      color: '#ff66cc',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating heal text for the enemy, positioned above the enemy HP bar
+
     this.playerDamageText = this.add.text(215, 58, '', {
       fontSize: '18px',
       color: '#ff6666',
       fontStyle: 'bold',
       stroke: '#000000',
       strokeThickness: 4,
-    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // floating damage text for the player
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating damage text for the player
 
     this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 58, '', {
       fontSize: '18px',
@@ -571,7 +591,23 @@ export class DuelScene extends Phaser.Scene {
       fontStyle: 'bold',
       stroke: '#000000',
       strokeThickness: 4,
-    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // floating damage text for the enemy
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating damage text for the enemy
+
+    this.playerShieldDeltaText = this.add.text(215, 84, '', {
+      fontSize: '18px',
+      color: '#ffa77f',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating shield gain/loss text for the player, positioned above the player shield bar
+
+    this.enemyShieldDeltaText = this.add.text(this.cameras.main.width - 125, 84, '', {
+      fontSize: '18px',
+      color: '#ffa77f',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating shield gain/loss text for the enemy, positioned above the enemy shield bar
 
     this.deckCountText = this.add.text(centerX - 230, 462, '', {
       fontSize: '16px',
@@ -1001,7 +1037,14 @@ export class DuelScene extends Phaser.Scene {
           }
 
           if (!this.isPlayerCardPlayable(card)) {
-            this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666');
+            if (!this.hasEnoughEnergy(card, 'player')) {
+              this.showBattleMessage(`Missing Energy --> ${card.energyECost}EE/${card.energyICost}IE`, '#ff4444');
+            }
+
+            else {
+              this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666');
+            }
+
             return;
           }
 
@@ -1043,6 +1086,48 @@ export class DuelScene extends Phaser.Scene {
       });
   }
 
+  private showHealIndicator(side: 'player' | 'enemy', amount: number) { // displays a floating heal indicator above the specified side when healing occurs
+    if (amount <= 0) return; // only show the indicator for actual healing
+
+    const text = side === 'player' ? this.playerHealText : this.enemyHealText; // choose the appropriate text object based on the side
+    text.setText(`+${amount}`); // set the text to show the amount healed
+
+    this.time.delayedCall(700, () => {
+      text.setText(''); // clear the text after a short delay to keep the UI clean
+    });
+  }
+
+  private showShieldGainIndicator(side: 'player' | 'enemy', amount: number) { // displays a floating shield gain indicator above the specified side when shield is gained
+    if (amount <= 0) return;
+
+    const text = side === 'player' ? this.playerShieldDeltaText : this.enemyShieldDeltaText;
+    text.setColor('#ffa77f');
+    text.setText(`+${amount} SH`);
+
+    this.time.delayedCall(700, () => {
+      text.setText('');
+    });
+  }
+
+  private showShieldLossIndicator(side: 'player' | 'enemy', amount: number) {
+    if (amount <= 0) return; // only show the indicator for actual shield loss
+
+    const text = side === 'player' ? this.playerShieldDeltaText : this.enemyShieldDeltaText; // choose the appropriate text object based on the side
+    text.setColor('#ffa77f');
+    text.setText(`-${amount} SH`); // set the text to show the amount of shield lost
+
+    this.time.delayedCall(700, () => {
+      text.setText(''); // clear the text after a short delay to keep the UI clean
+    });
+  }
+
+  private hasEnoughEnergy(card: Card, side: 'player' | 'enemy'): boolean { // checks if the specified side has enough energy to play the given card
+    const elementalEnergy = side === 'player' ? this.playerElementalEnergy : this.enemyElementalEnergy;
+    const instinctEnergy = side === 'player' ? this.playerInstinctEnergy : this.enemyInstinctEnergy;
+
+    return elementalEnergy >= card.energyECost && instinctEnergy >= card.energyICost; // must have enough of both energy types to play the card
+  }
+
   private isPlayerCardPlayable(card: Card): boolean {
     if (!canPlayCard(card, this.tableCard)) return false; // enforce element/power compatibility
     if (this.playerState.blockedNumberTurnCounter !== null && card.power === this.playerState.blockedNumberTurnCounter) return false; // block forbidden number plays
@@ -1053,6 +1138,8 @@ export class DuelScene extends Phaser.Scene {
       if (card.rarity === 'effect' && card.element !== 'ice') return false; // effects other than ice are blocked during the lock
       if (card.rarity === 'base' && card.power !== this.playerState.forcedResponseNumber) return false; // base cards that don't match the locked power are blocked during the lock
     }
+
+    if (!this.hasEnoughEnergy(card, 'player')) return false; // must have enough energy to play the card
     
     return true; // card is legal to play
   }
@@ -1096,6 +1183,7 @@ export class DuelScene extends Phaser.Scene {
     this.discardPile.push(resolvedCard); // send played card to discard
     this.tableCard = resolvedCard; // new card becomes the active table card
     this.renderTableCard(0x00ff88); // highlight the table card in player color
+    this.spendEnergy(resolvedCard, 'player'); // reduce energy based on the card's cost
     this.addEnergyFromCard(resolvedCard, 'player', previousTableCard); // award energy based on the play
     this.applyCardEffects(resolvedCard, 'player', previousTableCard); // resolve the card's effect and damage
     this.animatePlayerAttack(); // play the player attack pose
@@ -1139,6 +1227,7 @@ export class DuelScene extends Phaser.Scene {
     const previousTableCard = this.tableCard; // preserve previous table card for energy gain
     this.tableCard = enemyCard; // set the enemy card as the current table card
     this.renderTableCard(0xff6666); // show the table card in enemy color
+    this.spendEnergy(enemyCard, 'enemy'); // reduce enemy energy based on the card's cost
     this.addEnergyFromCard(enemyCard, 'enemy', previousTableCard); // award enemy energy gains
     this.animateEnemyAttack(); // play enemy attack pose
     this.applyCardEffects(enemyCard, 'enemy', previousTableCard); // resolve enemy card effects
@@ -1171,6 +1260,18 @@ export class DuelScene extends Phaser.Scene {
     }
   }
 
+  private spendEnergy(card: Card, side: 'player' | 'enemy') {
+    if (side === 'player') { // reduce the player's energy by the card's cost, ensuring it doesn't go below zero
+      this.playerElementalEnergy = Math.max(0, this.playerElementalEnergy - card.energyECost);
+      this.playerInstinctEnergy = Math.max(0, this.playerInstinctEnergy - card.energyICost);
+    }
+
+    else { // reduce the enemy's energy by the card's cost, ensuring it doesn't go below zero
+      this.enemyElementalEnergy = Math.max(0, this.enemyElementalEnergy - card.energyECost);
+      this.enemyInstinctEnergy = Math.max(0, this.enemyInstinctEnergy - card.energyICost);
+    }
+  }
+
   private finishLevel() {
     this.refillHandFromDeckOnly(this.playerHand, this.playerDeck); // refill the player's hand from deck only
     this.refillHandFromDeckOnly(this.enemyHand, this.enemyDeck); // refill the enemy's hand from deck only
@@ -1194,6 +1295,10 @@ export class DuelScene extends Phaser.Scene {
     // this.updateInstruction(); // kept commented out as in your current code
     this.playerDamageText.setText(''); // clear player damage popup
     this.enemyDamageText.setText(''); // clear enemy damage popup
+    this.playerHealText.setText(''); // clear player heal popup
+    this.enemyHealText.setText(''); // clear enemy heal popup
+    this.playerShieldDeltaText.setText(''); // clear player shield change popup
+    this.enemyShieldDeltaText.setText(''); // clear enemy shield change popup
     this.updatePlayerPose(); // restore player pose based on remaining HP
     this.updateEnemyPose(); // restore enemy pose based on remaining HP
     this.isAnimating = false; // unlock input for the next turn
@@ -1222,6 +1327,8 @@ export class DuelScene extends Phaser.Scene {
       if (card.rarity === 'effect' && card.element !== 'ice') return false; // effects other than ice are blocked during the lock
       if (card.rarity === 'base' && card.power !== this.enemyState.forcedResponseNumber) return false; // base cards that don't match the locked power are blocked during the lock
     }
+
+    if (!this.hasEnoughEnergy(card, 'enemy')) return false; // check energy availability for the enemy
 
     return true; // card can be played
   }
@@ -1317,10 +1424,13 @@ export class DuelScene extends Phaser.Scene {
       case 'DAMAGE': 
         break; // raw damage card, no extra effect handling
 
-      case 'SHIELD': 
+      case 'SHIELD': {
+        const beforeShield = attackerState.shield;
         attackerState.shield += card.shieldValue; 
-        damage = 0; 
+        this.showShieldGainIndicator(attacker, attackerState.shield - beforeShield);
+        damage = 0;
         break; // convert effect into shield
+      }
 
       case 'POISON': 
         defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); 
@@ -1355,11 +1465,14 @@ export class DuelScene extends Phaser.Scene {
         attackerState.chainFireBonus = Math.max(attackerState.chainFireBonus, card.effectValue); 
         break; // store a future fire bonus
       
-      case 'HEAL': 
+      case 'HEAL': {
+        const beforeShield = attackerState.shield;
         attackerState.shield += card.shieldValue; 
+        this.showShieldGainIndicator(attacker, attackerState.shield - beforeShield); // show shield gain from the heal effect
         this.healSide(attacker, card.effectValue);
         damage = 0;
         break; // heal and grant shield
+      }
 
       case 'DOUBLE_SHIELD': 
         attackerState.shield = attackerState.shield > 0 ? attackerState.shield * 2 : card.shieldValue; 
@@ -1559,11 +1672,17 @@ export class DuelScene extends Phaser.Scene {
     const isPlayer = attacker === 'player'; // identify the attacking side
     const defenderState = isPlayer ? this.enemyState : this.playerState; // choose the defending side
     let remainingDamage = rawDamage; // damage left after shield absorption
+
     if (defenderState.shield > 0) { 
       const absorbed = Math.min(defenderState.shield, remainingDamage); // shield cannot absorb more than it has
       defenderState.shield -= absorbed; // reduce shield by the absorbed amount
       remainingDamage -= absorbed; // subtract absorbed damage from the incoming hit
+
+      if (absorbed > 0) {
+        this.showShieldLossIndicator(isPlayer ? 'enemy' : 'player', absorbed); // show shield loss popup if any damage was absorbed
+      }
     }
+
     if (remainingDamage <= 0) { 
       this.showBattleMessage('Shield blocked the attack!', '#7fd7ff'); // notify the player that the hit was fully blocked
       return; 
@@ -1604,7 +1723,12 @@ export class DuelScene extends Phaser.Scene {
 
     if (state.shield > 0) { 
       const absorbed = Math.min(state.shield, remaining); 
-      state.shield -= absorbed; remaining -= absorbed; 
+      state.shield -= absorbed; 
+      remaining -= absorbed; 
+
+      if (absorbed > 0) {
+          this.showShieldLossIndicator(side, absorbed);
+      } // show shield loss popup if any damage was absorbed
     } // shield also blocks direct damage
 
     if (remaining <= 0) return; // shield absorbed everything
@@ -1627,8 +1751,20 @@ export class DuelScene extends Phaser.Scene {
   private healSide(side: 'player' | 'enemy', amount: number) {
     if (amount <= 0) return; // ignore invalid healing values
 
-    if (side === 'player') this.playerHp = Math.min(MAX_HP, this.playerHp + amount); // heal player up to max HP
-    else this.enemyHp = Math.min(MAX_HP, this.enemyHp + amount); // heal enemy up to max HP
+    if (side === 'player') {
+      const before = this.playerHp;
+      this.playerHp = Math.min(MAX_HP, this.playerHp + amount);
+      const healed = this.playerHp - before;
+      this.showHealIndicator('player', healed);
+    }
+
+    else {
+      const before = this.enemyHp;
+      this.enemyHp = Math.min(MAX_HP, this.enemyHp + amount);
+      const healed = this.enemyHp - before;
+      this.showHealIndicator('enemy', healed);
+    }
+    
   }
 
   private cleanseNegative(state: CombatState) {
