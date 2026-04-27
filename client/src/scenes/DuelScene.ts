@@ -659,7 +659,7 @@ export class DuelScene extends Phaser.Scene {
 
     this.playerCharacter = this.add.image(185, centerY + 5, 'christian-idle').setScale(PLAYER_IDLE_SCALE); // player sprite on the left
 
-    const bossConfig = BOSS_VISUALS[this.selectedBoss?.enemyName ?? 'Skawl']; // get visual config for the selected boss, defaulting to Skawl if no boss is selected
+    const bossConfig = this.getCurrentBossConfig(); // get visual config for the selected boss, defaulting to Skawl if no boss is selected
     const currentPhase = this.getCurrentBossVisual(); // determine the correct visual phase for the enemy based on the boss config and current Pythra phase
 
     this.enemyCharacter = this.add.image(1010, bossConfig.y, currentPhase.idleKey)
@@ -671,18 +671,19 @@ export class DuelScene extends Phaser.Scene {
     const basePool = this.baseCardsFromDb.length > 0 ? this.baseCardsFromDb : getBaseCardPool(); // ensure we have a base card pool to draw from, even if the server load failed
     const effectPool = this.effectCardsFromDb.length > 0 ? this.effectCardsFromDb : getSpecialCardPool(); // ensure we have an effect card pool to draw from, even if the server load failed
     const rarePool = this.rareCardsFromDb.length > 0 ? this.rareCardsFromDb : getIceCardPool(); // ensure we have a rare card pool to draw from, even if the server load failed
-    const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
+    // const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
 
-    this.playerDeck = this.generateDeckFromPool(effectPool, PLAYER_DECK_SIZE); // build the player's starting deck
-    this.enemyDeck = this.generateDeckFromPool(effectPool, PLAYER_DECK_SIZE); // build the enemy's starting deck
+    const playerPool = [...basePool, ...effectPool, ...rarePool]; // combine the different rarity pools to create the player's card pool for deck generation
+    const enemyPool = this.buildEnemyPoolForBoss(); // build the enemy's card pool based on the selected boss's AI level and associated card access
+
+    this.playerDeck = this.generateDeckFromPool(playerPool, PLAYER_DECK_SIZE); // build the player's starting deck
+    this.enemyDeck = this.generateDeckFromPool(enemyPool, PLAYER_DECK_SIZE); // build the enemy's starting deck
 
     // this.playerHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the player's starting hand
-    this.playerHand = rarePool.map((card, index) => ({
-      ...card,
-      id: `${card.id}-icehand-${index}-${Math.random().toString(36).slice(2, 7)}`,
-    })); // for testing purposes, start with a hand of Ice wildcard cards to demonstrate the mechanic
 
-    this.enemyHand = buildHand(this.generateDeckFromPool(basePool, HAND_SIZE), HAND_SIZE); // draw the enemy's starting hand
+    this.playerHand = buildHand(this.playerDeck, HAND_SIZE); // draw the player's starting hand from the generated deck, ensuring the hand reflects the actual deck content
+    this.enemyHand = buildHand(this.enemyDeck, HAND_SIZE); // draw the enemy's starting hand
+
     // this.enemyHand = ICE_CARD_POOL.map((card, index) => ({
     //   ...card,
     //   id: `${card.id}-icehand-${index}-${Math.random().toString(36).slice(2, 7)}`,
@@ -727,9 +728,13 @@ export class DuelScene extends Phaser.Scene {
     return pile;
   }
 
-  private getCurrentBossVisual() {
+  private getCurrentBossConfig() {
     const bossName = this.selectedBoss?.enemyName ?? 'Skawl'; // default to Skawl if no boss is selected
-    const config = BOSS_VISUALS[bossName];
+    return BOSS_VISUALS[bossName];
+  }
+
+  private getCurrentBossVisual() {
+    const config = this.getCurrentBossConfig();
     const phaseIndex = Math.min(this.pythraPhase - 1, config.phases.length - 1); // ensure we don't go out of bounds on the phase array
     return config.phases[phaseIndex];
   }
@@ -750,8 +755,22 @@ export class DuelScene extends Phaser.Scene {
       ...this.baseCardsFromDb,
       ...this.effectCardsFromDb,
       ...this.rareCardsFromDb,
-      ...this.legendaryCardsFromDb,
+      // ...this.legendaryCardsFromDb,
     ]; // Pythra can use everything
+  }
+
+  private updatePythraPhaseVisuals(): void { // this method updates Pythra's sprite based on his current phase, which changes as the player depletes his lives
+    if (this.selectedBoss?.enemyName !== 'Pythra') return;
+
+    const bossConfig = BOSS_VISUALS.Pythra;
+    const phaseIndex = Math.min(this.pythraPhase - 1, bossConfig.phases.length - 1);
+    const currentPhase = bossConfig.phases[phaseIndex];
+
+    this.enemyCharacter
+      .setTexture(currentPhase.idleKey)
+      .setScale(bossConfig.idleScale)
+      .setFlipX(bossConfig.flipX)
+      .setY(bossConfig.y); // update the enemy sprite to match the new phase visuals
   }
 
   private handleEnemyDefeat(): boolean {
