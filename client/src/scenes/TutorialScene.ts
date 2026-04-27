@@ -102,6 +102,31 @@ export class TutorialScene extends Phaser.Scene {
         this.dialogContainer.setScrollFactor(0).setDepth(100);
 
         this.setupInput();
+
+        // Pause handling
+        const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        escKey?.on('down', () => {
+            if (this.scene.isActive('PauseScene')) return;
+            this.scene.launch('PauseScene', { returnScene: 'TutorialScene' });
+            this.scene.bringToTop('PauseScene');
+            this.scene.pause();
+        });
+
+        const pauseButton = this.add.text(20, 20, 'PAUSE', {
+            fontSize: '28px',
+            color: '#feec00',
+            fontStyle: 'bold',
+            backgroundColor: '#000000',
+            padding: { left: 10, right: 10, top: 4, bottom: 4 },
+        }).setInteractive({ useHandCursor: true }).setDepth(1000).setScrollFactor(0);
+
+        pauseButton.on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+            event.stopPropagation(); // Prevent the click from propagating to the scene and causing unintended interactions
+            if (this.scene.isActive('PauseScene')) return;
+            this.scene.launch('PauseScene', { returnScene: 'TutorialScene' });
+            this.scene.bringToTop('PauseScene'); // Ensure the pause scene is above all others
+            this.scene.pause();
+        });
     }
 
     private setupInput() {

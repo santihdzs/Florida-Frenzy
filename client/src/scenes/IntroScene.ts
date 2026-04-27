@@ -17,7 +17,7 @@ interface DialogueLine {
   expression: string;
 }
 
-const KLANCY_CONFIG: Record<string, { key: string; name: string }> = {
+const KLANCY_CONFIG: Record<string, { key: string; name: string }> = { //sprite keys and speaker names for each expression
   neutral: { key: 'spr-klancy-neutral', name: 'Klancy' },
   explain1: { key: 'spr-klancy-explain1', name: 'Klancy' },
   explain2: { key: 'spr-klancy-explain2', name: 'Klancy' },
@@ -28,7 +28,7 @@ const KLANCY_CONFIG: Record<string, { key: string; name: string }> = {
   victory: { key: 'spr-klancy-victory', name: 'Klancy' },
 };
 
-const DIALOGUE_LINES: DialogueLine[] = [
+const DIALOGUE_LINES: DialogueLine[] = [ // The dialogue lines for the intro cutscene, with associated expressions
   {
     expression: 'neutral',
     text: "Hey, you! Yeah, you behind the screen. Don't tell me you were gonna start without introductions...",
@@ -219,7 +219,7 @@ export class IntroScene extends Phaser.Scene {
     this.showLine(0);
   }
 
-  private fitSpriteHeight(sprite: Phaser.GameObjects.Image, height: number) {
+  private fitSpriteHeight(sprite: Phaser.GameObjects.Image, height: number) { // Utility to fit sprite to a specific height while maintaining aspect ratio
     const texture = this.textures.get(sprite.texture.key);
     const src = texture.getSourceImage();
     const ratio = src.width / src.height;
@@ -227,14 +227,14 @@ export class IntroScene extends Phaser.Scene {
     sprite.setDisplaySize(w, height);
   }
 
-  private showLine(index: number) {
+  private showLine(index: number) { // Show a specific dialogue line by index
     if (index >= DIALOGUE_LINES.length) {
       this.finishIntro();
       return;
     }
 
-    const line = DIALOGUE_LINES[index];
-    const config = KLANCY_CONFIG[line.expression];
+    const line = DIALOGUE_LINES[index]; // Get config for current expression
+    const config = KLANCY_CONFIG[line.expression]; // config for current expression
 
     // Update speaker name
     this.nameText.setText(config.name);
@@ -247,7 +247,7 @@ export class IntroScene extends Phaser.Scene {
         alpha: 0,
         duration: 150,
         ease: 'Sine.easeInOut',
-        onComplete: () => {
+        onComplete: () => { // After fading out, change the texture and fade back in
           this.klancySprite.setTexture(config.key);
           this.fitSpriteHeight(this.klancySprite, 480);
           this.tweens.add({
@@ -285,13 +285,14 @@ export class IntroScene extends Phaser.Scene {
     });
   }
 
+  // Utility for typewriter text effect
   private typewriteText(
     textObj: Phaser.GameObjects.Text,
     fullText: string,
     speed: number,
     onComplete?: () => void
   ) {
-    let i = 0;
+    let i = 0; // Reset text and clear any existing timers
     textObj.setText('');
     this.time.removeAllEvents();
 
@@ -310,6 +311,7 @@ export class IntroScene extends Phaser.Scene {
     });
   }
 
+  // Handle advancing dialogue: if currently typing, skip to end; otherwise go to next line
   private advanceDialogue() {
     if (this.isTransitioning) return;
 
@@ -322,7 +324,7 @@ export class IntroScene extends Phaser.Scene {
     }
 
     this.currentLine++;
-    this.showLine(this.currentLine);
+    this.showLine(this.currentLine); // Show next line or finish if at the end
   }
 
   private finishIntro() {
