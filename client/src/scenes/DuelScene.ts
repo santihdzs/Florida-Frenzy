@@ -78,6 +78,8 @@ import christianDamage1 from '../assets/characters/christian/Christian_damage-1.
 import christianDamage2 from '../assets/characters/christian/Christian_damage-2.png'; // Christian hurt sprite 2
 import christinDefeated from '../assets/characters/christian/Christian_defeated.png'; // Christian defeated sprite
 
+import { BOSS_VISUALS } from '../utils/bossConfig.js';
+
 import skawlIdle from '../assets/characters/skawl/Skawl_resized.png'; // Skawl idle sprite
 import skawlAttack1 from '../assets/characters/skawl/Skawl_attack-1.png'; // Skawl attack animation frame 1
 import skawlAttack2 from '../assets/characters/skawl/Skawl_attack-2.png'; // Skawl attack animation frame 2
@@ -86,6 +88,7 @@ import skawlDamage2 from '../assets/characters/skawl/Skawl_damage-2.png'; // Ska
 import skawlDefeated from '../assets/characters/skawl/Skawl_defeated.png'; // Skawl defeated sprite
 
 import music from '../assets/music/Cane_Field_Siege.mp3'; // background music for the duel, imported directly for Vite compatibility
+import { DuelBossData } from '../utils/bossTypes.js';
 
 export class DuelScene extends Phaser.Scene {
   private allDbCards: Card[] = []; // full card list fetched from the server, used for deck generation 
@@ -155,6 +158,10 @@ export class DuelScene extends Phaser.Scene {
   private totalXpText!: Phaser.GameObjects.Text; // total XP display
   private totalCoinsText!: Phaser.GameObjects.Text; // total coin display
 
+  private selectedBoss?: DuelBossData; // the boss selected for the duel, assigned when the player reaches the end zone in RunScene and used to configure the DuelScene enemy
+  private bossLivesRemaining = 1; // only for Pythra
+  private pythraPhase = 1; // tracks Pythra's evolution phase for animation purposes
+
   private playerCharacter!: Phaser.GameObjects.Image; // player character sprite
   private enemyCharacter!: Phaser.GameObjects.Image; // enemy character sprite
   private playerShadow!: Phaser.GameObjects.Graphics; // player shadow graphic
@@ -172,6 +179,9 @@ export class DuelScene extends Phaser.Scene {
     this.totalCoins = data.totalCoins ?? 0; // restore accumulated coins
     this.totalXp = data.totalXp ?? 0; // restore accumulated XP
     this.runId = data.runId ?? 0; // restore run id for server persistence
+    this.selectedBoss = data.selectedBoss; // restore selected boss if passed in from RunScene, otherwise will be assigned when player reaches end zone in RunScene
+    this.bossLivesRemaining = this.selectedBoss?.enemyName === 'Pythra' ? 3 : 1; // if the selected boss is Pythra, set lives to 2 to account for her evolution phase
+    this.pythraPhase = 1; // reset Pythra phase to 1 at the start of each duel, will evolve when her HP reaches 0 until she has no lives remaining
   }
 
   preload() {
@@ -384,7 +394,7 @@ export class DuelScene extends Phaser.Scene {
     this.sidebarNavHandler = null;
 
     this.playerHp = MAX_HP; // restore player HP
-    this.enemyHp = MAX_HP; // restore enemy HP
+    this.enemyHp = this.selectedBoss?.enemyBaseHp ?? MAX_HP; // restore enemy HP, using boss base HP if a boss is selected for this duel
     this.playerElementalEnergy = 10; // reset player elemental energy (all set at 10 for testing purposes)
     this.playerInstinctEnergy = 10; // reset player instinct energy
     this.enemyElementalEnergy = 10; // reset enemy elemental energy
@@ -439,7 +449,7 @@ export class DuelScene extends Phaser.Scene {
     this.battleMessageText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the battle message text for better visibility
     this.battleMessageText.setAlpha(0.9); // slightly fade the battle message text for a more integrated look
 
-    this.tableCardLabel = this.add.text(centerX, 185, 'Table Card', {
+    this.tableCardLabel = this.add.text(centerX, 185, 'TABLE CARD', {
       fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -648,7 +658,13 @@ export class DuelScene extends Phaser.Scene {
     // this.enemyShadow.setDepth(5); // ensure shadows are behind the characters but above the background
 
     this.playerCharacter = this.add.image(185, centerY + 5, 'christian-idle').setScale(PLAYER_IDLE_SCALE); // player sprite on the left
-    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(false); // flipped enemy sprite on the right
+
+    const bossConfig = BOSS_VISUALS[this.selectedBoss?.enemyName ?? 'Skawl']; // get visual config for the selected boss, defaulting to Skawl if no boss is selected
+    const currentPhase = this.getCurrentBossVisual(); // determine the correct visual phase for the enemy based on the boss config and current Pythra phase
+
+    this.enemyCharacter = this.add.image(1010, bossConfig.y, currentPhase.idleKey)
+    .setScale(bossConfig.idleScale)
+    .setFlipX(bossConfig.flipX); // enemy sprite on the right, using the appropriate visual for the current boss and phase
   }
 
   private setupDecks() {
@@ -711,21 +727,62 @@ export class DuelScene extends Phaser.Scene {
     return pile;
   }
 
-  // temporal special effect deck generator
-  private generateSpecialDeck(pool: Card[], size: number): Card[] {
-    const shuffledPool = shuffleCards(pool);
-    const deck: Card[] = [];
+  private getCurrentBossVisual() {
+    const bossName = this.selectedBoss?.enemyName ?? 'Skawl'; // default to Skawl if no boss is selected
+    const config = BOSS_VISUALS[bossName];
+    const phaseIndex = Math.min(this.pythraPhase - 1, config.phases.length - 1); // ensure we don't go out of bounds on the phase array
+    return config.phases[phaseIndex];
+  }
 
-    for (let i = 0; i < size; i++) {
-      const source = shuffledPool[i % shuffledPool.length];
-      deck.push({
-        ...source,
-        id: `${source.id}-specialdeck-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      });
+  private buildEnemyPoolForBoss(): Card[] {
+    const boss = this.selectedBoss;
+    if (!boss) return [...this.baseCardsFromDb, ...this.effectCardsFromDb]; // if for some reason we don't have a boss selected, fall back to a simpler pool to avoid breaking the game
+
+    if (boss.aiLevel === 'EASY') {
+      return [...this.baseCardsFromDb, ...this.effectCardsFromDb];
+    } // easy bosses only have access to base and effect cards
+
+    if (boss.aiLevel === 'MEDIUM') {
+      return [...this.baseCardsFromDb, ...this.effectCardsFromDb, ...this.rareCardsFromDb];
+    } // medium bosses can also use rare cards
+
+    return [
+      ...this.baseCardsFromDb,
+      ...this.effectCardsFromDb,
+      ...this.rareCardsFromDb,
+      ...this.legendaryCardsFromDb,
+    ]; // Pythra can use everything
+  }
+
+  private handleEnemyDefeat(): boolean {
+    if (this.selectedBoss?.enemyName === 'Pythra' && this.bossLivesRemaining > 1) {
+      this.bossLivesRemaining -= 1;
+      this.pythraPhase += 1;
+
+      this.enemyHp = this.selectedBoss.enemyBaseHp;
+      this.updatePythraPhaseVisuals();
+      this.showBattleMessage(`Pythra evolved! ${this.bossLivesRemaining} lives left`, '#ff9966');
+      return false;
     }
 
-    return shuffleCards(deck); // final shuffle to mix the repeated cards
+    return true;
   }
+
+  // // temporal special effect deck generator
+  // private generateSpecialDeck(pool: Card[], size: number): Card[] {
+  //   const shuffledPool = shuffleCards(pool);
+  //   const deck: Card[] = [];
+
+  //   for (let i = 0; i < size; i++) {
+  //     const source = shuffledPool[i % shuffledPool.length];
+  //     deck.push({
+  //       ...source,
+  //       id: `${source.id}-specialdeck-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  //     });
+  //   }
+
+  //   return shuffleCards(deck); // final shuffle to mix the repeated cards
+  // }
 
   private refreshHud() {
     updateHpBar(this.playerHpBar, this.playerHp, 48, 58, this.playerHpText); // update player HP visuals
@@ -736,10 +793,10 @@ export class DuelScene extends Phaser.Scene {
     updateEnergyBar(this.enemyEiBar, this.enemyInstinctEnergy, this.cameras.main.width - 258, 166, 220, 12, 0x4db8ff); // update enemy instinct energy
     updateShieldBar(this.playerShieldBar, this.playerState.shield, 48, 84, this.playerShieldText); // update player shield visuals
     updateShieldBar(this.enemyShieldBar, this.enemyState.shield, this.cameras.main.width - 292, 84, this.enemyShieldText); // update enemy shield visuals
-    this.deckCountText.setText(`Deck: ${this.playerDeck.length}`); // refresh player deck count
-    this.discardCountText.setText(`Discard: ${this.discardPile.length}`); // refresh discard count
+    this.deckCountText.setText(`DECK: ${this.playerDeck.length}`); // refresh player deck count
+    this.discardCountText.setText(`DISCARD: ${this.discardPile.length}`); // refresh discard count
     this.totalXpText.setText(`XP: ${this.totalXp}`); // refresh total XP display
-    this.totalCoinsText.setText(`Coins: ${this.totalCoins}`); // refresh total coin display
+    this.totalCoinsText.setText(`COINS: ${this.totalCoins}`); // refresh total coin display
   }
 
   private drawDeckPlaceholder(
@@ -973,22 +1030,22 @@ export class DuelScene extends Phaser.Scene {
       tooltipBg.fillStyle(0x000000, 0.9);
 
       if (isIceCard) {
-        tooltipBg.fillRoundedRect(-105, -165, 210, 82, 10); // larger tooltip for rare ice cards to accommodate the longer description of the wildcard mechanic
+        tooltipBg.fillRoundedRect(-170, -209, 339, 132, 17); // larger tooltip for rare ice cards to accommodate the longer description of the wildcard mechanic (40% bigger)
       }
       else {
-        tooltipBg.fillRoundedRect(-78, -142, 156, 58, 8); // standard tooltip size for effect cards
+        tooltipBg.fillRoundedRect(-126, -177, 251, 94, 13); // standard tooltip size for effect cards (40% bigger)
       }
 
       tooltipBg.setVisible(false);
 
-      tooltipText = this.add.text(0, isIceCard ? -124 : -113, card.effectDescription ?? 'No description', {
-        fontSize: isIceCard ? '11px' : '10px',
+      tooltipText = this.add.text(0, isIceCard ? -143 : -130, card.effectDescription ?? 'No description', {
+        fontSize: isIceCard ? '20px' : '18px',
         color: '#fff200',
         align: 'center',
         stroke: '#000000',
-        strokeThickness: 5,
-        wordWrap: { width: isIceCard ? 188 : 140 },
-      }).setOrigin(0.5).setVisible(false); // tooltip text that shows the card's effect description, hidden by default
+        strokeThickness: 6,
+        wordWrap: { width: isIceCard ? 302 : 225 },
+      }).setOrigin(0.5).setVisible(false); // tooltip text that shows the card's effect description, hidden by default (40% bigger)
     }
 
     container.add([

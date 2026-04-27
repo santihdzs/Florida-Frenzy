@@ -1,9 +1,22 @@
-// Santiago Hernandez - A01787550
+/*
+* Santiago Hernandez - A01787550
+* Manuel Montero - A01660761
+* Yael Ordaz - A01786776
+* 
+* This is the main script for the RunScene, which handles the core gameplay 
+* loop of the endless runner mode in Florida Frenzy. 
+* It manages player movement, enemy spawning and behavior, coin collection, 
+* level progression, and the duel boss encounter. 
+* The scene also communicates with the server to create run records 
+* and update player stats.
+*/
 
 import Phaser from 'phaser';
 import evTilesUrl from '../assets/maps/everglades.png';
 import chrisAvatarUrl from '../assets/sprites/Chris.png';
 import { completeRun, createRun, getPlayer } from '../utils/auth.js';
+import type { DuelBossData } from '../utils/bossTypes.js';
+import { fetchRandomDuelBoss } from '../api/enemyApi.js';
 
 const TILE    = 48;
 const COLS    = 105;
@@ -62,7 +75,7 @@ const PROJ_SPEED = 420;
 
 const HEAL_PER_SEC = 12;
 
-const CAMERA_SCROLL_BASE = 100;
+const CAMERA_SCROLL_BASE = 150;
 
 const RUNS_PER_CYCLE = 3;
 const END_COL         = COLS - 1;
@@ -255,6 +268,7 @@ export interface RunData {
   totalCoins: number;
   totalXp: number;
   runId: number;
+  selectedBoss?: DuelBossData;
 }
 
 export class RunScene extends Phaser.Scene {
@@ -308,6 +322,12 @@ export class RunScene extends Phaser.Scene {
   private coins:            Coin[]            = [];
   private projectiles:      Projectile[]      = [];
   private enemyProjectiles: EnemyProjectile[] = [];
+
+  private selectedBoss?: DuelBossData;
+  private duelBossSprite?: Phaser.GameObjects.Image;
+  private duelBossDirection = 1;
+  private duelBossBaseY = 0;
+  private waitingForBossTouch = false;
 
   private hudContainer!: Phaser.GameObjects.Container;
   private hpBar!:      Phaser.GameObjects.Graphics;
@@ -397,6 +417,10 @@ export class RunScene extends Phaser.Scene {
     this.playerImg = this.add.image(this.px, this.py, KEY_SPR_PLAYER)
       .setOrigin(0, 0).setDepth(5);
 
+    if (this.step === RUNS_PER_CYCLE - 1) {
+      void this.spawnDuelBossAtGoal();
+    }
+    
     const cw = this.cameras.main.width;
     this.levelIndicator = this.add.text(cw / 2, 30, `Level ${this.level}`, {
       fontFamily: 'Impact, Arial black, sans-serif',
@@ -518,6 +542,21 @@ export class RunScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (this.done) return;
     if (this.isShowingQuitDialog) return;
+    if (this.duelBossSprite && this.waitingForBossTouch) {
+      this.duelBossSprite.y += this.duelBossDirection * 0.5; // bob up and down to indicate interactivity
+      if (this.duelBossSprite.y > this.duelBossBaseY + 20) this.duelBossDirection = -1;
+      if (this.duelBossSprite.y < this.duelBossBaseY - 20) this.duelBossDirection = 1;
+
+      const overlap = rectsOverlap(
+        this.px, this.py, PLAYER_SIZE, PLAYER_SIZE,
+        this.duelBossSprite.x, this.duelBossSprite.y, ENEMY_SIZE, ENEMY_SIZE
+      ); // simple AABB check for touching the boss to start the duel; no need for pixel-perfect collision here since the boss is large and has a big hitbox
+
+      if (overlap) {
+        this.startBossDuel();
+      } // if the player touches the boss, transition to the DuelScene and pass the selected boss data along with the current run stats
+    }
+
     this.timer += delta;
     this.handleMovement(time, delta);
     this.updateEnemies(delta);
@@ -526,7 +565,7 @@ export class RunScene extends Phaser.Scene {
     this.checkPuddle(delta);
     this.checkCoins();
     this.updateCamera(delta);
-    this.checkEndZone();
+    // this.checkEndZone();
     this.checkHoleDeath();
     this.refreshHud();
   }
@@ -602,6 +641,39 @@ export class RunScene extends Phaser.Scene {
     }
 
     return grid;
+  }
+
+  // ── Boss Duel Start Point ──
+  private async spawnDuelBossAtGoal() {
+    this.selectedBoss = await fetchRandomDuelBoss(); // fetch a random boss from the server to duel at the end of the cycle
+    this.waitingForBossTouch = true; // set flag to start bobbing animation and enable touch detection
+
+    // position the boss sprite near the end zone, centered vertically
+    const bossX = WORLD_W - TILE * 3;
+    const bossY = Math.floor(ROWS / 2) * TILE;
+
+    this.duelBossBaseY = bossY;
+
+    this.duelBossSprite = this.add.image(bossX, bossY, KEY_SPR_ENEMY)
+    .setOrigin(0,0)
+    .setDepth(6)
+    .setScale(1.2); // use the enemy texture as a placeholder
+  }
+
+  // ── Boss Duel Transition ──
+  private startBossDuel() {
+    if (!this.selectedBoss || this.done) return; // guard against multiple triggers
+
+    this.done = true;
+
+    this.scene.start('DuelScene', {
+      level: this.level,
+      step: this.step,
+      totalCoins: this.totalCoins + this.coinsCollected,
+      totalXp: this.totalXp,
+      runId: this.runId,
+      selectedBoss: this.selectedBoss,
+    }); // transition to the DuelScene and pass along the current run stats and selected boss data
   }
 
   private growCluster(
@@ -1215,12 +1287,12 @@ export class RunScene extends Phaser.Scene {
 
   // ── Win / Lose ──
 
-  private checkEndZone() {
-    const ez = this.endZone;
-    if (rectsOverlap(this.px, this.py, PLAYER_SIZE, PLAYER_SIZE, ez.x, ez.y, ez.w, ez.h)) {
-      this.showLevelComplete();
-    }
-  }
+  // private checkEndZone() {
+  //   const ez = this.endZone;
+  //   if (rectsOverlap(this.px, this.py, PLAYER_SIZE, PLAYER_SIZE, ez.x, ez.y, ez.w, ez.h)) {
+  //     this.showLevelComplete();
+  //   }
+  // }
 
   private checkHoleDeath() {
     const cx = this.px + PLAYER_SIZE / 2;

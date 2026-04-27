@@ -11,7 +11,17 @@ INSERT INTO character_game (ch_name, ch_desc, base_hp, base_attack, base_defense
 ('Eddy', 'El rápido y pretencioso caimán. Ni quien lo detenga.', 85, 16, 6, 'Swamp Trait', 'Recupera 75% de su vida actual, pero pierde 35% de su escudo - Durante los siguientes 2 turnos, el daño de sus cartas se duplica', TRUE);
 COMMIT;
 
-INSERT INTO enemy (enemy_name, enemy_desc, enemy_type, faction, enemy_base_hp, ai_level, enemy_ultimate, enemy_ultimate_desc) VALUES 
+INSERT INTO "Enemy" (
+  "enemyName",
+  "enemyDesc",
+  "enemyType",
+  "faction",
+  "enemyBaseHp",
+  "aiLevel",
+  "enemyUltimate",
+  "enemyUltimateDesc"
+) VALUES
+
 -- PLATFORMER
 ('Rat Scout', 'Rápidos pero débiles', 'PLATFORMER_ENEMY', 'RAT', 40, 'EASY', NULL, NULL),
 ('Raccoon Raider', 'Roaming balanceado', 'PLATFORMER_ENEMY', 'RACCOON', 60, 'MEDIUM', NULL, NULL),
@@ -19,9 +29,9 @@ INSERT INTO enemy (enemy_name, enemy_desc, enemy_type, faction, enemy_base_hp, a
 
 -- BOSSES
 ('Skawl', 'Pequeño, astuto y peligroso.', 'CARD_ENEMY', 'RAT', 150, 'EASY', 'Double Rat', 'Duplica el daño de sus cartas base por 2 turnos, gana 10 de vida y 5 de escudo'),
-('Rabyz', 'Inteligente y egoísta.', 'CARD_ENEMY', 'RACCOON', 175, 'MEDIUM', 'Nasty Corrosion', 'Aplica veneno al jugador por 3 turnos y vacia su EE y EI, gana 30 de vida'),
-('Boldear', 'Formidable y resistente.', 'CARD_ENEMY', 'BEAR', 275, 'HARD', 'Crushing Control', 'Elimina el escudo del jugador y lo aturde por 1 turno, gana 25 de escudo y 10 de vida'),
-('Pythra', 'Boss final dominante.', 'FINAL_BOSS', 'PYTHON', 350, 'HARD', 'Frozen Dominion', 'Usa cartas de hielo y replica habilidades de otros bosses');
+('Rabyz', 'Inteligente y egoísta.', 'CARD_ENEMY', 'RACCOON', 175, 'MEDIUM', 'Nasty Corrosion', 'Aplica veneno al jugador por 3 turnos y vacía su EE y EI, gana 30 de vida'),
+('Boldear', 'Formidable y resistente.', 'CARD_ENEMY', 'BEAR', 275, 'HARD', 'Crushing Control', 'Elimina el escudo del jugador, lo aturde 1 turno, gana 25 de escudo y 10 de vida'),
+('Pythra', 'Boss final dominante.', 'FINAL_BOSS', 'PYTHON', 350, 'HARD', 'Frozen Dominion', 'Usa cartas legendarias y puede replicar ultis de otros bosses');
 
 
 INSERT INTO zone_game (zone_name, zone_map, zone_desc, zone_difficulty_set) VALUES ('Swamp', 'map_swamp', 'El hogar del clan', 'EASY'),
