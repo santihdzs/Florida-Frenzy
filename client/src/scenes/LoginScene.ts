@@ -189,11 +189,11 @@ export class LoginScene extends Phaser.Scene {
                 }
                 await register(username, email, password);
                 this.scene.stop('LoginScene');
-                this.scene.start('MenuScene');
+                this.goToIntroOrMenu();
             } else {
                 await login(email, password);
                 this.scene.stop('LoginScene');
-                this.scene.start('MenuScene');
+                this.goToIntroOrMenu();
             }
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Something went wrong.';
@@ -203,6 +203,16 @@ export class LoginScene extends Phaser.Scene {
 
     private showError(message: string): void {
         this.errorText.setText(message).setVisible(true);
+    }
+
+    private goToIntroOrMenu(): void {
+        const hasSeenIntro = localStorage.getItem('hasSeenIntro');
+        if (!hasSeenIntro) {
+            localStorage.setItem('hasSeenIntro', 'true');
+            this.scene.start('IntroScene');
+        } else {
+            this.scene.start('MenuScene');
+        }
     }
 
     createButton(
