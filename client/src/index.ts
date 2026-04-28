@@ -21,6 +21,8 @@ import { StatsScene } from './scenes/StatsScene';
 import { FriendsScene } from './scenes/FriendsScene';
 import { EndScene } from './scenes/EndScene';
 import { IntroScene } from './scenes/IntroScene';
+import { CharacterScene } from './scenes/CharacterScene';
+import { HistoryScene } from './scenes/HistoryScene';
 
 // Skip the welcome screen narrative if the player is already logged in
 if (isLoggedIn()) {
@@ -38,7 +40,7 @@ const config: Phaser.Types.Core.GameConfig = { // Phaser game configuration obje
     mode: Phaser.Scale.FIT, // scale the game to fit the available space while maintaining aspect ratio
     autoCenter: Phaser.Scale.CENTER_BOTH, // center the game canvas both horizontally and vertically
   },
-  scene: [IntroScene, MenuScene, DuelScene, RunScene, PlatformerScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene, EndScene],
+  scene: [IntroScene, MenuScene, DuelScene, RunScene, PlatformerScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene, EndScene, CharacterScene, HistoryScene],
 };
 
 const game = new Phaser.Game(config); // create a new Phaser game instance with the specified configuration
