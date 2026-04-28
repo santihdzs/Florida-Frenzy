@@ -44,10 +44,10 @@ import {
   PLAYER_IDLE_SCALE,
   PLAYER_ATTACK_SCALE,
   PLAYER_HURT_SCALE,
-  ENEMY_IDLE_SCALE,
-  ENEMY_ATTACK_SCALE,
-  ENEMY_HURT1_SCALE,
-  ENEMY_HURT2_SCALE,
+  // ENEMY_IDLE_SCALE,
+  // ENEMY_ATTACK_SCALE,
+  // ENEMY_HURT1_SCALE,
+  // ENEMY_HURT2_SCALE,
 } from '../utils/duelConfig'; // constants for duel mechanics and rendering parameters
 
 // import { createBaseDiscardPile } from '../utils/duelSetup';
@@ -78,14 +78,60 @@ import christianDamage1 from '../assets/characters/christian/Christian_damage-1.
 import christianDamage2 from '../assets/characters/christian/Christian_damage-2.png'; // Christian hurt sprite 2
 import christinDefeated from '../assets/characters/christian/Christian_defeated.png'; // Christian defeated sprite
 
+import { BOSS_VISUALS } from '../utils/bossConfig.js';
+
 import skawlIdle from '../assets/characters/skawl/Skawl_resized.png'; // Skawl idle sprite
 import skawlAttack1 from '../assets/characters/skawl/Skawl_attack-1.png'; // Skawl attack animation frame 1
 import skawlAttack2 from '../assets/characters/skawl/Skawl_attack-2.png'; // Skawl attack animation frame 2
+import skawlUlti1 from '../assets/characters/skawl/Skawl_ulti-1.png'; // Skawl ultimate animation frame 1
+import skawlUlti2 from '../assets/characters/skawl/Skawl_ulti-2.png'; // Skawl ultimate animation frame 2
 import skawlDamage1 from '../assets/characters/skawl/Skawl_damage-1.png'; // Skawl hurt sprite 1
 import skawlDamage2 from '../assets/characters/skawl/Skawl_damage-2.png'; // Skawl hurt sprite 2
 import skawlDefeated from '../assets/characters/skawl/Skawl_defeated.png'; // Skawl defeated sprite
 
+import rabyzIdle from '../assets/characters/rabyz/Rabyz_resized.png'; // Rabyz idle sprite
+import rabyzAttack1 from '../assets/characters/rabyz/Rabyz_attack-1.png'; // Rabyz attack animation frame 1
+import rabyzAttack2 from '../assets/characters/rabyz/Rabyz_attack-2.png'; // Rabyz attack animation frame 2
+import rabyzUlti1 from '../assets/characters/rabyz/Rabyz_ulti-1.png'; // Rabyz ultimate animation frame 1
+import rabyzUlti2 from '../assets/characters/rabyz/Rabyz_ulti-2.png'; // Rabyz ultimate animation frame 2
+import rabyzDamage1 from '../assets/characters/rabyz/Rabyz_damage-1.png'; // Rabyz hurt sprite 1
+import rabyzDamage2 from '../assets/characters/rabyz/Rabyz_damage-2.png'; // Rabyz hurt sprite 2
+import rabyzDefeated from '../assets/characters/rabyz/Rabyz_defeated.png'; // Rabyz defeated sprite
+
+import boldearIdle from '../assets/characters/boldear/Boldear_resized.png'; // Boldear idle sprite
+import boldearAttack1 from '../assets/characters/boldear/Boldear_attack-1.png'; // Boldear attack animation frame 1
+import boldearAttack2 from '../assets/characters/boldear/Boldear_attack-2.png'; // Boldear attack animation frame 2
+import boldearUlti1 from '../assets/characters/boldear/Boldear_ulti-1.png'; // Boldear ultimate animation frame 1
+import boldearUlti2 from '../assets/characters/boldear/Boldear_ulti-2.png'; // Boldear ultimate animation frame 2
+import boldearDamage1 from '../assets/characters/boldear/Boldear_damage-1.png'; // Boldear hurt sprite 1
+import boldearDamage2 from '../assets/characters/boldear/Boldear_damage-2.png'; // Boldear hurt sprite 2
+import boldearDefeated from '../assets/characters/boldear/Boldear_defeated.png'; // Boldear defeated sprite
+
+import pythraEvolution1 from '../assets/characters/pythra/Pythra_evolution-1_resized.png'; // Pythra evolution phase 1 sprite
+import pythraAttack1 from '../assets/characters/pythra/Pythra_attack-1.png'; // Pythra attack animation frame 1
+import pythraAttack2 from '../assets/characters/pythra/Pythra_attack-2.png'; // Pythra attack animation frame 2
+import pythraUlti1 from '../assets/characters/pythra/Pythra_ulti-1.png'; // Pythra ultimate animation frame 1
+import pythraUlti2 from '../assets/characters/pythra/Pythra_ulti-2.png'; // Pythra ultimate animation frame 2
+import pythraPrepare1 from '../assets/characters/pythra/Pythra_prepare-1.png'; // Pythra evolution preparation sprite 1
+import pythraPrepare2 from '../assets/characters/pythra/Pythra_prepare-2.png'; // Pythra evolution preparation sprite 2
+import pythraEvolution2 from '../assets/characters/pythra/Pythra_evolution-2.png'; // Pythra evolution phase 2 sprite
+import pythraAttack3 from '../assets/characters/pythra/Pythra_attack-3.png'; // Pythra attack animation frame 3 used in phase 2
+import pythraAttack4 from '../assets/characters/pythra/Pythra_attack-4.png'; // Pythra attack animation frame 4 used in phase 2
+import pythraUlti3 from '../assets/characters/pythra/Pythra_ulti-3.png'; // Pythra ultimate animation frame 3 used in phase 2
+import pythraUlti4 from '../assets/characters/pythra/Pythra_ulti-4.png'; // Pythra ultimate animation frame 4 used in phase 2
+import pythraPrepare3 from '../assets/characters/pythra/Pythra_prepare-3.png'; // Pythra evolution preparation sprite 3 used in phase 2
+import pythraPrepare4 from '../assets/characters/pythra/Pythra_prepare-4.png'; // Pythra evolution preparation sprite 4 used in phase 2
+import pythraEvolution3 from '../assets/characters/pythra/Pythra_evolution-3.png'; // Pythra evolution phase 3 sprite used in phase 2
+import pythraAttack5 from '../assets/characters/pythra/Pythra_attack-5.png'; // Pythra attack animation frame 5 used in phase 3
+import pythraAttack6 from '../assets/characters/pythra/Pythra_attack-6.png'; // Pythra attack animation frame 6 used in phase 3
+import pythraUlti5 from '../assets/characters/pythra/Pythra_ulti-5.png'; // Pythra ultimate animation frame 5 used in phase 3
+import pythraUlti6 from '../assets/characters/pythra/Pythra_ulti-6.png'; // Pythra ultimate animation frame 6 used in phase 3
+import pythraDamage1 from '../assets/characters/pythra/Pythra_damage-1.png'; // Pythra hurt sprite 1
+import pythraDamage2 from '../assets/characters/pythra/Pythra_damage-2.png'; // Pythra hurt sprite 2
+import pythraDefeated from '../assets/characters/pythra/Pythra_defeated.png'; // Pythra defeated sprite
+
 import music from '../assets/music/Cane_Field_Siege.mp3'; // background music for the duel, imported directly for Vite compatibility
+import { DuelBossData } from '../utils/bossTypes.js';
 
 export class DuelScene extends Phaser.Scene {
   private allDbCards: Card[] = []; // full card list fetched from the server, used for deck generation 
@@ -137,6 +183,8 @@ export class DuelScene extends Phaser.Scene {
   private playerShieldText!: Phaser.GameObjects.Text; // player shield display
   private enemyShieldText!: Phaser.GameObjects.Text; // enemy shield display
 
+  private playerMaxHp = MAX_HP; // player's max HP, used for scaling the HP bar and for certain card effects that reference max HP
+  private enemyMaxHp = MAX_HP; // enemy's max HP, used for scaling the HP bar and for certain card effects that reference max HP
   private playerHpBar!: Phaser.GameObjects.Graphics; // player HP bar graphics
   private enemyHpBar!: Phaser.GameObjects.Graphics; // enemy HP bar graphics
   private playerHpText!: Phaser.GameObjects.Text; // player HP label
@@ -146,10 +194,18 @@ export class DuelScene extends Phaser.Scene {
   private enemyEeBar!: Phaser.GameObjects.Graphics; // enemy elemental energy bar renderer
   private enemyEiBar!: Phaser.GameObjects.Graphics; // enemy instinct energy bar renderer
 
+  private playerHealText!: Phaser.GameObjects.Text; // floating player heal text
+  private enemyHealText!: Phaser.GameObjects.Text; // floating enemy heal text
+  private playerShieldDeltaText!: Phaser.GameObjects.Text; // floating player shield gain/loss text
+  private enemyShieldDeltaText!: Phaser.GameObjects.Text; // floating enemy shield gain/loss text
   private playerDamageText!: Phaser.GameObjects.Text; // floating player damage text
   private enemyDamageText!: Phaser.GameObjects.Text; // floating enemy damage text
   private totalXpText!: Phaser.GameObjects.Text; // total XP display
   private totalCoinsText!: Phaser.GameObjects.Text; // total coin display
+
+  private selectedBoss?: DuelBossData; // the boss selected for the duel, assigned when the player reaches the end zone in RunScene and used to configure the DuelScene enemy
+  private bossLivesRemaining = 1; // only for Pythra
+  private pythraPhase = 1; // tracks Pythra's evolution phase for animation purposes
 
   private playerCharacter!: Phaser.GameObjects.Image; // player character sprite
   private enemyCharacter!: Phaser.GameObjects.Image; // enemy character sprite
@@ -157,7 +213,7 @@ export class DuelScene extends Phaser.Scene {
   private enemyShadow!: Phaser.GameObjects.Graphics; // enemy shadow graphic
 
   protected isAnimating = false; // locks input while a turn animation is running
-  private currentEnemyImage = 'enemy-default'; // tracks which enemy texture is currently active
+  // private currentEnemyImage = 'enemy-default'; // tracks which enemy texture is currently active
 
   constructor(config: string | Phaser.Types.Scenes.SettingsConfig = { key: 'DuelScene' }) {
     super(config); // scene key used by Phaser
@@ -168,29 +224,78 @@ export class DuelScene extends Phaser.Scene {
     this.totalCoins = data.totalCoins ?? 0; // restore accumulated coins
     this.totalXp = data.totalXp ?? 0; // restore accumulated XP
     this.runId = data.runId ?? 0; // restore run id for server persistence
+    this.selectedBoss = data.selectedBoss; // restore selected boss if passed in from RunScene, otherwise will be assigned when player reaches end zone in RunScene
+    this.bossLivesRemaining = this.selectedBoss?.enemyName === 'Pythra' ? 3 : 1; // if the selected boss is Pythra, set lives to 2 to account for her evolution phase
+    this.pythraPhase = 1; // reset Pythra phase to 1 at the start of each duel, will evolve when her HP reaches 0 until she has no lives remaining
   }
 
   preload() {
     this.load.audio('duel-music', music); // load background music for the duel
     this.load.image('background', backgroundImg); // load duel background
+
     this.load.image('card-frame', cardFrame); // load card frame image
     this.load.image('card-fire-special', cardFireSpecial); // load fire element card art
     this.load.image('card-water-special', cardWaterSpecial); // load water element card art
     this.load.image('card-sand-special', cardSandSpecial); // load sand element card art
     this.load.image('card-swamp-special', cardSwampSpecial); // load swamp element card art
     this.load.image('card-ice-wildcard', cardIceWildcard); // load ice wildcard card art
+
     this.load.image('christian-idle', christianIdle); // load Christian idle sprite
     this.load.image('christian-attack-1', christianAttack1); // load Christian attack sprite 1
     this.load.image('christian-attack-2', christianAttack2); // load Christian attack sprite 2
     this.load.image('christian-damage-1', christianDamage1); // load Christian hurt sprite 1
     this.load.image('christian-damage-2', christianDamage2); // load Christian hurt sprite 2
     this.load.image('christian-defeated', christinDefeated); // load Christian defeated sprite
-    this.load.image('enemy-default', skawlIdle); // load Skawl idle sprite
-    this.load.image('enemy-attack-1', skawlAttack1); // load Skawl attack sprite 1
-    this.load.image('enemy-attack-2', skawlAttack2); // load Skawl attack sprite 2
-    this.load.image('enemy-hurt-1', skawlDamage1); // load Skawl hurt sprite 1
-    this.load.image('enemy-hurt-2', skawlDamage2); // load Skawl hurt sprite 2
-    this.load.image('enemy-defeated', skawlDefeated); // load Skawl defeated sprite
+
+    this.load.image('skawl-idle', skawlIdle); // load Skawl idle sprite
+    this.load.image('skawl-attack-1', skawlAttack1); // load Skawl attack sprite 1
+    this.load.image('skawl-attack-2', skawlAttack2); // load Skawl attack sprite 2
+    this.load.image('skawl-ulti-1', skawlUlti1); // load Skawl ultimate sprite 1
+    this.load.image('skawl-ulti-2', skawlUlti2); // load Skawl ultimate sprite 2
+    this.load.image('skawl-damage-1', skawlDamage1); // load Skawl hurt sprite 1
+    this.load.image('skawl-damage-2', skawlDamage2); // load Skawl hurt sprite 2
+    this.load.image('skawl-defeated', skawlDefeated); // load Skawl defeated sprite
+
+    this.load.image('rabyz-idle', rabyzIdle); // load Rabyz idle sprite
+    this.load.image('rabyz-attack-1', rabyzAttack1); // load Rabyz attack sprite 1
+    this.load.image('rabyz-attack-2', rabyzAttack2); // load Rabyz attack sprite 2
+    this.load.image('rabyz-ulti-1', rabyzUlti1); // load Rabyz ultimate sprite 1
+    this.load.image('rabyz-ulti-2', rabyzUlti2); // load Rabyz ultimate sprite 2
+    this.load.image('rabyz-damage-1', rabyzDamage1); // load Rabyz hurt sprite 1
+    this.load.image('rabyz-damage-2', rabyzDamage2); // load Rabyz hurt sprite 2
+    this.load.image('rabyz-defeated', rabyzDefeated); // load Rabyz defeated sprite
+
+    this.load.image('boldear-idle', boldearIdle); // load Boldear idle sprite
+    this.load.image('boldear-attack-1', boldearAttack1); // load Boldear attack sprite 1
+    this.load.image('boldear-attack-2', boldearAttack2); // load Boldear attack sprite 2
+    this.load.image('boldear-ulti-1', boldearUlti1); // load Boldear ultimate sprite 1
+    this.load.image('boldear-ulti-2', boldearUlti2); // load Boldear ultimate sprite 2
+    this.load.image('boldear-damage-1', boldearDamage1); // load Boldear hurt sprite 1
+    this.load.image('boldear-damage-2', boldearDamage2); // load Boldear hurt sprite 2
+    this.load.image('boldear-defeated', boldearDefeated); // load Boldear defeated sprite
+
+    this.load.image('pythra-evolution-1', pythraEvolution1); // load Pythra evolution phase 1 sprite
+    this.load.image('pythra-attack-1', pythraAttack1); // load Pythra attack sprite 1
+    this.load.image('pythra-attack-2', pythraAttack2); // load Pythra attack sprite 2
+    this.load.image('pythra-ulti-1', pythraUlti1); // load Pythra ultimate sprite 1
+    this.load.image('pythra-ulti-2', pythraUlti2); // load Pythra ultimate sprite 2
+    this.load.image('pythra-prepare-1', pythraPrepare1); // load Pythra evolution preparation sprite 1
+    this.load.image('pythra-prepare-2', pythraPrepare2); // load Pythra evolution preparation sprite 2
+    this.load.image('pythra-evolution-2', pythraEvolution2); // load Pythra evolution phase 2 sprite
+    this.load.image('pythra-attack-3', pythraAttack3); // load Pythra attack sprite 3 used in phase 2
+    this.load.image('pythra-attack-4', pythraAttack4); // load Pythra attack sprite 4 used in phase 2
+    this.load.image('pythra-ulti-3', pythraUlti3); // load Pythra ultimate sprite 3 used in phase 2
+    this.load.image('pythra-ulti-4', pythraUlti4); // load Pythra ultimate sprite 4 used in phase 2
+    this.load.image('pythra-prepare-3', pythraPrepare3); // load Pythra evolution preparation sprite 3 used in phase 2
+    this.load.image('pythra-prepare-4', pythraPrepare4); // load Pythra evolution preparation sprite 4 used in phase 2
+    this.load.image('pythra-evolution-3', pythraEvolution3); // load Pythra evolution phase 3 sprite used in phase 2
+    this.load.image('pythra-attack-5', pythraAttack5); // load Pythra attack sprite 5 used in phase 3
+    this.load.image('pythra-attack-6', pythraAttack6); // load Pythra attack sprite 6 used in phase 3
+    this.load.image('pythra-ulti-5', pythraUlti5); // load Pythra ultimate sprite 5 used in phase 3
+    this.load.image('pythra-ulti-6', pythraUlti6); // load Pythra ultimate sprite 6 used in phase 3
+    this.load.image('pythra-damage-1', pythraDamage1); // load Pythra hurt sprite 1
+    this.load.image('pythra-damage-2', pythraDamage2); // load Pythra hurt sprite 2
+    this.load.image('pythra-defeated', pythraDefeated); // load Pythra defeated sprite
   }
 
   private async loadCardsFromBackend(): Promise<void> {
@@ -379,12 +484,14 @@ export class DuelScene extends Phaser.Scene {
     this.isShowingQuitDialog = false;
     this.sidebarNavHandler = null;
 
-    this.playerHp = MAX_HP; // restore player HP
-    this.enemyHp = MAX_HP; // restore enemy HP
-    this.playerElementalEnergy = 0; // reset player elemental energy
-    this.playerInstinctEnergy = 0; // reset player instinct energy
-    this.enemyElementalEnergy = 0; // reset enemy elemental energy
-    this.enemyInstinctEnergy = 0; // reset enemy instinct energy
+    this.playerMaxHp = MAX_HP; // restore player max HP
+    this.playerHp = this.playerMaxHp; // reset player HP to max
+    this.enemyMaxHp = this.selectedBoss?.enemyBaseHp ?? MAX_HP; // set enemy max HP, using boss base HP if a boss is selected for this duel
+    this.enemyHp = this.enemyMaxHp; // reset enemy HP to max
+    this.playerElementalEnergy = 10; // reset player elemental energy (all set at 10 for testing purposes)
+    this.playerInstinctEnergy = 10; // reset player instinct energy
+    this.enemyElementalEnergy = 10; // reset enemy elemental energy
+    this.enemyInstinctEnergy = 10; // reset enemy instinct energy
     this.levelsWon = 0; // reset victory count
     this.playerDeck = []; // clear player deck
     this.enemyDeck = []; // clear enemy deck
@@ -396,7 +503,9 @@ export class DuelScene extends Phaser.Scene {
     this.cardObjects = []; // clear rendered hand objects
     this.currentTableCardObject = undefined; // clear table card object reference
     this.isAnimating = false; // unlock combat input
-    this.currentEnemyImage = 'enemy-default'; // restore default enemy texture reference
+    // this.currentEnemyImage = 'enemy-default'; // restore default enemy texture reference
+
+    console.log('selected boss: ', this.selectedBoss); // temporal log
   }
 
   private drawHudPanels() {
@@ -407,9 +516,9 @@ export class DuelScene extends Phaser.Scene {
     this.drawMetalPlate(panels, 315, 195, false, 25, 20); // player panel
     this.drawMetalPlate(panels, 315, 195, false, width - 340, 20); // enemy panel
     this.drawMetalPlate(panels, 380, 90, false, centerX - 190, 24); // top center panel for level and messages
-    this.drawMetalPlate(panels, 240, 260, false, centerX - 120, 165); // center panel for hand cards and deck/discard info
-    this.drawMetalPlate(panels, 860, 210, false, centerX - 430, height - 235); // bottom panel for the table card
-    this.drawMetalPlate(panels, 620, 78, false, centerX - 310, 440); // instruction panel above the hand
+    this.drawMetalPlate(panels, 240, 260, false, centerX - 120, 165); // center panel for deck cards and deck/discard info
+    this.drawMetalPlate(panels, 720, 210, false, centerX - 360, height - 235); // bottom panel for the table card (hand bar)
+    this.drawMetalPlate(panels, 620, 78, false, centerX - 310, 440); // deck and discard panel above the hand bar
 
   }
 
@@ -435,7 +544,7 @@ export class DuelScene extends Phaser.Scene {
     this.battleMessageText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the battle message text for better visibility
     this.battleMessageText.setAlpha(0.9); // slightly fade the battle message text for a more integrated look
 
-    this.tableCardLabel = this.add.text(centerX, 185, 'Table Card', {
+    this.tableCardLabel = this.add.text(centerX, 185, 'TABLE CARD', {
       fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -491,7 +600,7 @@ export class DuelScene extends Phaser.Scene {
     }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // elemental energy label
 
     this.playerEeBar = this.add.graphics().setDepth(5); // player elemental energy bar renderer
-    this.add.text(48, 166, 'EI', { 
+    this.add.text(48, 166, 'IE', { 
       fontSize: '15px', 
       color: '#69c0ff', 
       fontStyle: 'bold' 
@@ -549,7 +658,7 @@ export class DuelScene extends Phaser.Scene {
 
     this.enemyEeBar = this.add.graphics().setDepth(5); // enemy elemental energy bar renderer
 
-    this.add.text(this.cameras.main.width - 292, 166, 'EI', {
+    this.add.text(this.cameras.main.width - 292, 166, 'IE', {
       fontSize: '15px',
       color: '#69c0ff',
       fontStyle: 'bold',
@@ -557,13 +666,29 @@ export class DuelScene extends Phaser.Scene {
 
     this.enemyEiBar = this.add.graphics().setDepth(5); // enemy instinct energy bar renderer
 
+    this.playerHealText = this.add.text(215, 58, '', {
+      fontSize: '18px',
+      color: '#ff66cc',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating heal text for the player, positioned above the player HP bar
+
+    this.enemyHealText = this.add.text(this.cameras.main.width - 125, 58, '', {
+      fontSize: '18px',
+      color: '#ff66cc',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating heal text for the enemy, positioned above the enemy HP bar
+
     this.playerDamageText = this.add.text(215, 58, '', {
       fontSize: '18px',
       color: '#ff6666',
       fontStyle: 'bold',
       stroke: '#000000',
       strokeThickness: 4,
-    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // floating damage text for the player
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating damage text for the player
 
     this.enemyDamageText = this.add.text(this.cameras.main.width - 125, 58, '', {
       fontSize: '18px',
@@ -571,7 +696,23 @@ export class DuelScene extends Phaser.Scene {
       fontStyle: 'bold',
       stroke: '#000000',
       strokeThickness: 4,
-    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // floating damage text for the enemy
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating damage text for the enemy
+
+    this.playerShieldDeltaText = this.add.text(215, 84, '', {
+      fontSize: '18px',
+      color: '#ffa77f',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating shield gain/loss text for the player, positioned above the player shield bar
+
+    this.enemyShieldDeltaText = this.add.text(this.cameras.main.width - 125, 84, '', {
+      fontSize: '18px',
+      color: '#ffa77f',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9).setDepth(7); // floating shield gain/loss text for the enemy, positioned above the enemy shield bar
 
     this.deckCountText = this.add.text(centerX - 230, 462, '', {
       fontSize: '16px',
@@ -600,37 +741,45 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private createCharacters() {
-    const centerY = 327; // vertical placement shared by both characters
-    this.playerShadow = this.add.graphics(); // shadow under the player sprite
-    this.playerShadow.fillStyle(0x000000, 0.3); // subtle shadow opacity
-    this.playerShadow.fillEllipse(185, 442, 210, 36); // player shadow shape
-    // this.playerShadow.setDepth(5); // ensure shadows are behind the characters but above the background
+    const { width } = this.cameras.main;
+    const bossConfig = this.getCurrentBossConfig();
+    const currentPhase = this.getCurrentBossVisual();
 
-    this.enemyShadow = this.add.graphics(); // shadow under the enemy sprite
-    this.enemyShadow.fillStyle(0x000000, 0.3); // subtle shadow opacity
-    this.enemyShadow.fillEllipse(1010, 430, 185, 32); // enemy shadow shape
-    // this.enemyShadow.setDepth(5); // ensure shadows are behind the characters but above the background
+    this.playerShadow = this.add.graphics().setDepth(0);
+    this.playerShadow.fillStyle(0x000000, 0.22);
+    this.playerShadow.fillEllipse(210, 520, 150, 32);
 
-    this.playerCharacter = this.add.image(185, centerY + 5, 'christian-idle').setScale(PLAYER_IDLE_SCALE); // player sprite on the left
-    this.enemyCharacter = this.add.image(1010, centerY, this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(false); // flipped enemy sprite on the right
+    this.enemyShadow = this.add.graphics().setDepth(0);
+    this.enemyShadow.fillStyle(0x000000, 0.22);
+    this.enemyShadow.fillEllipse(bossConfig.x + 90, bossConfig.y + 95, 170, 34);
+
+    this.playerCharacter = this.add.image(210, 430, 'christian-idle')
+      .setScale(PLAYER_IDLE_SCALE)
+      .setDepth(0);
+
+    this.enemyCharacter = this.add.image(bossConfig.x, bossConfig.y, currentPhase.idleKey)
+      .setScale(bossConfig.idleScale)
+      .setFlipX(bossConfig.flipX)
+      .setDepth(bossConfig.depth);
   }
 
   private setupDecks() {
     const basePool = this.baseCardsFromDb.length > 0 ? this.baseCardsFromDb : getBaseCardPool(); // ensure we have a base card pool to draw from, even if the server load failed
     const effectPool = this.effectCardsFromDb.length > 0 ? this.effectCardsFromDb : getSpecialCardPool(); // ensure we have an effect card pool to draw from, even if the server load failed
     const rarePool = this.rareCardsFromDb.length > 0 ? this.rareCardsFromDb : getIceCardPool(); // ensure we have a rare card pool to draw from, even if the server load failed
-    const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
+    // const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
 
-    this.playerDeck = this.generateDeckFromPool(effectPool, PLAYER_DECK_SIZE); // build the player's starting deck
-    this.enemyDeck = this.generateDeckFromPool(effectPool, PLAYER_DECK_SIZE); // build the enemy's starting deck
+    const playerPool = [...basePool, ...effectPool, ...rarePool]; // combine the different rarity pools to create the player's card pool for deck generation
+    const enemyPool = this.buildEnemyPoolForBoss(); // build the enemy's card pool based on the selected boss's AI level and associated card access
+
+    this.playerDeck = this.generateDeckFromPool(playerPool, PLAYER_DECK_SIZE); // build the player's starting deck
+    this.enemyDeck = this.generateDeckFromPool(enemyPool, PLAYER_DECK_SIZE); // build the enemy's starting deck
 
     // this.playerHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the player's starting hand
-    this.playerHand = rarePool.map((card, index) => ({
-      ...card,
-      id: `${card.id}-icehand-${index}-${Math.random().toString(36).slice(2, 7)}`,
-    })); // for testing purposes, start with a hand of Ice wildcard cards to demonstrate the mechanic
 
-    this.enemyHand = buildHand(this.generateDeckFromPool(basePool, HAND_SIZE), HAND_SIZE); // draw the enemy's starting hand
+    this.playerHand = buildHand(this.playerDeck, HAND_SIZE); // draw the player's starting hand from the generated deck, ensuring the hand reflects the actual deck content
+    this.enemyHand = buildHand(this.enemyDeck, HAND_SIZE); // draw the enemy's starting hand
+
     // this.enemyHand = ICE_CARD_POOL.map((card, index) => ({
     //   ...card,
     //   id: `${card.id}-icehand-${index}-${Math.random().toString(36).slice(2, 7)}`,
@@ -675,35 +824,113 @@ export class DuelScene extends Phaser.Scene {
     return pile;
   }
 
-  // temporal special effect deck generator
-  private generateSpecialDeck(pool: Card[], size: number): Card[] {
-    const shuffledPool = shuffleCards(pool);
-    const deck: Card[] = [];
-
-    for (let i = 0; i < size; i++) {
-      const source = shuffledPool[i % shuffledPool.length];
-      deck.push({
-        ...source,
-        id: `${source.id}-specialdeck-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      });
+  private getCurrentBossConfig() {
+    if (!this.selectedBoss) {
+      console.warn('No boss selected for this duel, falling back to Skawl visuals'); // log a warning if we don't have a boss selected, since this should generally not happen and indicates a setup issue
+      return BOSS_VISUALS.Skawl; // default to Skawl's visuals if no boss is selected, to ensure the game still functions even with a setup issue
     }
-
-    return shuffleCards(deck); // final shuffle to mix the repeated cards
+    return BOSS_VISUALS[this.selectedBoss.enemyName];
   }
 
+  private getCurrentBossVisual() {
+    const config = this.getCurrentBossConfig();
+    const phaseIndex = Math.min(this.pythraPhase - 1, config.phases.length - 1); // ensure we don't go out of bounds on the phase array
+    return config.phases[phaseIndex];
+  }
+
+  private buildEnemyPoolForBoss(): Card[] {
+    const boss = this.selectedBoss;
+
+    if (!boss) {
+      return [...this.baseCardsFromDb, ...this.effectCardsFromDb]; // if for some reason we don't have a boss selected, fall back to a simpler pool to avoid breaking the game
+    }
+
+    if (boss.aiLevel === 'EASY') {
+      return [...this.baseCardsFromDb, ...this.effectCardsFromDb];
+    } // easy bosses only have access to base and effect cards
+
+    if (boss.aiLevel === 'MEDIUM') {
+      return [...this.baseCardsFromDb, ...this.effectCardsFromDb, ...this.rareCardsFromDb];
+    } // medium bosses can also use rare cards
+
+    return [
+      ...this.baseCardsFromDb,
+      ...this.effectCardsFromDb,
+      ...this.rareCardsFromDb,
+      // ...this.legendaryCardsFromDb,
+    ]; // Pythra can use everything
+  }
+
+  private updatePythraPhaseVisuals(): void { // this method updates Pythra's sprite based on his current phase, which changes as the player depletes his lives
+    if (this.selectedBoss?.enemyName !== 'Pythra') return;
+
+    const bossConfig = BOSS_VISUALS.Pythra;
+    const phaseIndex = Math.min(this.pythraPhase - 1, bossConfig.phases.length - 1);
+    const currentPhase = bossConfig.phases[phaseIndex];
+
+    this.enemyCharacter
+      .setTexture(currentPhase.idleKey)
+      .setScale(bossConfig.idleScale)
+      .setFlipX(bossConfig.flipX)
+      .setY(bossConfig.y); // update the enemy sprite to match the new phase visuals
+  }
+
+  private handleEnemyDefeat(): boolean {
+    if (this.selectedBoss?.enemyName === 'Pythra' && this.bossLivesRemaining > 1) {
+      this.bossLivesRemaining -= 1;
+      this.pythraPhase += 1;
+
+      this.enemyHp = this.selectedBoss.enemyBaseHp;
+      this.updatePythraPhaseVisuals();
+      this.showBattleMessage(`Pythra evolved! ${this.bossLivesRemaining} lives left`, '#ff9966');
+      return false;
+    }
+
+    return true;
+  }
+
+  private setEnemyToIdle(): void {
+    const bossConfig = this.getCurrentBossConfig();
+    const currentPhase = this.getCurrentBossVisual();
+
+    this.enemyCharacter
+      .setTexture(currentPhase.idleKey)
+      .setScale(bossConfig.idleScale)
+      .setPosition(bossConfig.x, bossConfig.y)
+      .setDepth(bossConfig.depth); // reset the enemy sprite to the idle texture for the current phase, which is used after the enemy takes an action to visually indicate it's the player's turn again
+  }
+
+  // // temporal special effect deck generator
+  // private generateSpecialDeck(pool: Card[], size: number): Card[] {
+  //   const shuffledPool = shuffleCards(pool);
+  //   const deck: Card[] = [];
+
+  //   for (let i = 0; i < size; i++) {
+  //     const source = shuffledPool[i % shuffledPool.length];
+  //     deck.push({
+  //       ...source,
+  //       id: `${source.id}-specialdeck-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  //     });
+  //   }
+
+  //   return shuffleCards(deck); // final shuffle to mix the repeated cards
+  // }
+
   private refreshHud() {
-    updateHpBar(this.playerHpBar, this.playerHp, 48, 58, this.playerHpText); // update player HP visuals
-    updateHpBar(this.enemyHpBar, this.enemyHp, this.cameras.main.width - 292, 58, this.enemyHpText); // update enemy HP visuals
+    updateHpBar(this.playerHpBar, this.playerHp, this.playerMaxHp, 48, 58, this.playerHpText); // update player HP visuals
+    updateHpBar(this.enemyHpBar, this.enemyHp, this.enemyMaxHp, this.cameras.main.width - 292, 58, this.enemyHpText); // update enemy HP visuals
+
     updateEnergyBar(this.playerEeBar, this.playerElementalEnergy, 82, 138, 220, 12, 0x7cd957); // update player elemental energy
     updateEnergyBar(this.playerEiBar, this.playerInstinctEnergy, 82, 166, 220, 12, 0x4db8ff); // update player instinct energy
     updateEnergyBar(this.enemyEeBar, this.enemyElementalEnergy, this.cameras.main.width - 258, 138, 220, 12, 0x7cd957); // update enemy elemental energy
     updateEnergyBar(this.enemyEiBar, this.enemyInstinctEnergy, this.cameras.main.width - 258, 166, 220, 12, 0x4db8ff); // update enemy instinct energy
     updateShieldBar(this.playerShieldBar, this.playerState.shield, 48, 84, this.playerShieldText); // update player shield visuals
     updateShieldBar(this.enemyShieldBar, this.enemyState.shield, this.cameras.main.width - 292, 84, this.enemyShieldText); // update enemy shield visuals
-    this.deckCountText.setText(`Deck: ${this.playerDeck.length}`); // refresh player deck count
-    this.discardCountText.setText(`Discard: ${this.discardPile.length}`); // refresh discard count
+    
+    this.deckCountText.setText(`DECK: ${this.playerDeck.length}`); // refresh player deck count
+    this.discardCountText.setText(`DISCARD: ${this.discardPile.length}`); // refresh discard count
     this.totalXpText.setText(`XP: ${this.totalXp}`); // refresh total XP display
-    this.totalCoinsText.setText(`Coins: ${this.totalCoins}`); // refresh total coin display
+    this.totalCoinsText.setText(`COINS: ${this.totalCoins}`); // refresh total coin display
   }
 
   private drawDeckPlaceholder(
@@ -937,22 +1164,22 @@ export class DuelScene extends Phaser.Scene {
       tooltipBg.fillStyle(0x000000, 0.9);
 
       if (isIceCard) {
-        tooltipBg.fillRoundedRect(-105, -165, 210, 82, 10); // larger tooltip for rare ice cards to accommodate the longer description of the wildcard mechanic
+        tooltipBg.fillRoundedRect(-170, -209, 339, 132, 17); // larger tooltip for rare ice cards to accommodate the longer description of the wildcard mechanic (40% bigger)
       }
       else {
-        tooltipBg.fillRoundedRect(-78, -142, 156, 58, 8); // standard tooltip size for effect cards
+        tooltipBg.fillRoundedRect(-126, -177, 251, 94, 13); // standard tooltip size for effect cards (40% bigger)
       }
 
       tooltipBg.setVisible(false);
 
-      tooltipText = this.add.text(0, isIceCard ? -124 : -113, card.effectDescription ?? 'No description', {
-        fontSize: isIceCard ? '11px' : '10px',
+      tooltipText = this.add.text(0, isIceCard ? -143 : -130, card.effectDescription ?? 'No description', {
+        fontSize: isIceCard ? '20px' : '18px',
         color: '#fff200',
         align: 'center',
         stroke: '#000000',
-        strokeThickness: 5,
-        wordWrap: { width: isIceCard ? 188 : 140 },
-      }).setOrigin(0.5).setVisible(false); // tooltip text that shows the card's effect description, hidden by default
+        strokeThickness: 6,
+        wordWrap: { width: isIceCard ? 302 : 225 },
+      }).setOrigin(0.5).setVisible(false); // tooltip text that shows the card's effect description, hidden by default (40% bigger)
     }
 
     container.add([
@@ -1001,7 +1228,14 @@ export class DuelScene extends Phaser.Scene {
           }
 
           if (!this.isPlayerCardPlayable(card)) {
-            this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666');
+            if (!this.hasEnoughEnergy(card, 'player')) {
+              this.showBattleMessage(`Missing Energy --> ${card.energyECost}EE/${card.energyICost}IE`, '#ff4444');
+            }
+
+            else {
+              this.showBattleMessage('Invalid move. Draw or discard.', '#ff6666');
+            }
+
             return;
           }
 
@@ -1043,18 +1277,73 @@ export class DuelScene extends Phaser.Scene {
       });
   }
 
+  private showHealIndicator(side: 'player' | 'enemy', amount: number) { // displays a floating heal indicator above the specified side when healing occurs
+    if (amount <= 0) return; // only show the indicator for actual healing
+
+    const text = side === 'player' ? this.playerHealText : this.enemyHealText; // choose the appropriate text object based on the side
+    text.setText(`+${amount}`); // set the text to show the amount healed
+
+    this.time.delayedCall(700, () => {
+      text.setText(''); // clear the text after a short delay to keep the UI clean
+    });
+  }
+
+  private showShieldGainIndicator(side: 'player' | 'enemy', amount: number) { // displays a floating shield gain indicator above the specified side when shield is gained
+    if (amount <= 0) return;
+
+    const text = side === 'player' ? this.playerShieldDeltaText : this.enemyShieldDeltaText;
+    text.setColor('#ffa77f');
+    text.setText(`+${amount} SH`);
+
+    this.time.delayedCall(700, () => {
+      text.setText('');
+    });
+  }
+
+  private showShieldLossIndicator(side: 'player' | 'enemy', amount: number) {
+    if (amount <= 0) return; // only show the indicator for actual shield loss
+
+    const text = side === 'player' ? this.playerShieldDeltaText : this.enemyShieldDeltaText; // choose the appropriate text object based on the side
+    text.setColor('#ffa77f');
+    text.setText(`-${amount} SH`); // set the text to show the amount of shield lost
+
+    this.time.delayedCall(700, () => {
+      text.setText(''); // clear the text after a short delay to keep the UI clean
+    });
+  }
+
+  private hasEnoughEnergy(card: Card, side: 'player' | 'enemy'): boolean { // checks if the specified side has enough energy to play the given card
+    const elementalEnergy = side === 'player' ? this.playerElementalEnergy : this.enemyElementalEnergy;
+    const instinctEnergy = side === 'player' ? this.playerInstinctEnergy : this.enemyInstinctEnergy;
+
+    return elementalEnergy >= card.energyECost && instinctEnergy >= card.energyICost; // must have enough of both energy types to play the card
+  }
+
   private isPlayerCardPlayable(card: Card): boolean {
-    if (!canPlayCard(card, this.tableCard)) return false; // enforce element/power compatibility
-    if (this.playerState.blockedNumberTurnCounter !== null && card.power === this.playerState.blockedNumberTurnCounter) return false; // block forbidden number plays
-    if (this.playerState.jamTurnCounter > 0 && card.rarity !== 'base') return false; // jam status blocks all non-base cards
-    if (this.playerState.blockFireTurnCounter > 0 && card.element === 'fire') return false; // block fire cards during the block fire status
-    
-    if (this.playerState.iceFloodLockTurnCounter > 0) { // if the enemy is currently locked into the Ice Flood wildcard power, enforce that restriction
-      if (card.rarity === 'effect' && card.element !== 'ice') return false; // effects other than ice are blocked during the lock
-      if (card.rarity === 'base' && card.power !== this.playerState.forcedResponseNumber) return false; // base cards that don't match the locked power are blocked during the lock
+    if (this.playerState.blockedNumberTurnCounter !== null && card.power === this.playerState.blockedNumberTurnCounter) return false;
+    if (this.playerState.jamTurnCounter > 0 && card.rarity !== 'base') return false;
+    if (this.playerState.blockFireTurnCounter > 0 && card.element === 'fire') return false;
+    if (!this.hasEnoughEnergy(card, 'player')) return false;
+
+    if (this.tableCard.name === 'Ice Flood') {
+      const responderState = this.playerState;
+
+      if (
+        responderState.iceFloodLockTurnCounter > 0 &&
+        responderState.forcedResponseNumber !== null
+      ) {
+        return (
+          card.rarity === 'base' &&
+          card.power === responderState.forcedResponseNumber
+        );
+      }
+
+      return true;
     }
-    
-    return true; // card is legal to play
+
+    if (!canPlayCard(card, this.tableCard)) return false;
+
+    return true;
   }
 
   private handlePlayerDrawAction() {
@@ -1096,6 +1385,7 @@ export class DuelScene extends Phaser.Scene {
     this.discardPile.push(resolvedCard); // send played card to discard
     this.tableCard = resolvedCard; // new card becomes the active table card
     this.renderTableCard(0x00ff88); // highlight the table card in player color
+    this.spendEnergy(resolvedCard, 'player'); // reduce energy based on the card's cost
     this.addEnergyFromCard(resolvedCard, 'player', previousTableCard); // award energy based on the play
     this.applyCardEffects(resolvedCard, 'player', previousTableCard); // resolve the card's effect and damage
     this.animatePlayerAttack(); // play the player attack pose
@@ -1139,6 +1429,7 @@ export class DuelScene extends Phaser.Scene {
     const previousTableCard = this.tableCard; // preserve previous table card for energy gain
     this.tableCard = enemyCard; // set the enemy card as the current table card
     this.renderTableCard(0xff6666); // show the table card in enemy color
+    this.spendEnergy(enemyCard, 'enemy'); // reduce enemy energy based on the card's cost
     this.addEnergyFromCard(enemyCard, 'enemy', previousTableCard); // award enemy energy gains
     this.animateEnemyAttack(); // play enemy attack pose
     this.applyCardEffects(enemyCard, 'enemy', previousTableCard); // resolve enemy card effects
@@ -1171,6 +1462,18 @@ export class DuelScene extends Phaser.Scene {
     }
   }
 
+  private spendEnergy(card: Card, side: 'player' | 'enemy') {
+    if (side === 'player') { // reduce the player's energy by the card's cost, ensuring it doesn't go below zero
+      this.playerElementalEnergy = Math.max(0, this.playerElementalEnergy - card.energyECost);
+      this.playerInstinctEnergy = Math.max(0, this.playerInstinctEnergy - card.energyICost);
+    }
+
+    else { // reduce the enemy's energy by the card's cost, ensuring it doesn't go below zero
+      this.enemyElementalEnergy = Math.max(0, this.enemyElementalEnergy - card.energyECost);
+      this.enemyInstinctEnergy = Math.max(0, this.enemyInstinctEnergy - card.energyICost);
+    }
+  }
+
   private finishLevel() {
     this.refillHandFromDeckOnly(this.playerHand, this.playerDeck); // refill the player's hand from deck only
     this.refillHandFromDeckOnly(this.enemyHand, this.enemyDeck); // refill the enemy's hand from deck only
@@ -1194,6 +1497,10 @@ export class DuelScene extends Phaser.Scene {
     // this.updateInstruction(); // kept commented out as in your current code
     this.playerDamageText.setText(''); // clear player damage popup
     this.enemyDamageText.setText(''); // clear enemy damage popup
+    this.playerHealText.setText(''); // clear player heal popup
+    this.enemyHealText.setText(''); // clear enemy heal popup
+    this.playerShieldDeltaText.setText(''); // clear player shield change popup
+    this.enemyShieldDeltaText.setText(''); // clear enemy shield change popup
     this.updatePlayerPose(); // restore player pose based on remaining HP
     this.updateEnemyPose(); // restore enemy pose based on remaining HP
     this.isAnimating = false; // unlock input for the next turn
@@ -1213,17 +1520,30 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private isEnemyCardPlayable(card: Card): boolean {
-    if (!canPlayCard(card, this.tableCard)) return false; // enforce shared card compatibility
-    if (this.enemyState.blockedNumberTurnCounter !== null && card.power === this.enemyState.blockedNumberTurnCounter) return false; // honor blocked-number status
-    if (this.enemyState.jamTurnCounter > 0 && card.rarity !== 'base') return false; // jam blocks non-base cards
-    if (this.enemyState.blockFireTurnCounter > 0 && card.element === 'fire') return false; // fire block status
-    
-    if (this.enemyState.iceFloodLockTurnCounter > 0) { // if the enemy is currently locked into the Ice Flood wildcard power, enforce that restriction
-      if (card.rarity === 'effect' && card.element !== 'ice') return false; // effects other than ice are blocked during the lock
-      if (card.rarity === 'base' && card.power !== this.enemyState.forcedResponseNumber) return false; // base cards that don't match the locked power are blocked during the lock
+    if (this.enemyState.blockedNumberTurnCounter !== null && card.power === this.enemyState.blockedNumberTurnCounter) return false;
+    if (this.enemyState.jamTurnCounter > 0 && card.rarity !== 'base') return false;
+    if (this.enemyState.blockFireTurnCounter > 0 && card.element === 'fire') return false;
+    if (!this.hasEnoughEnergy(card, 'enemy')) return false;
+
+    if (this.tableCard.name === 'Ice Flood') {
+      const responderState = this.enemyState;
+
+      if (
+        responderState.iceFloodLockTurnCounter > 0 &&
+        responderState.forcedResponseNumber !== null
+      ) {
+        return (
+          card.rarity === 'base' &&
+          card.power === responderState.forcedResponseNumber
+        );
+      }
+
+      return true;
     }
 
-    return true; // card can be played
+    if (!canPlayCard(card, this.tableCard)) return false;
+
+    return true;
   }
 
   private incrementDiscardFatigue(side: 'player' | 'enemy') {
@@ -1317,10 +1637,13 @@ export class DuelScene extends Phaser.Scene {
       case 'DAMAGE': 
         break; // raw damage card, no extra effect handling
 
-      case 'SHIELD': 
+      case 'SHIELD': {
+        const beforeShield = attackerState.shield;
         attackerState.shield += card.shieldValue; 
-        damage = 0; 
+        this.showShieldGainIndicator(attacker, attackerState.shield - beforeShield);
+        damage = 0;
         break; // convert effect into shield
+      }
 
       case 'POISON': 
         defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, card.effectDuration); 
@@ -1355,11 +1678,12 @@ export class DuelScene extends Phaser.Scene {
         attackerState.chainFireBonus = Math.max(attackerState.chainFireBonus, card.effectValue); 
         break; // store a future fire bonus
       
-      case 'HEAL': 
-        attackerState.shield += card.shieldValue; 
+      case 'HEAL': {
+        attackerState.shield += card.shieldValue;
         this.healSide(attacker, card.effectValue);
         damage = 0;
         break; // heal and grant shield
+      }
 
       case 'DOUBLE_SHIELD': 
         attackerState.shield = attackerState.shield > 0 ? attackerState.shield * 2 : card.shieldValue; 
@@ -1481,56 +1805,22 @@ export class DuelScene extends Phaser.Scene {
       // }
 
       case 'AMPLIFY': {
-        if (previousTableCard?.rarity === 'base') { // if the previous card is a base card, 
-          defenderState.forcedResponseNumber = previousTableCard.power; // lock the defender into responding to that card's power with an ice card, 
-          defenderState.iceFloodLockTurnCounter = 1; // and store the locked number for reference in the enemy's play restrictions
+        const previousTableCard = this.tableCard;
 
-          switch (previousTableCard.element) {
-            case 'fire':
-              damage = previousTableCard.baseDamage;
-              break; // if the previous card is a fire card, amplify by dealing extra damage equal to that card's base damage
+        if (previousTableCard?.rarity === 'base' && previousTableCard.power !== null) {
+          defenderState.forcedResponseNumber = previousTableCard.power;
+          defenderState.iceFloodLockTurnCounter = 1;
+          damage = 0;
+        } else {
+          attackerState.shield += 25;
+          this.healSide(attacker, 25);
 
-            case 'water':
-              attackerState.shield += previousTableCard.shieldValue;
-              damage = 0;
-              break; // if the previous card is a water card, amplify by granting extra shield equal to that card's shield value
+          defenderState.forcedResponseNumber = null;
+          defenderState.iceFloodLockTurnCounter = 0;
 
-            case 'swamp':
-              damage = 0;
-              defenderState.poisonTurnCounter = Math.max(
-                defenderState.poisonTurnCounter,
-                previousTableCard.effectDuration
-              ); // if the previous card is a swamp card, amplify by applying extra poison
-              defenderState.poisonDamage = Math.max(
-                defenderState.poisonDamage,
-                previousTableCard.effectValue
-              );
-              break; // use the previous card's poison values for the amplified poison effect
-
-            case 'sand':
-              damage = previousTableCard.baseDamage;
-              defenderState.weakenTurnCounter = Math.max(
-                defenderState.weakenTurnCounter,
-                previousTableCard.effectDuration || 1
-              ); // if the previous card is a sand card, amplify by applying extra weaken equal to that card's base damage and duration
-              defenderState.weakenEffectValue = Math.max(
-                defenderState.weakenEffectValue,
-                previousTableCard.effectValue
-              ); // use the previous card's weaken values for the amplified weaken effect
-              break;
-
-            default:
-              damage = 0;
-              break;
-          }
-        } 
-        
-        else { // if the previous card is not a base card, provide a default amplification effect of granting shield and healing for 15 HP
-          attackerState.shield += 15;
-          this.healSide(attacker, 15);
           damage = 0;
         }
-        
+
         break;
       }
       
@@ -1559,11 +1849,17 @@ export class DuelScene extends Phaser.Scene {
     const isPlayer = attacker === 'player'; // identify the attacking side
     const defenderState = isPlayer ? this.enemyState : this.playerState; // choose the defending side
     let remainingDamage = rawDamage; // damage left after shield absorption
+
     if (defenderState.shield > 0) { 
       const absorbed = Math.min(defenderState.shield, remainingDamage); // shield cannot absorb more than it has
       defenderState.shield -= absorbed; // reduce shield by the absorbed amount
       remainingDamage -= absorbed; // subtract absorbed damage from the incoming hit
+
+      if (absorbed > 0) {
+        this.showShieldLossIndicator(isPlayer ? 'enemy' : 'player', absorbed); // show shield loss popup if any damage was absorbed
+      }
     }
+
     if (remainingDamage <= 0) { 
       this.showBattleMessage('Shield blocked the attack!', '#7fd7ff'); // notify the player that the hit was fully blocked
       return; 
@@ -1604,7 +1900,12 @@ export class DuelScene extends Phaser.Scene {
 
     if (state.shield > 0) { 
       const absorbed = Math.min(state.shield, remaining); 
-      state.shield -= absorbed; remaining -= absorbed; 
+      state.shield -= absorbed; 
+      remaining -= absorbed; 
+
+      if (absorbed > 0) {
+          this.showShieldLossIndicator(side, absorbed);
+      } // show shield loss popup if any damage was absorbed
     } // shield also blocks direct damage
 
     if (remaining <= 0) return; // shield absorbed everything
@@ -1627,8 +1928,20 @@ export class DuelScene extends Phaser.Scene {
   private healSide(side: 'player' | 'enemy', amount: number) {
     if (amount <= 0) return; // ignore invalid healing values
 
-    if (side === 'player') this.playerHp = Math.min(MAX_HP, this.playerHp + amount); // heal player up to max HP
-    else this.enemyHp = Math.min(MAX_HP, this.enemyHp + amount); // heal enemy up to max HP
+    if (side === 'player') {
+      const before = this.playerHp;
+      this.playerHp = Math.min(MAX_HP, this.playerHp + amount);
+      const healed = this.playerHp - before;
+      this.showHealIndicator('player', healed);
+    }
+
+    else {
+      const before = this.enemyHp;
+      this.enemyHp = Math.min(MAX_HP, this.enemyHp + amount);
+      const healed = this.enemyHp - before;
+      this.showHealIndicator('enemy', healed);
+    }
+    
   }
 
   private cleanseNegative(state: CombatState) {
@@ -1710,8 +2023,16 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private animateEnemyAttack() {
-    const attackImage = Math.random() < 0.5 ? 'enemy-attack-1' : 'enemy-attack-2'; // randomize enemy attack pose
-    this.enemyCharacter.setTexture(attackImage).setScale(ENEMY_ATTACK_SCALE).setFlipX(false).setY(327); // switch to attack pose and keep flip
+    const bossConfig = this.getCurrentBossConfig(); // get the current boss configuration for attack pose details
+    const currentPhase = this.getCurrentBossVisual(); // determine the current visual phase based on HP thresholds
+    const attackImage = currentPhase.attackKeys[Math.floor(Math.random() * currentPhase.attackKeys.length)]; // randomly select an attack pose from the available options for this boss and phase
+
+    this.enemyCharacter
+      .setTexture(attackImage)
+      .setScale(bossConfig.attackScale)
+      .setFlipX(bossConfig.flipX)
+      .setPosition(bossConfig.x, bossConfig.y)
+      .setDepth(bossConfig.depth); // switch to the appropriate attack pose based on the current boss and phase
   }
 
   private updatePlayerPose() {
@@ -1734,26 +2055,43 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private updateEnemyPose() {
+    const bossConfig = this.getCurrentBossConfig(); // get the current boss configuration for pose thresholds
+    const currentPhase = this.getCurrentBossVisual(); // determine the current visual phase based on HP thresholds
+
+    const hpRatio = this.enemyHp / Math.max(1, this.enemyMaxHp); // calculate current HP ratio for more flexible pose thresholds
+
     if (this.enemyHp <= 0) { 
-      this.currentEnemyImage = 'enemy-defeated'; 
-      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(false).setY(340); // defeated pose with slight position adjustment
+      this.enemyCharacter
+      .setTexture(bossConfig.defeatedKey)
+      .setScale(bossConfig.defeatedScale)
+      .setFlipX(bossConfig.flipX)
+      .setPosition(bossConfig.x, bossConfig.y)
+      .setDepth(bossConfig.depth);
       return; 
-    } // defeated pose
+    } // defeated poses are defined per boss for maximum visual impact
 
-    if (this.enemyHp <= 25) { 
-      this.currentEnemyImage = 'enemy-hurt-2'; 
-      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_HURT2_SCALE).setFlipX(false).setY(327); // critical enemy pose
+    const hurtKeys = currentPhase.hurtKeys;
+    if (hpRatio <= 0.25 && hurtKeys[1]) { 
+      this.enemyCharacter
+      .setTexture(hurtKeys[1])
+      .setScale(bossConfig.hurtScale)
+      .setFlipX(bossConfig.flipX)
+      .setPosition(bossConfig.x, bossConfig.y)
+      .setDepth(bossConfig.depth);
       return; 
     }
 
-    if (this.enemyHp <= 50) { 
-      this.currentEnemyImage = 'enemy-hurt-1'; 
-      this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_HURT1_SCALE).setFlipX(false).setY(327); // wounded enemy pose
+    if (hpRatio <= 0.5 && hurtKeys[0]) { 
+      this.enemyCharacter
+      .setTexture(hurtKeys[0])
+      .setScale(bossConfig.hurtScale)
+      .setFlipX(bossConfig.flipX)
+      .setPosition(bossConfig.x, bossConfig.y)
+      .setDepth(bossConfig.depth);
       return; 
     }
 
-    this.currentEnemyImage = 'enemy-default'; // restore the default enemy texture
-    this.enemyCharacter.setTexture(this.currentEnemyImage).setScale(ENEMY_IDLE_SCALE).setFlipX(false).setY(327); // healthy idle pose
+    this.setEnemyToIdle(); // default to idle pose if above 50% HP
   }
 
   private discardPlayerCard(card: Card) {
@@ -1787,12 +2125,23 @@ export class DuelScene extends Phaser.Scene {
     } // player lost
 
     if (this.enemyHp <= 0) { 
-      this.updateEnemyPose(); // show the defeated enemy pose before transitioning
-      this.levelsWon += 1; 
-      this.levelText.setText(`Level ${this.levelsWon + 1}`); 
-      this.time.delayedCall(500, () => { // brief pause to let the defeated pose register before showing the victory screen
-        this.showVictoryCutscene(); 
-      });
+      const duelReallyEnded = this.handleEnemyDefeat(); // run enemy defeat logic and check if the duel truly ended or if there are additional phases
+
+      if (!duelReallyEnded) {
+        this.refreshHud();
+        this.renderCards();
+        this.renderTableCard();
+        this.renderDiscardTopCard();
+        this.updateEnemyPose();
+        return false;
+      } // if the duel has truly ended, show the victory cutscene after a brief pause to let the final hit and defeated pose register
+
+      this.updateEnemyPose();
+      this.levelsWon += 1;
+      this.levelText.setText(`Level ${this.levelsWon + 1}`);
+      this.time.delayedCall(500, () => {
+        this.showVictoryCutscene();
+      }); // show the victory cutscene after a brief delay to allow the final hit and defeated pose to register
 
       return true; 
     } // enemy lost
@@ -1854,7 +2203,7 @@ export class DuelScene extends Phaser.Scene {
     this.add.text(centerX, centerY + 20, `Total XP: ${grandXp}  |  Total Coins: ${grandCoins}`, { fontSize: '24px', color: '#ffd700' }).setOrigin(0.5).setDepth(16); // final rewards summary
 
     const restartBtn = this.add.text(centerX, centerY + 90, 'Play Again', { fontSize: '32px', color: '#ffffff' })
-      .setOrigin(0.5).setInteractive({ useHandCursor: true })
+      .setOrigin(0.5).setDepth(16).setInteractive({ useHandCursor: true })
       .on('pointerover', () => restartBtn.setColor('#00ff88')) // hover feedback
       .on('pointerout', () => restartBtn.setColor('#ffffff')) // restore default color
       .on('pointerdown', () => this.scene.start('RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 })); // start a fresh run

@@ -12,6 +12,7 @@ import { MAX_HP, MAX_ENERGY } from './duelConfig'; // constants for maximum HP a
 export function updateHpBar( // function that contains the logic for rendering an HP bar based on current HP, with color changes and numeric display
     graphics: Phaser.GameObjects.Graphics,
     hp: number,
+    maxHp: number,
     x: number,
     y: number,
     hpText: Phaser.GameObjects.Text
@@ -20,14 +21,18 @@ export function updateHpBar( // function that contains the logic for rendering a
     graphics.fillStyle(0x333333, 0.95); // dark bar background
     graphics.fillRoundedRect(x, y, 240, 20, 8); // draw the bar track
 
-    const color = hp > 50 ? 0x00ff88 : hp > 25 ? 0xffaa00 : 0xff4444; // choose color based on current HP
+    const safeMax = Math.max(1, maxHp); // prevent division by zero
+    const percent = Math.max(0, Math.min(hp, safeMax)) / safeMax; // calculate HP percentage, clamped between 0 and 1
+    const ratio = hp / safeMax; // calculate HP ratio for color coding
+
+    const color = ratio > 0.5 ? 0x00ff88 : ratio > 0.25 ? 0xffaa00 : 0xff4444; // choose color based on current HP
     graphics.fillStyle(color, 1); // fill color for the actual HP amount
-    graphics.fillRoundedRect(x, y, (Math.max(0, Math.min(hp, MAX_HP)) / MAX_HP) * 240, 20, 8); // clamp and scale HP to the bar width
+    graphics.fillRoundedRect(x, y, percent * 240, 20, 8); // clamp and scale HP to the bar width
 
     graphics.lineStyle(2, 0xffffff, 1); // white border for readability
     graphics.strokeRoundedRect(x, y, 240, 20, 8); // outline the HP bar
 
-    hpText.setText(`${Math.max(0, hp)}/${MAX_HP} HP`); // show numeric HP value
+    hpText.setText(`${Math.max(0, hp)}/${safeMax} HP`); // show numeric HP value
 }
 
 export function updateShieldBar( // function that contains the logic for rendering a shield bar based on current shield value, with color coding and scaling
