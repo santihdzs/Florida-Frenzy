@@ -52,12 +52,11 @@ export class HistoryScene extends Phaser.Scene {
     // Scroll container
     this.scrollContainer = this.add.container(bgX + 20, bgY + 20);
 
-    const storyText ="LA REBELIÓN DEL PANTANO\n\n" +
-      "En las turbias y contaminadas aguas del pantano de Florida, la radiación y los desechos industriales alteraron el curso de la naturaleza. De este fango tóxico emergió el Croc Clan, un grupo de cocodrilos que desarrolló inteligencia humana a causa de los químicos. Con una fuerte identidad punk, estos guerreros aprendieron a sobrevivir reciclando la basura abandonada en los ríos y basureros.\n\n" +
-      "Sin embargo, su hogar se encuentra bajo amenaza. Las zonas aledañas han sido invadidas por crueles facciones de ratas, mapaches y osos. A diferencia del Croc Clan, estos enemigos son el resultado de experimentos bio-cibernéticos que se dieron a la fuga. Adquirieron su inteligencia al interconectar sus cerebros directamente con computadoras, convirtiéndose en máquinas despiadadas dispuestas a todo. Todo este ejército cibernético está liderado por la temible pitón, Pythra.\n\n" +
-      "Para defender su territorio, el Croc Clan no usa armas convencionales, sino que han dominado el 'arte antiguo' de Florida Frenzy. A través de reliquias legendarias en forma de cartas, estos guerreros canalizan la Energía Elemental de su entorno y su propio Instinto salvaje para desatar habilidades devastadoras.\n\n" +
-      "Ahora es tu turno. Elige a tu guerrero, adéntrate en el caos del pantano y demuestra quién es el verdadero rey de la cadena alimenticia.";
-    
+    const storyText ="THE SWAMP REBELION\n\n" +
+      "In the murky and contaminated waters of the Florida swampland, radiation and industrial waste altered the course of nature. From this toxic mud emerged the Croc Clan, a group of crocodiles that developed human intelligence due to the chemicals. With a strong punk identity, these warriors learned to survive by recycling the trash abandoned in the rivers and landfills.\n\n" +
+      "However, their home is under threat. The surrounding areas have been invaded by cruel factions of rats, raccoons and bears. Unlike the Croc Clan, these enemies are the result of bio-cybernetic experiments that ran amok. They acquired their intelligence by directly connecting their brains to computers, becoming ruthless machines willing to do anything. This entire cyber army is led by the fearsome python, Pythra.\n\n" +
+      "To defend their territory, the Croc Clan does not use conventional weapons, but have mastered the 'ancient art' of Florida Frenzy. Through legendary relics in the form of cards, these warriors channel the Elemental Energy of their environment and their own wild instinct to unleash devastating abilities.\n\n" +
+      "Now it's your turn. Choose your warrior, venture into the chaos of the swampland and prove who is the true king of the food chain.";
     const textStyle = {
         fontFamily: 'Impact, Arial Black, sans-serif',
         fontSize: '24px',
