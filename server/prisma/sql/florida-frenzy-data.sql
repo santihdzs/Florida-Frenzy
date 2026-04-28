@@ -5,11 +5,57 @@
 4. card_game
 */
 
-INSERT INTO character_game (ch_name, ch_desc, base_hp, base_attack, base_defense, ch_ultimate, ch_ultimate_desc, is_default_unlocked) VALUES ('Christian', 'El intrépido líder del equipo, con habilidades balanceadas, y recuperación estable.', 100, 10, 10, 'Vertical Leap', 'Recupera 50% de su vida actual y 30% de su escudo - Obtiene en su mano una carta válida basada en la carta en mesa', TRUE),
-('Gustav', 'La barricada más leal del clan. Siempre listo para proteger con su mítico escudo.', 110, 8, 15, 'Head Crack', 'Recupera 25% de su vida y 60% de su escudo - Se vuelve inmune a efectos durante el siguiente turno', TRUE),
-('Gavin', 'El estratega, la "máquina" más confiable. De los cocodrilos más inteligentes del pantano.', 95, 12, 8, 'Testing', 'Recupera 30% de su vida y 30% de su escudo - Durante los siguientes 2 turnos, el daño recibido de cartas enemigas se reduce en un 50%', TRUE),
-('Eddy', 'El rápido y pretencioso caimán. Ni quien lo detenga.', 85, 16, 6, 'Swamp Trait', 'Recupera 75% de su vida actual, pero pierde 35% de su escudo - Durante los siguientes 2 turnos, el daño de sus cartas se duplica', TRUE);
-COMMIT;
+INSERT INTO "CharacterGame" (
+  "chName",
+  "chDesc",
+  "baseHp",
+  "baseAttack",
+  "baseDefense",
+  "chUltimate",
+  "chUltimateDesc",
+  "isDefaultUnlocked"
+)
+VALUES
+(
+  'Christian',
+  'El intrépido líder del equipo, con habilidades balanceadas y recuperación estable.',
+  120,
+  4,
+  5,
+  'Vertical Leap',
+  'Recupera 55% de su vida actual y 30% de su escudo. Obtiene en su mano una carta válida basada en la carta en mesa.',
+  TRUE
+),
+(
+  'Gustav',
+  'La barricada más leal del clan. Siempre listo para proteger con su mítico escudo.',
+  135,
+  2,
+  15,
+  'Head Crack',
+  'Recupera 25% de su vida y 60% de su escudo. Se vuelve inmune a efectos durante 3 turnos.',
+  TRUE
+),
+(
+  'Gavin',
+  'El estratega, la máquina más confiable. De los cocodrilos más inteligentes del pantano.',
+  115,
+  4,
+  8,
+  'Testing',
+  'Recupera 30% de su vida y 30% de su escudo. Durante los siguientes 2 turnos, el daño recibido de cartas enemigas se reduce en 50%.',
+  TRUE
+),
+(
+  'Eddy',
+  'El rápido y pretencioso caimán. Ni quien lo detenga.',
+  100,
+  7,
+  4,
+  'Swamp Trait',
+  'Recupera 75% de su vida actual, pero pierde 35% de su escudo. Durante los siguientes 2 turnos, el daño de sus cartas se duplica.',
+  TRUE
+);
 
 INSERT INTO "Enemy" (
   "enemyName",
@@ -34,10 +80,37 @@ INSERT INTO "Enemy" (
 ('Pythra', 'Boss principal formidable e impredecible.', 'FINAL_BOSS', 'PYTHON', 350, 'HARD', 'Frozen Dominion', 'Usa cartas legendarias y puede replicar ultis de otros bosses');
 
 
-INSERT INTO zone_game (zone_name, zone_map, zone_desc, zone_difficulty_set) VALUES ('Swamp', 'map_swamp', 'El hogar del clan', 'EASY'),
-('Garbage Dump', 'map_garbage', 'Basurero caótico', 'MEDIUM'),
-('Suburbs', 'map_suburbs', 'Una calle peligrosa', 'HARD'),
-('Sewers', 'map_sewers', 'Zona final en el desagüe', 'FINAL');
+INSERT INTO "ZoneGame" (
+  "zoneName",
+  "zoneMap",
+  "zoneDesc",
+  "zoneDifficulty"
+)
+VALUES
+(
+  'Swamp',
+  'map_swamp',
+  'El hogar del clan',
+  'MEDIUM'
+),
+(
+  'Garbage Dump',
+  'map_garbage',
+  'Basurero caótico',
+  'MEDIUM'
+),
+(
+  'Suburbs',
+  'map_suburbs',
+  'Una calle peligrosa',
+  'HARD'
+),
+(
+  'Sewers',
+  'map_sewers',
+  'Zona final en el desagüe',
+  'HARD'
+);
 
 
 INSERT INTO "CardGame" (
@@ -154,7 +227,7 @@ INSERT INTO "CardGame" (
 ('Ice Jam','SPECIAL','ICE',NULL,'JAM','Bloquea las especiales rivales por 2 turnos',0,0,1,2,0,0,0,8,6,'RARE'),
 ('Ice Overdrive','SPECIAL','ICE',NULL,'DOUBLE_PLAY','Puedes jugar 2 cartas este turno',0,0,1,1,0,0,0,8,8,'RARE'),
 ('Ice Shift','SPECIAL','ICE',NULL,'HAND_RESET','La mano rival va a discard. Roba una nueva desde la discard pile',0,0,1,0,0,0,0,10,8,'RARE'),
-('Ice Flood','SPECIAL','ICE',NULL,'AMPLIFY','Si copia una base, fuerza respuesta por número. Si copia una especial, da 15 HP y 15 escudo',15,15,15,0,15,0,0,8,8,'RARE'),
+('Ice Flood','SPECIAL','ICE',NULL,'AMPLIFY','Si la carta en mesa es base, copia su número y fuerza respuesta solo por ese número. Si la carta en mesa es especial, gana 25 HP y 25 escudo y el rival puede responder con cualquier carta',0,25,25,0,25,0,0,8,8,'RARE'),
 
 -- =========================
 -- LEGENDARY
@@ -163,4 +236,4 @@ INSERT INTO "CardGame" (
 ('Alligator','SPECIAL','WATER',NULL,'IMMUNITY','Recupera el 100% de su vida',0,0,100,1,0,0,0,16,18,'LEGENDARY'),
 ('Gavial','SPECIAL','SAND',NULL,'HAND_RESET','Carga la Ulti del jugador instantáneamente',0,0,5,0,0,0,0,17,14,'LEGENDARY'),
 ('Caiman','SPECIAL','SWAMP',NULL,'RANDOM_STATUS','Aplica un estado aleatorio al enemigo',0,0,1,2,0,0,0,13,16,'LEGENDARY'),
-('Sarcosuchus','SPECIAL','FIRE',NULL,'EXECUTE','Reduce al enemigo a 1 HP y 1 escudo',0,0,1,0,1,0,0,20,18,'LEGENDARY');
+('Sarcosuchus','SPECIAL','FIRE',NULL,'EXECUTE','Reduce al enemigo a 25 HP y 25 escudo',0,0,1,0,1,0,0,20,18,'LEGENDARY');

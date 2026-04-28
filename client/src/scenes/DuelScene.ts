@@ -1320,19 +1320,30 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private isPlayerCardPlayable(card: Card): boolean {
-    if (!canPlayCard(card, this.tableCard)) return false; // enforce element/power compatibility
-    if (this.playerState.blockedNumberTurnCounter !== null && card.power === this.playerState.blockedNumberTurnCounter) return false; // block forbidden number plays
-    if (this.playerState.jamTurnCounter > 0 && card.rarity !== 'base') return false; // jam status blocks all non-base cards
-    if (this.playerState.blockFireTurnCounter > 0 && card.element === 'fire') return false; // block fire cards during the block fire status
-    
-    if (this.playerState.iceFloodLockTurnCounter > 0) { // if the enemy is currently locked into the Ice Flood wildcard power, enforce that restriction
-      if (card.rarity === 'effect' && card.element !== 'ice') return false; // effects other than ice are blocked during the lock
-      if (card.rarity === 'base' && card.power !== this.playerState.forcedResponseNumber) return false; // base cards that don't match the locked power are blocked during the lock
+    if (this.playerState.blockedNumberTurnCounter !== null && card.power === this.playerState.blockedNumberTurnCounter) return false;
+    if (this.playerState.jamTurnCounter > 0 && card.rarity !== 'base') return false;
+    if (this.playerState.blockFireTurnCounter > 0 && card.element === 'fire') return false;
+    if (!this.hasEnoughEnergy(card, 'player')) return false;
+
+    if (this.tableCard.name === 'Ice Flood') {
+      const responderState = this.playerState;
+
+      if (
+        responderState.iceFloodLockTurnCounter > 0 &&
+        responderState.forcedResponseNumber !== null
+      ) {
+        return (
+          card.rarity === 'base' &&
+          card.power === responderState.forcedResponseNumber
+        );
+      }
+
+      return true;
     }
 
-    if (!this.hasEnoughEnergy(card, 'player')) return false; // must have enough energy to play the card
-    
-    return true; // card is legal to play
+    if (!canPlayCard(card, this.tableCard)) return false;
+
+    return true;
   }
 
   private handlePlayerDrawAction() {
@@ -1509,19 +1520,30 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private isEnemyCardPlayable(card: Card): boolean {
-    if (!canPlayCard(card, this.tableCard)) return false; // enforce shared card compatibility
-    if (this.enemyState.blockedNumberTurnCounter !== null && card.power === this.enemyState.blockedNumberTurnCounter) return false; // honor blocked-number status
-    if (this.enemyState.jamTurnCounter > 0 && card.rarity !== 'base') return false; // jam blocks non-base cards
-    if (this.enemyState.blockFireTurnCounter > 0 && card.element === 'fire') return false; // fire block status
-    
-    if (this.enemyState.iceFloodLockTurnCounter > 0) { // if the enemy is currently locked into the Ice Flood wildcard power, enforce that restriction
-      if (card.rarity === 'effect' && card.element !== 'ice') return false; // effects other than ice are blocked during the lock
-      if (card.rarity === 'base' && card.power !== this.enemyState.forcedResponseNumber) return false; // base cards that don't match the locked power are blocked during the lock
+    if (this.enemyState.blockedNumberTurnCounter !== null && card.power === this.enemyState.blockedNumberTurnCounter) return false;
+    if (this.enemyState.jamTurnCounter > 0 && card.rarity !== 'base') return false;
+    if (this.enemyState.blockFireTurnCounter > 0 && card.element === 'fire') return false;
+    if (!this.hasEnoughEnergy(card, 'enemy')) return false;
+
+    if (this.tableCard.name === 'Ice Flood') {
+      const responderState = this.enemyState;
+
+      if (
+        responderState.iceFloodLockTurnCounter > 0 &&
+        responderState.forcedResponseNumber !== null
+      ) {
+        return (
+          card.rarity === 'base' &&
+          card.power === responderState.forcedResponseNumber
+        );
+      }
+
+      return true;
     }
 
-    if (!this.hasEnoughEnergy(card, 'enemy')) return false; // check energy availability for the enemy
+    if (!canPlayCard(card, this.tableCard)) return false;
 
-    return true; // card can be played
+    return true;
   }
 
   private incrementDiscardFatigue(side: 'player' | 'enemy') {
@@ -1657,9 +1679,7 @@ export class DuelScene extends Phaser.Scene {
         break; // store a future fire bonus
       
       case 'HEAL': {
-        const beforeShield = attackerState.shield;
-        attackerState.shield += card.shieldValue; 
-        this.showShieldGainIndicator(attacker, attackerState.shield - beforeShield); // show shield gain from the heal effect
+        attackerState.shield += card.shieldValue;
         this.healSide(attacker, card.effectValue);
         damage = 0;
         break; // heal and grant shield
@@ -1785,56 +1805,22 @@ export class DuelScene extends Phaser.Scene {
       // }
 
       case 'AMPLIFY': {
-        if (previousTableCard?.rarity === 'base') { // if the previous card is a base card, 
-          defenderState.forcedResponseNumber = previousTableCard.power; // lock the defender into responding to that card's power with an ice card, 
-          defenderState.iceFloodLockTurnCounter = 1; // and store the locked number for reference in the enemy's play restrictions
+        const previousTableCard = this.tableCard;
 
-          switch (previousTableCard.element) {
-            case 'fire':
-              damage = previousTableCard.baseDamage;
-              break; // if the previous card is a fire card, amplify by dealing extra damage equal to that card's base damage
+        if (previousTableCard?.rarity === 'base' && previousTableCard.power !== null) {
+          defenderState.forcedResponseNumber = previousTableCard.power;
+          defenderState.iceFloodLockTurnCounter = 1;
+          damage = 0;
+        } else {
+          attackerState.shield += 25;
+          this.healSide(attacker, 25);
 
-            case 'water':
-              attackerState.shield += previousTableCard.shieldValue;
-              damage = 0;
-              break; // if the previous card is a water card, amplify by granting extra shield equal to that card's shield value
+          defenderState.forcedResponseNumber = null;
+          defenderState.iceFloodLockTurnCounter = 0;
 
-            case 'swamp':
-              damage = 0;
-              defenderState.poisonTurnCounter = Math.max(
-                defenderState.poisonTurnCounter,
-                previousTableCard.effectDuration
-              ); // if the previous card is a swamp card, amplify by applying extra poison
-              defenderState.poisonDamage = Math.max(
-                defenderState.poisonDamage,
-                previousTableCard.effectValue
-              );
-              break; // use the previous card's poison values for the amplified poison effect
-
-            case 'sand':
-              damage = previousTableCard.baseDamage;
-              defenderState.weakenTurnCounter = Math.max(
-                defenderState.weakenTurnCounter,
-                previousTableCard.effectDuration || 1
-              ); // if the previous card is a sand card, amplify by applying extra weaken equal to that card's base damage and duration
-              defenderState.weakenEffectValue = Math.max(
-                defenderState.weakenEffectValue,
-                previousTableCard.effectValue
-              ); // use the previous card's weaken values for the amplified weaken effect
-              break;
-
-            default:
-              damage = 0;
-              break;
-          }
-        } 
-        
-        else { // if the previous card is not a base card, provide a default amplification effect of granting shield and healing for 15 HP
-          attackerState.shield += 15;
-          this.healSide(attacker, 15);
           damage = 0;
         }
-        
+
         break;
       }
       
@@ -2072,6 +2058,8 @@ export class DuelScene extends Phaser.Scene {
     const bossConfig = this.getCurrentBossConfig(); // get the current boss configuration for pose thresholds
     const currentPhase = this.getCurrentBossVisual(); // determine the current visual phase based on HP thresholds
 
+    const hpRatio = this.enemyHp / Math.max(1, this.enemyMaxHp); // calculate current HP ratio for more flexible pose thresholds
+
     if (this.enemyHp <= 0) { 
       this.enemyCharacter
       .setTexture(bossConfig.defeatedKey)
@@ -2083,7 +2071,7 @@ export class DuelScene extends Phaser.Scene {
     } // defeated poses are defined per boss for maximum visual impact
 
     const hurtKeys = currentPhase.hurtKeys;
-    if (this.enemyHp <= 25 && hurtKeys[1]) { 
+    if (hpRatio <= 0.25 && hurtKeys[1]) { 
       this.enemyCharacter
       .setTexture(hurtKeys[1])
       .setScale(bossConfig.hurtScale)
@@ -2093,7 +2081,7 @@ export class DuelScene extends Phaser.Scene {
       return; 
     }
 
-    if (this.enemyHp <= 50 && hurtKeys[0]) { 
+    if (hpRatio <= 0.5 && hurtKeys[0]) { 
       this.enemyCharacter
       .setTexture(hurtKeys[0])
       .setScale(bossConfig.hurtScale)
@@ -2215,7 +2203,7 @@ export class DuelScene extends Phaser.Scene {
     this.add.text(centerX, centerY + 20, `Total XP: ${grandXp}  |  Total Coins: ${grandCoins}`, { fontSize: '24px', color: '#ffd700' }).setOrigin(0.5).setDepth(16); // final rewards summary
 
     const restartBtn = this.add.text(centerX, centerY + 90, 'Play Again', { fontSize: '32px', color: '#ffffff' })
-      .setOrigin(0.5).setInteractive({ useHandCursor: true })
+      .setOrigin(0.5).setDepth(16).setInteractive({ useHandCursor: true })
       .on('pointerover', () => restartBtn.setColor('#00ff88')) // hover feedback
       .on('pointerout', () => restartBtn.setColor('#ffffff')) // restore default color
       .on('pointerdown', () => this.scene.start('RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 })); // start a fresh run
