@@ -383,7 +383,7 @@ export class DuelScene extends Phaser.Scene {
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
     escKey?.on('down', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
-      this.scene.launch('PauseScene', { returnScene: 'DuelScene', runId: this.runId, totalCoins: this.totalCoins, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
+      this.scene.launch('PauseScene', { returnScene: this.scene.key, runId: this.runId, totalCoins: this.totalCoins, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
       this.scene.pause(); // pause the duel scene
     });
 
@@ -397,8 +397,8 @@ export class DuelScene extends Phaser.Scene {
 
     pauseButton.on('pointerdown', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
+      this.scene.launch('PauseScene', { returnScene: this.scene.key, runId: this.runId, totalCoins: this.totalCoins, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
       this.scene.pause(); // pause the duel scene
-      this.scene.launch('PauseScene', { returnScene: 'DuelScene', runId: this.runId, totalCoins: this.totalCoins, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
     });
 
     // Sidebar navigation guard — only active in DuelScene, not subclasses (e.g. TutorialScene2)
