@@ -106,15 +106,21 @@ export const ELEMENT_COLORS: Record<Element, number> = {
 
 // Function for Elemental Energy gain based on card power
 function energyElementGained(power: number): number {
-  if (power <= 4) return 1;
-  if (power <= 7) return 2;
-  return 3;
+  if (power <= 4) return 2;
+  if (power <= 7) return 3;
+  return 4;
 }
 
 // Function for Instinct Energy gain based on card power
 function energyInstGained(power: number): number {
-  if (power <= 3) return 1;
-  if (power <= 6) return 2;
+  if (power <= 4) return 2;
+  if (power <= 7) return 3;
+  return 4;
+}
+
+function energyElementCost(power: number): number {
+  if (power <= 4) return 1;
+  if (power <= 7) return 2;
   return 3;
 }
 
@@ -161,7 +167,7 @@ function createBaseCard(element: Element, power: number): Card {
         effectValueSecondary: 0,
         energyEGain: energyElementGained(power),
         energyIGain: energyInstGained(power),
-        energyECost: 0,
+        energyECost: energyElementCost(power),
         energyICost: 0,
       });
       
@@ -181,7 +187,7 @@ function createBaseCard(element: Element, power: number): Card {
         effectValueSecondary: 0,
         energyEGain: energyElementGained(power),
         energyIGain: energyInstGained(power),
-        energyECost: 0,
+        energyECost: energyElementCost(power),
         energyICost: 0,
       });
     
@@ -203,7 +209,7 @@ function createBaseCard(element: Element, power: number): Card {
         effectValueSecondary: 0,
         energyEGain: energyElementGained(power),
         energyIGain: energyInstGained(power),
-        energyECost: 0,
+        energyECost: energyElementCost(power),
         energyICost: 0,
       });
     }
@@ -224,7 +230,7 @@ function createBaseCard(element: Element, power: number): Card {
         effectValueSecondary: 0,
         energyEGain: energyElementGained(power),
         energyIGain: energyInstGained(power),
-        energyECost: 0,
+        energyECost: energyElementCost(power),
         energyICost: 0,
       });
     }
@@ -256,10 +262,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 4,
     effectDuration: 2,
     effectValueSecondary: 0,
-    energyEGain: 2,
+    energyEGain: 4,
     energyIGain: 2,
-    energyECost: 2,
-    energyICost: 0,
+    energyECost: 1,
+    energyICost: 1,
   }),
 
   createCard({
@@ -278,7 +284,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     energyEGain: 2,
     energyIGain: 2,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 1,
   }),
 
   createCard({
@@ -294,10 +300,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 100, // Representa el porcentaje de aumento de daño
     effectDuration: 1,
     effectValueSecondary: 0,
-    energyEGain: 2,
+    energyEGain: 3,
     energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    energyECost: 2,
+    energyICost: 2,
   }),
 
   createCard({
@@ -332,10 +338,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 6, // Aumento de daño para el siguiente ataque de fuego
     effectDuration: 1,
     effectValueSecondary: 0,
-    energyEGain: 2,
+    energyEGain: 4,
     energyIGain: 2,
-    energyECost: 2,
-    energyICost: 0,
+    energyECost: 0,
+    energyICost: 1,
   }),
 
   // Water special cards (5)
@@ -352,10 +358,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 6,
     effectDuration: 0,
     effectValueSecondary: 0,
-    energyEGain: 2,
-    energyIGain: 2,
+    energyEGain: 4,
+    energyIGain: 4,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 2,
   }),
 
   createCard({
@@ -373,8 +379,8 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValueSecondary: 0,
     energyEGain: 2,
     energyIGain: 2,
-    energyECost: 2,
-    energyICost: 0,
+    energyECost: 1,
+    energyICost: 1,
   }),
 
   createCard({
@@ -390,10 +396,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 1,
     effectDuration: 0,
     effectValueSecondary: 0,
-    energyEGain: 2,
-    energyIGain: 2,
+    energyEGain: 3,
+    energyIGain: 3,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 2,
   }),
 
   createCard({
@@ -409,10 +415,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 35,
     effectDuration: 1,
     effectValueSecondary: 0,
-    energyEGain: 2,
-    energyIGain: 2,
+    energyEGain: 5,
+    energyIGain: 3,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 2,
   }),
 
   createCard({
@@ -430,8 +436,8 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValueSecondary: 0,
     energyEGain: 2,
     energyIGain: 2,
-    energyECost: 2,
-    energyICost: 0,
+    energyECost: 1,
+    energyICost: 1,
   }),
 
   // Swamp special cards (5)
@@ -448,10 +454,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 10,
     effectDuration: 3,
     effectValueSecondary: 0,
-    energyEGain: 2,
+    energyEGain: 3,
     energyIGain: 2,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 1,
   }),
 
   createCard({
@@ -468,9 +474,9 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectDuration: 2,
     effectValueSecondary: 0,
     energyEGain: 2,
-    energyIGain: 2,
-    energyECost: 2,
-    energyICost: 0,
+    energyIGain: 3,
+    energyECost: 1,
+    energyICost: 2,
   }),
 
   createCard({
@@ -486,10 +492,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 1,
     effectDuration: 1,
     effectValueSecondary: 0,
-    energyEGain: 2,
-    energyIGain: 2,
-    energyECost: 2,
-    energyICost: 0,
+    energyEGain: 3,
+    energyIGain: 3,
+    energyECost: 1,
+    energyICost: 2,
   }),
 
   createCard({
@@ -505,10 +511,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 6,
     effectDuration: 2,
     effectValueSecondary: 0,
-    energyEGain: 2,
-    energyIGain: 2,
+    energyEGain: 6,
+    energyIGain: 6,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 2,
   }),
 
   createCard({
@@ -524,10 +530,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 25,
     effectDuration: 0,
     effectValueSecondary: 0,
-    energyEGain: 2,
+    energyEGain: 5,
     energyIGain: 2,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 1,
   }),
 
   // Sand special cards (5)
@@ -546,8 +552,8 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValueSecondary: 0,
     energyEGain: 2,
     energyIGain: 2,
-    energyECost: 2,
-    energyICost: 0,
+    energyECost: 0,
+    energyICost: 1,
   }),
 
   createCard({
@@ -563,10 +569,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 1,
     effectDuration: 1,
     effectValueSecondary: 0,
-    energyEGain: 2,
-    energyIGain: 2,
+    energyEGain: 4,
+    energyIGain: 3,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 2,
   }),
 
   createCard({
@@ -582,10 +588,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 20,
     effectDuration: 1,
     effectValueSecondary: 0,
-    energyEGain: 2,
-    energyIGain: 2,
+    energyEGain: 6,
+    energyIGain: 5,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 1,
   }),
 
   createCard({
@@ -602,8 +608,8 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectDuration: 0,
     effectValueSecondary: 0,
     energyEGain: 2,
-    energyIGain: 2,
-    energyECost: 2,
+    energyIGain: 1,
+    energyECost: 1,
     energyICost: 0,
   }),
 
@@ -620,10 +626,10 @@ export const SPECIAL_CARD_POOL: Card[] = [
     effectValue: 20,
     effectDuration: 3,
     effectValueSecondary: 0,
-    energyEGain: 2,
+    energyEGain: 4,
     energyIGain: 2,
     energyECost: 2,
-    energyICost: 0,
+    energyICost: 1,
   }),
 
 ]
@@ -645,10 +651,10 @@ export const ICE_CARD_POOL: Card[] = [
     effectValue: 1,
     effectDuration: 1,
     effectValueSecondary: 0,
-    energyEGain: 3,
-    energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 6,
+    energyICost: 6,
   }),
 
   createCard({
@@ -664,10 +670,10 @@ export const ICE_CARD_POOL: Card[] = [
     effectValue: 1,
     effectDuration: 2,
     effectValueSecondary: 0,
-    energyEGain: 3,
-    energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 8,
+    energyICost: 6,
   }),
 
   createCard({
@@ -683,10 +689,10 @@ export const ICE_CARD_POOL: Card[] = [
     effectValue: 1,
     effectDuration: 1,
     effectValueSecondary: 0,
-    energyEGain: 3,
-    energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 8,
+    energyICost: 8,
   }),
 
   createCard({
@@ -702,10 +708,10 @@ export const ICE_CARD_POOL: Card[] = [
     effectValue: 1,
     effectDuration: 0,
     effectValueSecondary: 0,
-    energyEGain: 3,
-    energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 10,
+    energyICost: 8,
   }),
 
   createCard({
@@ -715,16 +721,16 @@ export const ICE_CARD_POOL: Card[] = [
     rarity: 'rare',
     power: null,
     effect: 'AMPLIFY',
-    effectDescription: 'Si copia una base, fuerza respuesta por número. Si copia una especial, da 15 HP y 15 escudo',
-    baseDamage: 15,
-    shieldValue: 15,
-    effectValue: 15,
+    effectDescription: 'Si la carta en mesa es base, copia su número y fuerza respuesta solo por ese número. Si la carta en mesa es especial, gana 25 HP y 25 escudo y el rival puede responder con cualquier carta',
+    baseDamage: 0,
+    shieldValue: 25,
+    effectValue: 25,
     effectDuration: 0,
-    effectValueSecondary: 15,
-    energyEGain: 3,
-    energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    effectValueSecondary: 25,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 8,
+    energyICost: 8,
   }),
 ]
 
@@ -744,10 +750,10 @@ export const LEGENDARY_CARD_POOL: Card[] = [
     effectValue: 5,
     effectDuration: 0,
     effectValueSecondary: 0,
-    energyEGain: 3,
-    energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 15,
+    energyICost: 15,
   }),
 
   createCard({
@@ -763,10 +769,10 @@ export const LEGENDARY_CARD_POOL: Card[] = [
     effectValue: 100,
     effectDuration: 1,
     effectValueSecondary: 0,
-    energyEGain: 3,
-    energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 16,
+    energyICost: 18,
   }),
 
   createCard({
@@ -782,10 +788,10 @@ export const LEGENDARY_CARD_POOL: Card[] = [
     effectValue: 5,
     effectDuration: 0,
     effectValueSecondary: 0,
-    energyEGain: 3,
-    energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 17,
+    energyICost: 14,
   }),
   createCard({
     name: 'Caiman',
@@ -800,10 +806,10 @@ export const LEGENDARY_CARD_POOL: Card[] = [
     effectValue: 1,
     effectDuration: 2,
     effectValueSecondary: 0,
-    energyEGain: 3,
-    energyIGain: 3,
-    energyECost: 3,
-    energyICost: 0,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 13,
+    energyICost: 16,
   }),
 
   createCard({
@@ -819,10 +825,10 @@ export const LEGENDARY_CARD_POOL: Card[] = [
     effectValue: 1,
     effectDuration: 0,
     effectValueSecondary: 1,
-    energyEGain: 5,
-    energyIGain: 5,
-    energyECost: 5,
-    energyICost: 0,
+    energyEGain: 0,
+    energyIGain: 0,
+    energyECost: 20,
+    energyICost: 18,
   }),
 ];
 

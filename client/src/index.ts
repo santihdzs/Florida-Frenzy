@@ -46,13 +46,13 @@ const config: Phaser.Types.Core.GameConfig = { // Phaser game configuration obje
 const game = new Phaser.Game(config); // create a new Phaser game instance with the specified configuration
 window.__phaserGame = game; // expose game instance for HTML sidebar navigation
 
-document.addEventListener('focusin', (e) => {
+document.addEventListener('focusin', (e) => { // event listener to disable keyboard input when an input or textarea element is focused
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
     window.__phaserGame?.input.keyboard?.enabled && (window.__phaserGame.input.keyboard.enabled = false);
   }
 });
 
-document.addEventListener('focusout', (e) => {
+document.addEventListener('focusout', (e) => { // event listener to re-enable keyboard input when an input or textarea element loses focus
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
     const kb = window.__phaserGame?.input?.keyboard;
     if (kb) kb.enabled = true;

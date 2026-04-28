@@ -19,6 +19,7 @@ import leaderboardRoutes from './routes/leaderboard.routes.js';
 import shopRoutes from './routes/shop.routes.js';
 import friendsRoutes from './routes/friends.routes.js';
 import cardRoutes from './routes/cards.routes.js';
+import enemyRoutes from './routes/enemy.routes.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -34,6 +35,7 @@ await fastify.register(leaderboardRoutes, { prefix: '/api/leaderboard' });
 await fastify.register(shopRoutes, { prefix: '/api/shop' });
 await fastify.register(friendsRoutes, { prefix: '/api/friends' });
 await fastify.register(cardRoutes, { prefix: '/api/cards' });
+await fastify.register(enemyRoutes, { prefix: '/api/enemies' });
 
 fastify.get('/health', async () => { // Health check endpoint to verify that the server is running
   return { status: 'ok', timestamp: new Date().toISOString() };

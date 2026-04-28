@@ -7,7 +7,7 @@
 */ 
 
 export const MAX_HP = 100; // shared HP cap for both combatants
-export const MAX_ENERGY = 20; // maximum value for each energy bar
+export const MAX_ENERGY = 50; // maximum value for each energy bar
 export const HAND_SIZE = 5; // number of cards each side starts with
 export const PLAYER_DECK_SIZE = 12; // number of cards in the player's deck
 export const DISCARD_BASE_SIZE = 72; // discard pile seed size
