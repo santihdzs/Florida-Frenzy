@@ -29,9 +29,9 @@ INSERT INTO "Enemy" (
 
 -- BOSSES
 ('Skawl', 'Pequeño, astuto y peligroso.', 'CARD_ENEMY', 'RAT', 150, 'EASY', 'Double Rat', 'Duplica el daño de sus cartas base por 2 turnos, gana 10 de vida y 5 de escudo'),
-('Rabyz', 'Inteligente y egoísta.', 'CARD_ENEMY', 'RACCOON', 175, 'MEDIUM', 'Nasty Corrosion', 'Aplica veneno al jugador por 3 turnos y vacía su EE y EI, gana 30 de vida'),
-('Boldear', 'Formidable y resistente.', 'CARD_ENEMY', 'BEAR', 275, 'HARD', 'Crushing Control', 'Elimina el escudo del jugador, lo aturde 1 turno, gana 25 de escudo y 10 de vida'),
-('Pythra', 'Boss final dominante.', 'FINAL_BOSS', 'PYTHON', 350, 'HARD', 'Frozen Dominion', 'Usa cartas legendarias y puede replicar ultis de otros bosses');
+('Rabyz', 'Inteligente y egoísta.', 'CARD_ENEMY', 'RACCOON', 175, 'EASY', 'Nasty Corrosion', 'Aplica veneno al jugador por 3 turnos y vacía su EE y EI, gana 30 de vida'),
+('Boldear', 'Formidable y resistente.', 'CARD_ENEMY', 'BEAR', 275, 'MEDIUM', 'Crushing Control', 'Elimina el escudo del jugador, lo aturde 1 turno, gana 25 de escudo y 10 de vida'),
+('Pythra', 'Boss principal formidable e impredecible.', 'FINAL_BOSS', 'PYTHON', 350, 'HARD', 'Frozen Dominion', 'Usa cartas legendarias y puede replicar ultis de otros bosses');
 
 
 INSERT INTO zone_game (zone_name, zone_map, zone_desc, zone_difficulty_set) VALUES ('Swamp', 'map_swamp', 'El hogar del clan', 'EASY'),

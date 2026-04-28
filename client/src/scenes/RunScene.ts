@@ -18,6 +18,10 @@ import { completeRun, createRun, getPlayer } from '../utils/auth.js';
 import type { DuelBossData } from '../utils/bossTypes.js';
 import { fetchRandomDuelBoss } from '../api/enemyApi.js';
 
+import skawlSheet from '../assets/characters/skawl/Skawl_SpriteSheet.png';
+import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.png';
+import boldearSheet from '../assets/characters/boldear/Boldear_SpriteSheet.png';
+
 const TILE    = 48;
 const COLS    = 105;
 const ROWS    = 18;
@@ -197,6 +201,27 @@ const EnemyType = {
 } as const;
 type EnemyType = typeof EnemyType[keyof typeof EnemyType];
 
+const RUN_BOSS_SHEETS = {
+  Skawl: {
+    textureKey: 'boss-skawl-run-sheet',
+    framePrefix: 'boss-skawl-run',
+    xCuts: [0, 299, 597, 896],
+    yCuts: [0, 299, 598, 896, 1195],
+  },
+  Rabyz: {
+    textureKey: 'boss-rabyz-run-sheet',
+    framePrefix: 'boss-rabyz-run',
+    xCuts: [0, 354, 707, 1061],
+    yCuts: [0, 371, 742, 1112, 1483],
+  },
+  Boldear: {
+    textureKey: 'boss-boldear-run-sheet',
+    framePrefix: 'boss-boldear-run',
+    xCuts: [0, 293, 587, 880],
+    yCuts: [0, 300, 599, 899, 1198],
+  },
+} as const;
+
 interface Enemy {
   x: number; y: number;
   hp: number;
@@ -324,7 +349,7 @@ export class RunScene extends Phaser.Scene {
   private enemyProjectiles: EnemyProjectile[] = [];
 
   private selectedBoss?: DuelBossData;
-  private duelBossSprite?: Phaser.GameObjects.Image;
+  private duelBossSprite?: Phaser.GameObjects.Sprite;
   private duelBossDirection = 1;
   private duelBossBaseY = 0;
   private waitingForBossTouch = false;
@@ -393,6 +418,9 @@ export class RunScene extends Phaser.Scene {
   preload() {
     this.load.spritesheet(KEY_EV_TILES, evTilesUrl, { frameWidth: 16, frameHeight: 16 });
     this.load.image('chris-avatar', chrisAvatarUrl);
+    this.load.image('boss-skawl-run-sheet', skawlSheet);
+    this.load.image('boss-rabyz-run-sheet', rabyzSheet);
+    this.load.image('boss-boldear-run-sheet', boldearSheet);
   }
 
   create() {
@@ -406,6 +434,8 @@ export class RunScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor(0x1a1a2e);
     this.generateTextures();
+    this.createBossRunFrames(); // dynamically slice boss run spritesheets into frames for animation
+    this.createBossRunAnimations(); // create Phaser animations for boss running using the frames we just sliced
 
     this.grid = this.generateGrid();
     this.buildWorld(this.grid);
@@ -546,10 +576,13 @@ export class RunScene extends Phaser.Scene {
       this.duelBossSprite.y += this.duelBossDirection * 0.5; // bob up and down to indicate interactivity
       if (this.duelBossSprite.y > this.duelBossBaseY + 20) this.duelBossDirection = -1;
       if (this.duelBossSprite.y < this.duelBossBaseY - 20) this.duelBossDirection = 1;
+      
+      const bossWidth = this.duelBossSprite.displayWidth;
+      const bossHeight = this.duelBossSprite.displayHeight;
 
       const overlap = rectsOverlap(
         this.px, this.py, PLAYER_SIZE, PLAYER_SIZE,
-        this.duelBossSprite.x, this.duelBossSprite.y, ENEMY_SIZE, ENEMY_SIZE
+        this.duelBossSprite.x, this.duelBossSprite.y, bossWidth, bossHeight
       ); // simple AABB check for touching the boss to start the duel; no need for pixel-perfect collision here since the boss is large and has a big hitbox
 
       if (overlap) {
@@ -643,21 +676,159 @@ export class RunScene extends Phaser.Scene {
     return grid;
   }
 
+  private sliceBossSheetFrames(
+    textureKey: string,
+    framePrefix: string,
+    xCuts: readonly number[],
+    yCuts: readonly number[],
+  ) {
+    const texture = this.textures.get(textureKey); // get the loaded texture for the boss sprite sheet
+    const directions = ['down', 'left', 'right', 'up']; // the sprite sheets are organized in 4 rows for each movement direction, and 3 columns for the animation frames, so we loop through and create individual frames for each one using the provided cut coordinates
+
+    for (let row = 0; row < 4; row++) { // loop through the 4 rows (directions)
+      for (let col = 0; col < 3; col++) {
+        const x = xCuts[col];
+        const y = yCuts[row];
+        const w = xCuts[col + 1] - xCuts[col];
+        const h = yCuts[row + 1] - yCuts[row];
+
+        const frameName = `${framePrefix}-${directions[row]}-${col}`; // construct a unique frame name for this direction and animation index, e.g. "boss-skawl-run-down-0"
+        if (!texture.has(frameName)) { // only add the frame if it doesn't already exist to avoid duplicates when replaying runs
+          texture.add(frameName, 0, x, y, w, h);
+        }
+      }
+    }
+  }
+
+  private createBossRunFrames() {
+    this.sliceBossSheetFrames(
+      RUN_BOSS_SHEETS.Skawl.textureKey,
+      RUN_BOSS_SHEETS.Skawl.framePrefix,
+      RUN_BOSS_SHEETS.Skawl.xCuts,
+      RUN_BOSS_SHEETS.Skawl.yCuts,
+    );
+
+    this.sliceBossSheetFrames(
+      RUN_BOSS_SHEETS.Rabyz.textureKey,
+      RUN_BOSS_SHEETS.Rabyz.framePrefix,
+      RUN_BOSS_SHEETS.Rabyz.xCuts,
+      RUN_BOSS_SHEETS.Rabyz.yCuts,
+    );
+
+    this.sliceBossSheetFrames(
+      RUN_BOSS_SHEETS.Boldear.textureKey,
+      RUN_BOSS_SHEETS.Boldear.framePrefix,
+      RUN_BOSS_SHEETS.Boldear.xCuts,
+      RUN_BOSS_SHEETS.Boldear.yCuts,
+    );
+  }
+
+  private getRunBossSpriteKey(): string {
+    switch (this.selectedBoss?.enemyName) {
+      case 'Skawl': return 'boss-skawl-run-sheet';
+      case 'Rabyz': return 'boss-rabyz-run-sheet';
+      case 'Boldear': return 'boss-boldear-run-sheet';
+      default: return KEY_SPR_ENEMY; // fallback to generic enemy sprite if something goes wrong with fetching boss data
+    }
+  }
+
+  private getRunBossAnimationKey(): string {
+    switch (this.selectedBoss?.enemyName) {
+      case 'Skawl': return 'boss-skawl-run-down';
+      case 'Rabyz': return 'boss-rabyz-run-down';
+      case 'Boldear': return 'boss-boldear-run-down';
+      default: return ''; // fallback to generic idle animation
+    }
+  }
+
+  private createBossRunAnimations() {
+    if (!this.anims.exists('boss-skawl-run-down')) {
+      this.anims.create({
+        key: 'boss-skawl-run-down',
+        frames: [
+          { key: 'boss-skawl-run-sheet', frame: 'boss-skawl-run-down-0' },
+          { key: 'boss-skawl-run-sheet', frame: 'boss-skawl-run-down-1' },
+          { key: 'boss-skawl-run-sheet', frame: 'boss-skawl-run-down-2' },
+        ],
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists('boss-rabyz-run-down')) {
+      this.anims.create({
+        key: 'boss-rabyz-run-down',
+        frames: [
+          { key: 'boss-rabyz-run-sheet', frame: 'boss-rabyz-run-down-0' },
+          { key: 'boss-rabyz-run-sheet', frame: 'boss-rabyz-run-down-1' },
+          { key: 'boss-rabyz-run-sheet', frame: 'boss-rabyz-run-down-2' },
+        ],
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
+
+    if (!this.anims.exists('boss-boldear-run-down')) {
+      this.anims.create({
+        key: 'boss-boldear-run-down',
+        frames: [
+          { key: 'boss-boldear-run-sheet', frame: 'boss-boldear-run-down-0' },
+          { key: 'boss-boldear-run-sheet', frame: 'boss-boldear-run-down-1' },
+          { key: 'boss-boldear-run-sheet', frame: 'boss-boldear-run-down-2' },
+        ],
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
+  }
+
+
   // ── Boss Duel Start Point ──
   private async spawnDuelBossAtGoal() {
-    this.selectedBoss = await fetchRandomDuelBoss(); // fetch a random boss from the server to duel at the end of the cycle
-    this.waitingForBossTouch = true; // set flag to start bobbing animation and enable touch detection
+    try {
+      this.selectedBoss = await fetchRandomDuelBoss();
+      console.log('Boss fetched for RunScene:', this.selectedBoss);
 
-    // position the boss sprite near the end zone, centered vertically
-    const bossX = WORLD_W - TILE * 3;
-    const bossY = Math.floor(ROWS / 2) * TILE;
+      this.waitingForBossTouch = true;
 
-    this.duelBossBaseY = bossY;
+      const bossX = WORLD_W - TILE * 3;
+      const bossY = Math.floor(ROWS / 2) * TILE;
 
-    this.duelBossSprite = this.add.image(bossX, bossY, KEY_SPR_ENEMY)
-    .setOrigin(0,0)
-    .setDepth(6)
-    .setScale(1.2); // use the enemy texture as a placeholder
+      this.duelBossBaseY = bossY;
+      const bossKey = this.getRunBossSpriteKey();
+      const bossAnim = this.getRunBossAnimationKey();
+
+      console.log('bossKey:', bossKey, 'bossAnim:', bossAnim);
+
+      if (!bossAnim) {
+        this.duelBossSprite = this.add.sprite(bossX, bossY, KEY_SPR_ENEMY)
+          .setOrigin(0, 0)
+          .setDepth(6);
+        return;
+      }
+
+      const framePrefix =
+        this.selectedBoss?.enemyName === 'Skawl' ? 'boss-skawl-run' :
+        this.selectedBoss?.enemyName === 'Rabyz' ? 'boss-rabyz-run' :
+        this.selectedBoss?.enemyName === 'Boldear' ? 'boss-boldear-run' :
+        '';
+
+      this.duelBossSprite = this.add.sprite(
+        bossX,
+        bossY,
+        bossKey,
+        `${framePrefix}-down-1`
+      )
+        .setOrigin(0, 0)
+        .setDepth(6)
+        .setScale(0.18);
+
+      this.duelBossSprite.play(bossAnim);
+    } // try to fetch boss data and spawn the boss sprite at the end of the level; if anything goes wrong, log the error and skip spawning the boss so it doesn't block the player from finishing the run
+    
+    catch (error) {
+      console.error('spawnDuelBossAtGoal failed:', error);
+    }
   }
 
   // ── Boss Duel Transition ──
@@ -1310,10 +1481,20 @@ export class RunScene extends Phaser.Scene {
 
   private advanceStage() {
     const nextStep = this.step + 1;
-    const runData: RunData = { level: this.level, step: nextStep, totalCoins: this.totalCoins, totalXp: this.totalXp, runId: this.runId };
+    const runData: RunData = { 
+      level: this.level, 
+      step: nextStep, 
+      totalCoins: this.totalCoins, 
+      totalXp: this.totalXp, 
+      runId: this.runId,
+      selectedBoss: this.selectedBoss,
+    };
+
     if (nextStep >= RUNS_PER_CYCLE) {
       this.scene.start('DuelScene', runData);
-    } else {
+    } 
+    
+    else {
       this.scene.start('RunScene', runData);
     }
   }

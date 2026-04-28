@@ -1,5 +1,3 @@
-import type { DuelBossData } from './bossTypes';
-
 // visual configuration for each boss, defining the animation keys, 
 // scales, and positioning for the boss sprites in the game. Pythra has
 // unique damage animations for his evolution phases.
@@ -20,7 +18,9 @@ export interface BossVisualConfig {
   hurtScale: number;
   defeatedScale: number;
   flipX: boolean;
+  x: number;
   y: number;
+  depth: number;
 }
 
 // each boss has a corresponding visual configuration that the game uses to display 
@@ -40,8 +40,10 @@ export const BOSS_VISUALS: Record<string, BossVisualConfig> = {
     attackScale: 0.36,
     hurtScale: 0.35,
     defeatedScale: 0.35,
-    flipX: true,
-    y: 430,
+    flipX: false,
+    x: 990,
+    y: 395,
+    depth: 0,
   },
 
   Rabyz: {
@@ -58,8 +60,10 @@ export const BOSS_VISUALS: Record<string, BossVisualConfig> = {
     attackScale: 0.36,
     hurtScale: 0.35,
     defeatedScale: 0.35,
-    flipX: true,
-    y: 430,
+    flipX: false,
+    x: 995,
+    y: 395,
+    depth: 0,
   },
 
   Boldear: {
@@ -76,8 +80,10 @@ export const BOSS_VISUALS: Record<string, BossVisualConfig> = {
     attackScale: 0.36,
     hurtScale: 0.35,
     defeatedScale: 0.35,
-    flipX: true,
-    y: 430,
+    flipX: false,
+    x: 1015,
+    y: 420,
+    depth: 0,
   },
 
   Pythra: {
@@ -106,7 +112,9 @@ export const BOSS_VISUALS: Record<string, BossVisualConfig> = {
     attackScale: 0.42,
     hurtScale: 0.40,
     defeatedScale: 0.40,
-    flipX: true,
-    y: 430,
+    flipX: false,
+    x: 1010,
+    y: 420,
+    depth: 0,
   },
 };
