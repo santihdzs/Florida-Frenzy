@@ -120,7 +120,7 @@ export class TutorialScene extends Phaser.Scene {
             padding: { left: 10, right: 10, top: 4, bottom: 4 },
         }).setInteractive({ useHandCursor: true }).setDepth(1000).setScrollFactor(0);
 
-        pauseButton.on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+        pauseButton.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
             event.stopPropagation(); // Prevent the click from propagating to the scene and causing unintended interactions
             if (this.scene.isActive('PauseScene')) return;
             this.scene.launch('PauseScene', { returnScene: 'TutorialScene' });

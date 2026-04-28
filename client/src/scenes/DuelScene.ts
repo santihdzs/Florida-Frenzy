@@ -619,7 +619,6 @@ export class DuelScene extends Phaser.Scene {
     const basePool = this.baseCardsFromDb.length > 0 ? this.baseCardsFromDb : getBaseCardPool(); // ensure we have a base card pool to draw from, even if the server load failed
     const effectPool = this.effectCardsFromDb.length > 0 ? this.effectCardsFromDb : getSpecialCardPool(); // ensure we have an effect card pool to draw from, even if the server load failed
     const rarePool = this.rareCardsFromDb.length > 0 ? this.rareCardsFromDb : getIceCardPool(); // ensure we have a rare card pool to draw from, even if the server load failed
-    const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
 
     this.playerDeck = this.generateDeckFromPool(effectPool, PLAYER_DECK_SIZE); // build the player's starting deck
     this.enemyDeck = this.generateDeckFromPool(effectPool, PLAYER_DECK_SIZE); // build the enemy's starting deck
