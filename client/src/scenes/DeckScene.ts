@@ -7,6 +7,8 @@
 * This Scene manages the deck building interface of the game, 
 * allowing players to create and customize their decks of cards.
 * 
+* ChatGPT was used to assist in writing and optimizing some of the code in this file
+* 
 */
 
 
@@ -57,11 +59,13 @@ export class DeckScene extends Phaser.Scene {
   private browserRows: BrowserRow[] = [];
 
   private messageText!: Phaser.GameObjects.Text;
+  private rankText!: Phaser.GameObjects.Text;
 
   private deckSlotsContainer!: Phaser.GameObjects.Container;
   private browserContainer!: Phaser.GameObjects.Container;
   private browserMask!: Phaser.Display.Masks.GeometryMask;
   private browserContentHeight = 0;
+  private browserPanelRect!: Phaser.Geom.Rectangle;
 
   private currentDeckCards: Card[] = [];
 
@@ -102,7 +106,7 @@ export class DeckScene extends Phaser.Scene {
       shadow: { offsetX: 3, offsetY: 3, color: '#000', blur: 0, fill: true },
     }).setOrigin(0.5);
 
-    this.add.text(cx, 82, `Rank: ${this.clanRank}  |  Slots: ${this.slotLimit}/21`, {
+    this.rankText = this.add.text(cx, 82, `Rank: ${this.clanRank}  |  Slots: ${this.slotLimit}/21`, {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '22px',
       color: '#dddddd',
@@ -194,6 +198,8 @@ private async loadBootstrapFromBackend() {
         .map(entry => byId.get(entry.cardGameId))
         .filter((card): card is Card => Boolean(card))
     : [];
+
+  this.rankText.setText(`Rank: ${this.clanRank}  |  Slots: ${this.slotLimit}/21`); // update the rank and slot limit display in the UI based on the data loaded from the backend
 }
 
 //   private buildCardCollections() {
@@ -411,6 +417,7 @@ private async loadBootstrapFromBackend() {
     g.strokeRoundedRect(panelX, panelY, panelW, panelH, 10);
 
     this.browserContainer = this.add.container(panelX + 20, panelY + 20);
+    this.browserPanelRect = new Phaser.Geom.Rectangle(panelX, panelY, panelW, panelH); // defines the rectangle area for the card browser panel, which will be used for masking and scrolling calculations
 
     const maskShape = this.make.graphics(); // creates a graphics object to define the mask shape for the card browser panel
     maskShape.fillStyle(0xffffff);
@@ -427,51 +434,53 @@ private async loadBootstrapFromBackend() {
   private renderBrowserCards() {
     this.browserContainer.removeAll(true); // clears the card browser container before re-rendering the cards
 
+    const startX = 0;
     let yOffset = 0;
     const cardW = 105;
     const cardH = 138;
     const gap = 14;
+    const columns = 8;
 
-    this.browserRows.forEach((row) => {
-      const title = this.add.text(0, yOffset, row.title, {
-        fontFamily: 'Impact, Arial Black, sans-serif',
-        fontSize: '28px',
-        color: '#ffcc00',
-        stroke: '#000000',
-        strokeThickness: 5,
-      }).setOrigin(0, 0); // creates the title text for each row in the card browser, indicating the category and element of the cards in that row
+    for (const row of this.browserRows) {
+        const title = this.add.text(0, yOffset, row.title, {
+          fontFamily: 'Impact, Arial Black, sans-serif',
+          fontSize: '28px',
+          color: '#ffcc00',
+          stroke: '#000000',
+          strokeThickness: 5,
+        }).setOrigin(0, 0); // creates the title text for each row in the card browser, indicating the category and element of the cards in that row
 
-      this.browserContainer.add(title);
-      yOffset += 42;
+        this.browserContainer.add(title);
+        yOffset += 34;
 
-      row.cards.forEach((card, index) => {
-        const col = index % 9;
-        const x = col * (cardW + gap);
-        const y = yOffset;
+        row.cards.forEach((card, index) => {
+          const col = index % columns;
+          const rowIndex = Math.floor(index / columns);
 
-        const unlockRank = getUnlockRankForCard(card);
-        const allowed = canUseCardInDeck(card, this.clanRank);
-        const alreadyInDeck = this.currentDeckCards.some(c => c.id === card.id);
+          const x = startX + col * (cardW + gap);
+          const y = yOffset + rowIndex * (cardH + 12);
 
-        const container = this.createBrowserCard(x, y, card, allowed, alreadyInDeck, unlockRank);
-        this.browserContainer.add(container);
-      }); // iterates through the cards in each row and creates a visual representation for each card using the createBrowserCard method
+          const isUnlocked = canUseCardInDeck(card, this.clanRank);
+          const isAlreadyAdded = this.currentDeckCards.some(c => c.id === card.id);
+          const cardObject = this.createBrowserCard(card, isUnlocked, isAlreadyAdded, getUnlockRankForCard(card)); // creates the visual representation of a card in the browser using the createBrowserCard method, passing in the card data and its unlocked/added status
+          cardObject.setPosition(x, y);
+          this.browserContainer.add(cardObject);
+        }); // iterates through the cards in each row and creates a visual representation for each card using the createBrowserCard method
 
-      yOffset += cardH + 26;
-    });
+        const usedRows = Math.ceil(row.cards.length / columns);
+        yOffset += usedRows * (cardH + 12) + 26; // calculates the vertical offset for the next row based on the number of cards in the current row and the defined spacing between cards and rows
+    }
 
     this.browserContentHeight = yOffset;
   }
 
   private createBrowserCard(
-    x: number,
-    y: number,
     card: Card,
     allowed: boolean,
     alreadyInDeck: boolean,
     unlockRank: ClanRank
   ): Phaser.GameObjects.Container {
-    const container = this.add.container(x, y); // creates a container for an individual card in the browser
+    const container = this.add.container(0, 0); // creates a container for an individual card in the browser
 
     const frameColor = ELEMENT_COLORS[card.element] ?? 0xffffff;
 
@@ -553,7 +562,13 @@ private async loadBootstrapFromBackend() {
 
     container.setSize(105, 138);
     container.setInteractive({ useHandCursor: true });
-    container.on('pointerdown', () => this.addCardToDeck(card)); // adds an input listener to the card container that allows the player to add the card to their deck when clicked
+    container.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!Phaser.Geom.Rectangle.Contains(this.browserPanelRect, pointer.worldX, pointer.worldY)) {
+        return; // checks if the click is within the bounds of the card browser panel before allowing the player to add the card to their deck
+      }
+      
+      this.addCardToDeck(card); // adds an input listener to the card container that allows the player to add the card to their deck when clicked
+    });
 
     return container;
   }

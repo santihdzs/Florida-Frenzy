@@ -143,16 +143,29 @@ export async function saveDeck(
     player.playerCards.map(pc => [pc.cardGameId, pc])
   );
 
-  for (const cardGameId of cardGameIds) {
-    const owned = ownedMap.get(cardGameId);
+  const allCardsById = new Map(
+    (await prisma.cardGame.findMany()).map(card => [card.id, card])
+  );
 
-    if (!owned || !owned.isUnlocked || owned.numCardsOwned < 1) {
-      throw new Error(`Card ${cardGameId} is not unlocked for this player.`);
+  for (const cardGameId of cardGameIds) {
+    const dbCard = allCardsById.get(cardGameId);
+
+    if (!dbCard) {
+      throw new Error(`Card with game ID ${cardGameId} not found.`);
     }
 
-    const requiredRank = getUnlockRankForRarity(owned.cardGame.cardRarity);
+    const requiredRank = getUnlockRankForRarity(dbCard.cardRarity);
     if (!hasRankAccess(clanRank, requiredRank)) {
       throw new Error(`Card ${cardGameId} requires rank ${requiredRank}.`);
+    }
+
+    if (dbCard.cardRarity === 'BASE') {
+      continue; // base cards are always available and don't require ownership checks
+    }
+
+    const owned = ownedMap.get(cardGameId);
+    if (!owned || !owned.isUnlocked || owned.numCardsOwned < 1)  {
+      throw new Error(`Card ${cardGameId} is not unlocked for this player.`);
     }
   }
 
@@ -264,4 +277,61 @@ export async function setActiveDeck(
   ]); // perform a transaction to first set all of the player's decks to inactive, then set the specified deck to active, ensuring that only one deck is active at a time
 
   return { ok: true, deckId };
+}
+
+export async function getActiveDeck(
+  prisma: PrismaClient,
+  playerId: number
+) {
+  const player = await prisma.player.findUnique({
+    where: { id: playerId },
+  }); // fetch the player data to compute their clan rank and determine the deck slot limit
+
+  if (!player) {
+    throw new Error('Player not found.');
+  }
+
+  const clanRank = computeClanRank(player.maxXp);
+  const slotLimit = getDeckSlotLimit(clanRank);
+
+  const activeDeck = await prisma.deck.findFirst({
+    where: {
+      playerId,
+      isActive: true,
+    },
+    include: {
+      deckCards: {
+        include: {
+          cardGame: true,
+        },
+        orderBy: { id: 'asc' },
+      },
+      characterGame: true,
+    },
+  }); // get the active deck for the player along with its associated cards and character
+
+  if (!activeDeck) {
+    throw new Error('No active deck found.');
+  }
+
+  if (activeDeck.deckCards.length !== slotLimit) {
+    throw new Error(`Active deck is incomplete. Expected ${slotLimit} cards, found ${activeDeck.deckCards.length}.`);
+  }
+
+  return {
+    deck: {
+      id: activeDeck.id,
+      deckName: activeDeck.deckName,
+      isActive: activeDeck.isActive,
+      characterGameId: activeDeck.characterGameId,
+      characterName: activeDeck.characterGame.chName,
+      slotLimit,
+      cards: activeDeck.deckCards.map(dc => ({
+        id: dc.id,
+        cardGameId: dc.cardGameId,
+        cardsIncluded: dc.cardsIncluded,
+        card: dc.cardGame,
+      })), // return the active deck data including its cards and character information, along with the slot limit based on the player's clan rank for client-side validation and display purposes
+    },
+  };
 }

@@ -32,7 +32,7 @@ export function mapCardData(db: DbCard): Card { // Function to map a database ca
     return {
         id: String(db.id),
         name: db.cardName,
-        category: categoryMap[db.cardCategory] ?? 'base',
+        category: categoryMap[db.cardCategory] ?? 'special',
         element: elementMap[db.cardElement] ?? 'fire',
         power: db.cardNumber,
         effect: db.cardEffect as CardEffect | null,

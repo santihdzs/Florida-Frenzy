@@ -7,6 +7,9 @@
 * These functions make HTTP requests to the corresponding API endpoints on the 
 * server, handle responses and errors, and return the relevant data to be used in the 
 * client application for managing player decks.
+* 
+* ChatGPT was used to assist in writing and optimizing some of the code in this file
+* 
 */
 
 import { API_URL } from './apiBase';
@@ -89,3 +92,14 @@ export async function activateDeckInBackend(input: { playerId: number; deckId: n
 
   return response.json();
 } // activates a deck in the backend, setting it as the active deck for the player
+
+export async function fetchActiveDeck(playerId: number) {
+  const response = await fetch(`${API_URL}/api/decks/active/${playerId}`);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.message ?? 'Failed to fetch active deck.');
+  }
+
+  return response.json();
+} // fetches the currently active deck for a player, including the character and cards in that deck
