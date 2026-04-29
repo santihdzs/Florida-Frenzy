@@ -1,5 +1,7 @@
 /*
-* Manuel Montero, Yael Ordaz & Santiago Hernandez
+* Santiago Hernandez - A01787550
+* Manuel Montero - A01660761
+* Yael Ordaz - A01786776
 * 
 * Main script for the DuelScene, which manages the card-based combat system of the game.
 * This script defines the DuelScene class, which extends Phaser.Scene, 

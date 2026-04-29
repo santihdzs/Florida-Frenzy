@@ -1,0 +1,2 @@
+const rawBase = import.meta.env.VITE_API_URL ?? ''; // Get the base API URL from environment variables, defaulting to an empty string if not set
+export const API_URL = rawBase.replace(/\/$/, ''); // Ensure no trailing slash for consistent URL construction in API calls
