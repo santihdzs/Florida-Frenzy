@@ -16,12 +16,12 @@ import { SAFE_PLAYER_SELECT } from '../utils/playerSelect.js';
 interface RegisterBody {
   username: string;
   email: string;
-  passwordHash: string;
+  password: string;
 }
 
 interface LoginBody {
   email: string;
-  passwordHash: string;
+  password: string;
 }
 
 interface FirebaseLoginBody {
@@ -34,7 +34,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     '/register',
     { schema: registerSchema },
     async (request, reply) => {
-      const { username, email, passwordHash } = request.body;
+      const { username, email, password } = request.body;
 
       const existing = await fastify.prisma.player.findFirst({
         where: { OR: [{ email }, { username }] },
@@ -43,7 +43,10 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(409).send(conflict('Email or username already in use'));
       }
 
-      const hashed = await hashPassword(passwordHash);
+      // NOTE: existing users registered before this change have bcrypt(sha256(password))
+      // stored instead of bcrypt(password). Those accounts will need a password reset
+      // to work with the new flow.
+      const hashed = await hashPassword(password);
       const player = await fastify.prisma.player.create({
         data: { username, email, passwordHash: hashed, authProvider: 'LOCAL' },
         select: SAFE_PLAYER_SELECT,
@@ -59,7 +62,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     '/login',
     { schema: loginSchema },
     async (request, reply) => {
-      const { email, passwordHash } = request.body;
+      const { email, password } = request.body;
 
       const playerWithPw = await fastify.prisma.player.findUnique({
         where: { email },
@@ -69,7 +72,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(401).send(unauthorized('Invalid credentials'));
       }
 
-      const valid = await verifyPassword(passwordHash, playerWithPw.passwordHash);
+      const valid = await verifyPassword(password, playerWithPw.passwordHash);
       if (!valid) {
         return reply.code(401).send(unauthorized('Invalid credentials'));
       }

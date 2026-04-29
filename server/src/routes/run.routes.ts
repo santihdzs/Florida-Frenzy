@@ -109,6 +109,16 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
+  // POST /api/runs/abandon-stale
+  fastify.post('/abandon-stale', async (request, reply) => {
+    const playerId = request.user.playerId;
+    await fastify.prisma.run.updateMany({
+      where: { playerId, runStatus: 'IN_PROGRESS' },
+      data: { runStatus: 'ABANDONED', endTime: new Date() },
+    });
+    return reply.code(200).send({ ok: true });
+  });
+
   // GET /api/runs/:id
   fastify.get<{ Params: RunParams }>('/:id', async (request, reply) => {
     const runId = parseInt(request.params.id, 10);

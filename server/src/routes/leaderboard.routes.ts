@@ -37,7 +37,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
       const playerIds = players.map(p => p.id);
       const bestLevels = await fastify.prisma.run.groupBy({
         by: ['playerId'],
-        where: { playerId: { in: playerIds } },
+        where: { playerId: { in: playerIds }, runStatus: 'COMPLETED' },
         _max: { maxLevel: true },
       });
 
@@ -88,7 +88,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
 
       const bestLevels = await fastify.prisma.run.groupBy({
         by: ['playerId'],
-        where: { playerId: { in: allIds } },
+        where: { playerId: { in: allIds }, runStatus: 'COMPLETED' },
         _max: { maxLevel: true },
       });
 

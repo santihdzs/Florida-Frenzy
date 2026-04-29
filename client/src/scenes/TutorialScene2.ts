@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { DuelScene } from './DuelScene';
-import clanUrl from '../assets/sprites/Klan.png';
+import clanUrl from '../assets/sprites/Klan.webp';
 import { markTutorialComplete } from '../utils/auth.js';
 
 export class TutorialScene2 extends DuelScene { // extends of the DuelScene because it inherits from it

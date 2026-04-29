@@ -5,11 +5,10 @@ declare global {
     __phaserGame?: Phaser.Game;
   }
 }
-import { isLoggedIn } from './utils/auth.js';
+import { isLoggedIn, abandonStaleRuns } from './utils/auth.js';
 import { MenuScene } from './scenes/MenuScene';
 import { DuelScene } from './scenes/DuelScene';
 import { RunScene } from './scenes/RunScene';
-import { PlatformerScene } from './scenes/PlatformerScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { InstructionScene } from './scenes/InstructionScene';
 import { LoginScene } from './scenes/LoginScene';
@@ -24,9 +23,12 @@ import { IntroScene } from './scenes/IntroScene';
 import { CharacterScene } from './scenes/CharacterScene';
 import { HistoryScene } from './scenes/HistoryScene';
 
+const loggedIn = isLoggedIn();
+
 // Skip the welcome screen narrative if the player is already logged in
-if (isLoggedIn()) {
+if (loggedIn) {
   document.getElementById('welcome-screen')?.remove();
+  void abandonStaleRuns(); // clean up any run left open from a previous session
 }
 
 const config: Phaser.Types.Core.GameConfig = { // Phaser game configuration object
@@ -40,7 +42,10 @@ const config: Phaser.Types.Core.GameConfig = { // Phaser game configuration obje
     mode: Phaser.Scale.FIT, // scale the game to fit the available space while maintaining aspect ratio
     autoCenter: Phaser.Scale.CENTER_BOTH, // center the game canvas both horizontally and vertically
   },
-  scene: [IntroScene, MenuScene, DuelScene, RunScene, PlatformerScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene, EndScene, CharacterScene, HistoryScene],
+  // Logged-in users skip the intro cutscene entirely — MenuScene starts first
+  scene: loggedIn
+    ? [MenuScene, IntroScene, DuelScene, RunScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene, EndScene, CharacterScene, HistoryScene]
+    : [IntroScene, MenuScene, DuelScene, RunScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene, EndScene, CharacterScene, HistoryScene],
 };
 
 const game = new Phaser.Game(config); // create a new Phaser game instance with the specified configuration

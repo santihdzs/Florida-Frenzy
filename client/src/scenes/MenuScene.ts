@@ -1,10 +1,11 @@
 // Santiago Hernandez, Yael Ordaz
 
 import Phaser from 'phaser';
-import titleBackground from '../assets/title-background.png';
-import titleLogo from '../assets/logos/logo.png';
+import titleBackground from '../assets/title-background.webp';
+import titleLogo from '../assets/logos/logo.webp';
 import music from '../assets/music/Tailgate_Troubles.mp3';
 import { isLoggedIn, getPlayer, logout, hasCompletedTutorial } from '../utils/auth.js';
+import { transitionTo } from '../utils/sceneTransition.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -18,6 +19,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(300, 0, 0, 0);
     const W  = this.cameras.main.width;
     const H  = this.cameras.main.height;
     const cx = W / 2;
@@ -96,8 +98,8 @@ export class MenuScene extends Phaser.Scene {
 
     this.createButton(cx, 320, mainW, mainH, 'PLAY',        () => this.startGame(),                 textStyle);
     this.createButton(cx, 410, mainW, mainH, 'MULTIPLAYER', () => this.showMultiplayerComingSoon(), textStyle);
-    this.createButton(cx, 490, mainW, mainH, 'SHOP',         () => this.scene.start('ShopScene'),    textStyle);
-    this.createButton(cx, 570, mainW, mainH, 'FRIENDS',     () => this.scene.start('FriendsScene'), textStyle);
+    this.createButton(cx, 490, mainW, mainH, 'SHOP',         () => transitionTo(this, 'ShopScene'),    textStyle);
+    this.createButton(cx, 570, mainW, mainH, 'FRIENDS',     () => transitionTo(this, 'FriendsScene'), textStyle);
     this.createButton(cx, 650, mainW, mainH, logoutLabel,   logoutAction,                            textStyle);
   }
 
@@ -181,9 +183,9 @@ export class MenuScene extends Phaser.Scene {
     }
     this.sound.stopByKey('menu-music');
     if (hasCompletedTutorial()) {
-      this.scene.start('RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 });
+      transitionTo(this, 'RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 });
     } else {
-      this.scene.start('TutorialScene');
+      transitionTo(this, 'TutorialScene');
     }
   }
 

@@ -2,14 +2,6 @@
 
 const API_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
 
-// SHA-256 hash a string (returns hex string)
-export async function sha256(message: string): Promise<string> {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 // Store/retrieve/clear JWT token
 export function getToken(): string | null {
   return localStorage.getItem('ff_token');
@@ -50,11 +42,10 @@ export async function register(
   email: string,
   password: string
 ): Promise<{ token: string; player: Record<string, unknown> }> {
-  const passwordHash = await sha256(password);
   const res = await fetch(`${API_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, email, passwordHash }),
+    body: JSON.stringify({ username, email, password }),
   });
   const data = await res.json() as { token: string; player: Record<string, unknown>; message?: string };
   if (!res.ok) throw new Error(data.message ?? 'Registration failed');
@@ -68,17 +59,26 @@ export async function login(
   email: string,
   password: string
 ): Promise<{ token: string; player: Record<string, unknown> }> {
-  const passwordHash = await sha256(password);
   const res = await fetch(`${API_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, passwordHash }),
+    body: JSON.stringify({ email, password }),
   });
   const data = await res.json() as { token: string; player: Record<string, unknown>; message?: string };
   if (!res.ok) throw new Error(data.message ?? 'Login failed');
   setToken(data.token);
   setPlayer(data.player);
   return data;
+}
+
+// API: Abandon any in-progress runs left open from a previous session (e.g. page refresh mid-run)
+export async function abandonStaleRuns(): Promise<void> {
+  const token = getToken();
+  if (!token) return;
+  await fetch(`${API_URL}/api/runs/abandon-stale`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+  }).catch(() => { /* best-effort, ignore network errors */ });
 }
 
 // API: Create a new run — returns the run id, or null if offline/not logged in
@@ -108,6 +108,7 @@ export async function completeRun(
 ): Promise<Record<string, unknown> | null> {
   const token = getToken();
   if (!token) return null;
+  if (!runId) return null; // run was never created (not logged in at start, or creation failed)
   const res = await fetch(`${API_URL}/api/runs/complete`, {
     method: 'POST',
     headers: {

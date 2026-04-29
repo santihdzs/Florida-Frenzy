@@ -1,4 +1,6 @@
-export interface DbCard { // Define the structure of the card data as it is stored in the database 
+const API_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
+
+export interface DbCard { // Define the structure of the card data as it is stored in the database
   id: number;
   cardName: string;
   cardCategory: string;
@@ -19,7 +21,7 @@ export interface DbCard { // Define the structure of the card data as it is stor
 }
 
 export async function fetchCards(): Promise<DbCard[]> { // Function to fetch card data from the backend API
-  const response = await fetch('http://localhost:3001/api/cards');
+  const response = await fetch(`${API_URL}/api/cards`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch cards: ${response.statusText}`);
