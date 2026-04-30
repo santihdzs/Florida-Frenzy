@@ -212,6 +212,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private spectating  = false;
   private endReached  = false;
   private done            = false;
+  private levelReady      = false;
   private playerAvatarKey = 'christian-avatar';
   private sidebarNavHandler: EventListener | null = null;
   private isShowingQuitDialog = false;
@@ -287,6 +288,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
     this.spectating           = false;
     this.endReached           = false;
     this.done                 = false;
+    this.levelReady           = false;
     this.isShowingQuitDialog  = false;
     this.scrollX          = 0;
     this.leftStart        = false;
@@ -356,6 +358,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
       this.localY + PLAYER_SIZE / 2 - this.cameras.main.height / 2,
       0, WORLD_H - this.cameras.main.height,
     );
+    this.levelReady = true;
 
     // Pause button (top-right)
     const pauseBg = this.add.graphics();
@@ -583,18 +586,21 @@ export class MultiplayerRunScene extends Phaser.Scene {
 
   private createPlayerSprites() {
     this.serverPlayers.forEach(p => {
-      const skin  = (p.skin in CHAR_SHEETS ? p.skin : 'christian') as CharSheetKey;
-      const scale = PLAYER_SIZE / (CHAR_SHEETS[skin].xCuts[1] - CHAR_SHEETS[skin].xCuts[0]);
-      const img   = this.add.sprite(p.x, p.y, skin, `${skin}-walk-down-1`)
+      const isMe   = p.playerId === this.myPlayerId;
+      const startX = isMe ? this.localX : p.x;
+      const startY = isMe ? this.localY : p.y;
+      const skin   = (p.skin in CHAR_SHEETS ? p.skin : 'christian') as CharSheetKey;
+      const scale  = PLAYER_SIZE / (CHAR_SHEETS[skin].xCuts[1] - CHAR_SHEETS[skin].xCuts[0]);
+      const img    = this.add.sprite(startX, startY, skin, `${skin}-walk-down-1`)
         .setOrigin(0, 0).setDepth(5).setScale(scale);
       img.play(`${skin}-walk-down`);
 
-      const nameLabel = this.add.text(p.x + PLAYER_SIZE / 2, p.y - 12, p.username, {
+      const nameLabel = this.add.text(startX + PLAYER_SIZE / 2, startY - 12, p.username, {
         fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#ffffff',
         stroke: '#000000', strokeThickness: 2,
       }).setOrigin(0.5, 1).setDepth(6);
 
-      this.playerSprites.set(p.playerId, { img, nameLabel, lastDir: 'down', skin, renderX: p.x, renderY: p.y });
+      this.playerSprites.set(p.playerId, { img, nameLabel, lastDir: 'down', skin, renderX: startX, renderY: startY });
     });
   }
 
@@ -779,9 +785,16 @@ export class MultiplayerRunScene extends Phaser.Scene {
         if (existing) { existing.x = e.x; existing.y = e.y; existing.hp = e.hp; existing.alive = e.alive; }
       });
       data.players.forEach(p => {
-        if (p.playerId === this.myPlayerId) return;
         const existing = this.serverPlayers.find(sp => sp.playerId === p.playerId);
-        if (existing) { existing.x = p.x; existing.y = p.y; existing.hp = p.hp; existing.alive = p.alive; }
+        if (!existing) return;
+        if (p.playerId === this.myPlayerId) {
+          // Always pin local player's server entry to actual local position,
+          // preventing stale server coords from leaking into the lerp loop.
+          existing.x = this.localX;
+          existing.y = this.localY;
+        } else {
+          existing.x = p.x; existing.y = p.y; existing.hp = p.hp; existing.alive = p.alive;
+        }
       });
     });
 
@@ -1070,6 +1083,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
   }
 
   private checkEndZone() {
+    if (!this.levelReady) return;
     if (this.endReached) return;
     const ez = this.endZone;
     if (rectsOverlap(this.localX, this.localY, PLAYER_SIZE, PLAYER_SIZE, ez.x, ez.y, ez.w, ez.h)) {

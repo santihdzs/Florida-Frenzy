@@ -35,6 +35,7 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
   private uiGroup: Phaser.GameObjects.GameObject[] = [];
   private codeInput: HTMLInputElement | null = null;
   private socket!: Socket; // captured once in create(); reused everywhere
+  private sidebarNavHandler: EventListener | null = null;
 
   constructor() {
     super({ key: 'MultiplayerLobbyScene' });
@@ -69,6 +70,16 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     initInviteNotifications((roomCode) => {
       this.socket.emit('lobby:join', { code: roomCode });
     });
+
+    // Sidebar navigation — remove the HTML code input before the scene changes
+    const onSidebarNavRequest = ((e: Event) => {
+      const target = (e as CustomEvent<{ target: string }>).detail.target;
+      this.removeCodeInput();
+      if (this.lobbyState) this.socket?.emit('lobby:leave');
+      transitionTo(this, target);
+    }) as EventListener;
+    this.sidebarNavHandler = onSidebarNavRequest;
+    window.addEventListener('sidebar-nav-request', this.sidebarNavHandler);
   }
 
   private setupSocketListeners() {
@@ -431,6 +442,10 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
 
   shutdown() {
     this.clearUI();
+    if (this.sidebarNavHandler) {
+      window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
+      this.sidebarNavHandler = null;
+    }
     // Remove socket listeners so stale events don't call into a destroyed scene
     if (this.socket) {
       this.socket.off('connected');
