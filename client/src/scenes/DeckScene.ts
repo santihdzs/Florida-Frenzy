@@ -76,6 +76,7 @@ export class DeckScene extends Phaser.Scene {
   private deckStatusObjects: Phaser.GameObjects.GameObject[] = [];
   private isDirty = false;
   private saveBtnContainer: Phaser.GameObjects.Container | null = null;
+  private browserCardRefs: Map<string, { addedOverlay: Phaser.GameObjects.Graphics; addedText: Phaser.GameObjects.Text }> = new Map();
 
   constructor() {
     super({ key: 'DeckScene' });
@@ -293,8 +294,8 @@ private async loadBootstrapFromBackend() {
     const y = 180;
 
     this.saveBtnContainer = this.createMetalBtn(175, y - 25, 180, 48, 'SAVED', () => {
-      if (this.isDirty) this.saveCurrentDeck();
-    }, '#888888');
+      this.saveCurrentDeck();
+    }, '#c2baba');
     this.refreshSaveBtn();
 
     [890, 1010, 1130].forEach((x, i) => {
@@ -347,13 +348,34 @@ private async loadBootstrapFromBackend() {
 
   private refreshSaveBtn() {
     if (!this.saveBtnContainer) return;
+    const graphics = this.saveBtnContainer.getAt(0) as Phaser.GameObjects.Graphics;
     const text = this.saveBtnContainer.getAt(1) as Phaser.GameObjects.Text;
+    const w = 180; const h = 48;
+    graphics.clear();
     if (this.isDirty) {
+      graphics.fillStyle(0x000000, 0.4);
+      graphics.fillRoundedRect(-w / 2 + 3, -h / 2 + 3, w, h, 6);
+      graphics.fillStyle(0x444444, 1);
+      graphics.fillRoundedRect(-w / 2, -h / 2, w, h, 4);
+      graphics.fillStyle(0x999999, 1);
+      graphics.fillRect(-w / 2 + 4, -h / 2 + 4, w - 8, h / 2 - 4);
+      graphics.fillStyle(0x666666, 1);
+      graphics.fillRect(-w / 2 + 4, 0, w - 8, h / 2 - 4);
       text.setText('SAVE DECK');
       text.setColor('#c2baba');
+      this.saveBtnContainer.setInteractive({ useHandCursor: true });
     } else {
+      graphics.fillStyle(0x000000, 0.4);
+      graphics.fillRoundedRect(-w / 2 + 3, -h / 2 + 3, w, h, 6);
+      graphics.fillStyle(0x1a1a1a, 1);
+      graphics.fillRoundedRect(-w / 2, -h / 2, w, h, 4);
+      graphics.fillStyle(0x2a2a2a, 1);
+      graphics.fillRect(-w / 2 + 4, -h / 2 + 4, w - 8, h / 2 - 4);
+      graphics.fillStyle(0x151515, 1);
+      graphics.fillRect(-w / 2 + 4, 0, w - 8, h / 2 - 4);
       text.setText('SAVED');
-      text.setColor('#888888');
+      text.setColor('#555555');
+      this.saveBtnContainer.disableInteractive();
     }
   }
 
@@ -514,7 +536,8 @@ private async loadBootstrapFromBackend() {
   }
 
   private renderBrowserCards() {
-    this.browserContainer.removeAll(true); // clears the card browser container before re-rendering the cards
+    this.browserContainer.removeAll(true);
+    this.browserCardRefs.clear();
 
     const startX = 0;
     let yOffset = 0;
@@ -530,7 +553,7 @@ private async loadBootstrapFromBackend() {
           color: '#ffcc00',
           stroke: '#000000',
           strokeThickness: 5,
-        }).setOrigin(0, 0); // creates the title text for each row in the card browser, indicating the category and element of the cards in that row
+        }).setOrigin(0, 0);
 
         this.browserContainer.add(title);
         yOffset += 34;
@@ -544,16 +567,27 @@ private async loadBootstrapFromBackend() {
 
           const isUnlocked = canUseCardInDeck(card, this.clanRank);
           const isAlreadyAdded = this.currentDeckCards.some(c => c.id === card.id);
-          const cardObject = this.createBrowserCard(card, isUnlocked, isAlreadyAdded, getUnlockRankForCard(card)); // creates the visual representation of a card in the browser using the createBrowserCard method, passing in the card data and its unlocked/added status
+          const { container: cardObject, addedOverlay, addedText } = this.createBrowserCard(card, isUnlocked, isAlreadyAdded, getUnlockRankForCard(card));
           cardObject.setPosition(x, y);
           this.browserContainer.add(cardObject);
-        }); // iterates through the cards in each row and creates a visual representation for each card using the createBrowserCard method
+          if (addedOverlay && addedText) {
+            this.browserCardRefs.set(String(card.id), { addedOverlay, addedText });
+          }
+        });
 
         const usedRows = Math.ceil(row.cards.length / columns);
-        yOffset += usedRows * (cardH + 12) + 26; // calculates the vertical offset for the next row based on the number of cards in the current row and the defined spacing between cards and rows
+        yOffset += usedRows * (cardH + 12) + 26;
     }
 
     this.browserContentHeight = yOffset;
+  }
+
+  private refreshBrowserCardStates() {
+    for (const [cardId, { addedOverlay, addedText }] of this.browserCardRefs) {
+      const inDeck = this.currentDeckCards.some(c => String(c.id) === cardId);
+      addedOverlay.setVisible(inDeck);
+      addedText.setVisible(inDeck);
+    }
   }
 
   private createBrowserCard(
@@ -561,8 +595,8 @@ private async loadBootstrapFromBackend() {
     allowed: boolean,
     alreadyInDeck: boolean,
     unlockRank: ClanRank
-  ): Phaser.GameObjects.Container {
-    const container = this.add.container(0, 0); // creates a container for an individual card in the browser
+  ): { container: Phaser.GameObjects.Container; addedOverlay: Phaser.GameObjects.Graphics | null; addedText: Phaser.GameObjects.Text | null } {
+    const container = this.add.container(0, 0);
 
     const frameColor = ELEMENT_COLORS[card.element] ?? 0xffffff;
 
@@ -600,7 +634,7 @@ private async loadBootstrapFromBackend() {
       wordWrap: { width: 92 },
     }).setOrigin(0.5);
 
-    container.add([g, rarityLabel, nameText, infoText]); // adds the card's visual elements (background, rarity label, name, and summary) to the card container
+    container.add([g, rarityLabel, nameText, infoText]);
 
     if (!allowed) {
       const overlay = this.add.graphics();
@@ -617,7 +651,7 @@ private async loadBootstrapFromBackend() {
         align: 'center',
       }).setOrigin(0.5);
 
-      container.add(lockText); // adds an overlay and lock text to the card if it's not allowed to be used in the deck due to rank restrictions
+      container.add(lockText);
 
       container.setInteractive({
         hitArea: new Phaser.Geom.Rectangle(0, 0, 105, 138),
@@ -625,25 +659,23 @@ private async loadBootstrapFromBackend() {
         useHandCursor: true,
       });
       container.on('pointerdown', () => this.showMessage(`Unlocks at ${unlockRank}.`, '#ff6666'));
-      return container;
+      return { container, addedOverlay: null, addedText: null };
     }
 
-    if (alreadyInDeck) {
-      const overlay = this.add.graphics();
-      overlay.fillStyle(0x000000, 0.45);
-      overlay.fillRoundedRect(0, 0, 105, 138, 8);
-      container.add(overlay);
+    const addedOverlay = this.add.graphics();
+    addedOverlay.fillStyle(0x000000, 0.45);
+    addedOverlay.fillRoundedRect(0, 0, 105, 138, 8);
+    addedOverlay.setVisible(alreadyInDeck);
 
-      const text = this.add.text(52, 69, 'ADDED', {
-        fontFamily: 'Impact, Arial Black, sans-serif',
-        fontSize: '22px',
-        color: '#00ff88',
-        stroke: '#000000',
-        strokeThickness: 5,
-      }).setOrigin(0.5); // creates the text label for added cards, displaying "ADDED"
+    const addedText = this.add.text(52, 69, 'ADDED', {
+      fontFamily: 'Impact, Arial Black, sans-serif',
+      fontSize: '22px',
+      color: '#00ff88',
+      stroke: '#000000',
+      strokeThickness: 5,
+    }).setOrigin(0.5).setVisible(alreadyInDeck);
 
-      container.add(text);
-    }
+    container.add([addedOverlay, addedText]);
 
     container.setInteractive({
       hitArea: new Phaser.Geom.Rectangle(0, 0, 105, 138),
@@ -654,15 +686,16 @@ private async loadBootstrapFromBackend() {
       if (!Phaser.Geom.Rectangle.Contains(this.browserPanelRect, pointer.worldX, pointer.worldY)) {
         return;
       }
-      if (alreadyInDeck) {
-        const idx = this.currentDeckCards.indexOf(card);
+      const inDeck = this.currentDeckCards.some(c => c.id === card.id);
+      if (inDeck) {
+        const idx = this.currentDeckCards.findIndex(c => c.id === card.id);
         if (idx !== -1) this.removeCardFromDeck(idx);
       } else {
         this.addCardToDeck(card);
       }
     });
 
-    return container;
+    return { container, addedOverlay, addedText };
   }
 
   private addCardToDeck(card: Card) {
@@ -683,9 +716,9 @@ private async loadBootstrapFromBackend() {
 
     this.currentDeckCards.push(card);
     this.isDirty = true;
-    this.showMessage(`${card.name} added to deck.`, '#00ff88'); // adds the selected card to the current deck and shows a confirmation message to the player
+    this.showMessage(`${card.name} added to deck.`, '#00ff88');
     this.renderDeckSlots();
-    this.renderBrowserCards();
+    this.refreshBrowserCardStates();
     this.refreshSaveBtn();
     this.refreshDeckStatusWidget();
   }
@@ -698,7 +731,7 @@ private async loadBootstrapFromBackend() {
     this.isDirty = true;
     this.showMessage(`${removed.name} removed from deck.`, '#ffcc00');
     this.renderDeckSlots();
-    this.renderBrowserCards();
+    this.refreshBrowserCardStates();
     this.refreshSaveBtn();
     this.refreshDeckStatusWidget();
   }
