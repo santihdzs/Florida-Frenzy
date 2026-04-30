@@ -19,4 +19,6 @@ export const SAFE_PLAYER_SELECT = {
   magSize:            true,
   staminaPool:        true,
   staminaRegen:       true,
+  equippedCharacter:  true,
+  unlockedCharacters: true,
 } as const;

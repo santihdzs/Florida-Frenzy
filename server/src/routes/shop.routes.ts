@@ -57,6 +57,14 @@ const STAMINA_REGEN_TIERS = [
   { from: 4, to: 5, cost: 4000 },
 ];
 
+const CHARACTER_CATALOG = [
+  { key: 'christian', coinCost: 0,    xpRequired: 0    },
+  { key: 'gavin',     coinCost: 1500, xpRequired: 1250 },
+  { key: 'gustav',    coinCost: 3000, xpRequired: 2750 },
+  { key: 'eddy',      coinCost: 6000, xpRequired: 4750 },
+] as const;
+type CharacterKey = typeof CHARACTER_CATALOG[number]['key'];
+
 const shopRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', fastify.authenticate);
 
@@ -307,6 +315,98 @@ const shopRoutes: FastifyPluginAsync = async (fastify) => {
 
     return reply.send({ player: updatedPlayer });
   });
+  // POST /api/shop/buy-character
+  fastify.post<{ Body: { characterKey: string } }>(
+    '/buy-character',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['characterKey'],
+          properties: { characterKey: { type: 'string' } },
+          additionalProperties: false,
+        },
+      },
+    },
+    async (request, reply) => {
+      const playerId = request.user.playerId;
+      const { characterKey } = request.body;
+
+      const catalog = CHARACTER_CATALOG.find(c => c.key === characterKey);
+      if (!catalog) {
+        return reply.code(400).send(badRequest('Unknown character'));
+      }
+
+      const player = await fastify.prisma.player.findUniqueOrThrow({
+        where: { id: playerId },
+        select: { totalCoins: true, maxXp: true, unlockedCharacters: true },
+      });
+
+      if (player.unlockedCharacters.includes(characterKey)) {
+        return reply.code(400).send(badRequest('Character already unlocked'));
+      }
+
+      if (player.maxXp < catalog.xpRequired) {
+        return reply.code(400).send(badRequest(`Not enough XP — need ${catalog.xpRequired}`));
+      }
+
+      if (player.totalCoins < catalog.coinCost) {
+        return reply.code(400).send(badRequest('Not enough coins'));
+      }
+
+      const updatedPlayer = await fastify.prisma.player.update({
+        where: { id: playerId },
+        data: {
+          totalCoins: { decrement: catalog.coinCost },
+          unlockedCharacters: { push: characterKey },
+        },
+        select: SAFE_PLAYER_SELECT,
+      });
+
+      return reply.send({ player: updatedPlayer });
+    }
+  );
+
+  // POST /api/shop/equip-character
+  fastify.post<{ Body: { characterKey: string } }>(
+    '/equip-character',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['characterKey'],
+          properties: { characterKey: { type: 'string' } },
+          additionalProperties: false,
+        },
+      },
+    },
+    async (request, reply) => {
+      const playerId = request.user.playerId;
+      const { characterKey } = request.body;
+
+      const validKeys: CharacterKey[] = CHARACTER_CATALOG.map(c => c.key);
+      if (!validKeys.includes(characterKey as CharacterKey)) {
+        return reply.code(400).send(badRequest('Unknown character'));
+      }
+
+      const player = await fastify.prisma.player.findUniqueOrThrow({
+        where: { id: playerId },
+        select: { unlockedCharacters: true },
+      });
+
+      if (!player.unlockedCharacters.includes(characterKey)) {
+        return reply.code(400).send(badRequest('Character not unlocked'));
+      }
+
+      const updatedPlayer = await fastify.prisma.player.update({
+        where: { id: playerId },
+        data: { equippedCharacter: characterKey },
+        select: SAFE_PLAYER_SELECT,
+      });
+
+      return reply.send({ player: updatedPlayer });
+    }
+  );
 };
 
 export default shopRoutes;

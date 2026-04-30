@@ -7,6 +7,7 @@ import music from '../assets/music/Tailgate_Troubles.mp3';
 import { isLoggedIn, getPlayer, logout, hasCompletedTutorial } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
 import { translations } from '../utils/translations.ts';
+import { fetchActiveDeck } from '../api/deckApi';
 
 export class MenuScene extends Phaser.Scene {
   private t: Record<string, string> = {};
@@ -182,17 +183,72 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  startGame() {
+  async startGame() {
     if (!isLoggedIn()) {
       this.scene.launch('LoginScene', { mode: 'register' });
       return;
     }
+
+    const player = getPlayer();
+    if (!player) {
+      this.showNoDeckModal();
+      return;
+    }
+
+    try {
+      const activeDeck = await fetchActiveDeck(player.id);
+      const cards = activeDeck?.deck?.cards;
+      if (
+        !cards ||
+        cards.length === 0 ||
+        cards.length !== activeDeck.deck.slotLimit
+      ) {
+        this.showNoDeckModal();
+        return;
+      }
+    } catch {
+      this.showNoDeckModal();
+      return;
+    }
+
     this.sound.stopByKey('menu-music');
     if (hasCompletedTutorial()) {
       transitionTo(this, 'RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 });
     } else {
       transitionTo(this, 'TutorialScene');
     }
+  }
+
+  showNoDeckModal() {
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+
+    const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6)
+      .setOrigin(0).setDepth(90).setInteractive();
+
+    const modal = this.add.container(centerX, centerY).setDepth(101);
+    const width = 500; const height = 200;
+    const background = this.add.graphics();
+    this.drawMetalPlate(background, width, height, false);
+
+    const text = this.add.text(0, -30, 'You need to build a deck before playing.', {
+      fontFamily: 'Impact, Arial black, sans-serif',
+      fontSize: '22px', color: '#c2baba',
+      stroke: '#000000', strokeThickness: 3, align: 'center',
+      wordWrap: { width: 440 },
+    }).setOrigin(0.5);
+
+    const goBtn = this.createButton(0, 50, 200, 60, 'BUILD DECK', () => {
+      overlay.destroy();
+      modal.destroy();
+      this.input.enabled = true;
+      (window as any).sidebarNav?.('DeckScene', null);
+    }, { fontFamily: 'Impact, Arial black, sans-serif', fontSize: '20px', color: '#c2baba', stroke: '#000000', strokeThickness: 2 });
+
+    modal.add([background, text, goBtn]);
+    modal.setScale(0.5).setAlpha(0);
+    this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 300, ease: 'Back.easeOut' });
+    goBtn.setDepth(101);
   }
 
   showMultiplayerComingSoon() {

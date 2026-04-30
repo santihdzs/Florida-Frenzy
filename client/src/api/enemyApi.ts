@@ -1,6 +1,4 @@
 import type { DuelBossData } from '../utils/bossTypes';
-import { API_URL } from './apiBase'; // Import the base API URL from the apiBase module
-
 const API_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
 
 // Function to fetch a random duel boss from the server,

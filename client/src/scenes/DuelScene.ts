@@ -360,7 +360,7 @@ export class DuelScene extends Phaser.Scene {
   private async initializeDuel():Promise<void> {
     await this.tryLoadCards(); // ensure card data is loaded before proceeding with duel setup
 
-    this.setupDecks(); // create and populate player and enemy decks
+    await this.setupDecks(); // create and populate player and enemy decks
     this.renderTableCard(); // generate and render the initial table card
     this.renderDiscardTopCard(); // render the top card of the discard pile
     this.renderCards(); // draw the starting hand for both player and enemy
@@ -404,7 +404,19 @@ export class DuelScene extends Phaser.Scene {
     this.createCharacters(); // place player and enemy sprites
     this.drawHudPanels(); // draw the dark HUD containers behind the UI
     this.createHud(); // build the text bars and labels
-    void this.initializeDuel(); // initialize the duel with loaded card data
+    this.initializeDuel().catch((error: Error) => {
+      const msg = error?.message ?? 'Failed to start duel.';
+      this.add.text(centerX, height / 2, msg, {
+        fontFamily: 'Impact, Arial Black, sans-serif',
+        fontSize: '26px',
+        color: '#ff4444',
+        stroke: '#000000',
+        strokeThickness: 4,
+        align: 'center',
+        wordWrap: { width: 600 },
+      }).setOrigin(0.5).setDepth(20);
+      this.time.delayedCall(3000, () => transitionTo(this, 'MenuScene'));
+    }); // initialize the duel with loaded card data
     // this.updateInstruction(); // kept commented out as in your current code
 
     if (getPlayer()?.isAdmin) {
@@ -850,10 +862,7 @@ export class DuelScene extends Phaser.Scene {
     const loadedFromBackendDeck = await this.loadPlayerDeckFromBackend(); // attempt to load the player's deck from the backend, which also sets up the starting hand if successful
 
     if (!loadedFromBackendDeck) {
-      console.warn('Using fallback local deck generation.');
-      const fallbackDeck = this.generateDeckFromPool([...basePool, ...effectPool, ...rarePool], PLAYER_DECK_SIZE); // generate a fallback deck from the combined pools if backend load fails
-      this.playerDeck = fallbackDeck.slice(5); // use the generated fallback deck, leaving the top 5 cards to be drawn into the starting hand
-      this.playerHand = fallbackDeck.slice(0, 5); // draw the top 5 cards from the generated fallback deck into the player's starting hand
+      throw new Error('Could not load your deck.\nPlease set an active deck in the Deck Builder and try again.');
     }
 
     const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed

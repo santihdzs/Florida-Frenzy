@@ -28,6 +28,9 @@ import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.webp';
 import boldearSheet from '../assets/characters/boldear/Boldear_SpriteSheet.webp';
 
 import christianSheet from '../assets/characters/christian/Christian_SpriteSheet.webp';
+import gavinSheet     from '../assets/characters/gavin/Gavin_SpriteSheet.webp';
+import gustavSheet    from '../assets/characters/gustav/Gustav_SpriteSheet.webp';
+import eddySheet      from '../assets/characters/eddy/Eddy_SpriteSheet.webp';
 import rackoSheet from '../assets/characters/top-down_enemies/shooter/Racko_SpriteSheet.webp';
 import rhondaSheet from '../assets/characters/top-down_enemies/shooter/Rhonda_SpriteSheet.webp';
 import riccSheet from '../assets/characters/top-down_enemies/shooter/Ricc_SpriteSheet.webp';
@@ -215,8 +218,18 @@ const EnemyType = {
 } as const;
 type EnemyType = typeof EnemyType[keyof typeof EnemyType];
 
+const CHAR_SHEET_URLS: Partial<Record<string, string>> = {
+  christian: christianSheet,
+  gavin:     gavinSheet,
+  gustav:    gustavSheet,
+  eddy:      eddySheet,
+};
+
 const CHAR_SHEETS = {
-  christian: { xCuts: [0, 293, 587, 880],  yCuts: [0, 300, 600, 900, 1200] },
+  christian: { xCuts: [0, 293, 587, 880],   yCuts: [0, 300, 600, 900,  1200] },
+  gavin:     { xCuts: [0, 576, 1152, 1728],  yCuts: [0, 576, 1152, 1728, 2304] },
+  gustav:    { xCuts: [0, 292, 584, 875],    yCuts: [0, 304, 608, 912,  1216] },
+  eddy:      { xCuts: [0, 293, 587, 880],    yCuts: [0, 300, 599, 899,  1198] },
   racko:     { xCuts: [0, 355, 711, 1066], yCuts: [0, 369, 738, 1106, 1475] },
   rhonda:    { xCuts: [0, 356, 713, 1069], yCuts: [0, 368, 736, 1104, 1472] },
   ricc:      { xCuts: [0, 355, 710, 1065], yCuts: [0, 369, 738, 1108, 1477] },
@@ -404,6 +417,8 @@ export class RunScene extends Phaser.Scene {
   private levelText!:  Phaser.GameObjects.Text;
   private avatarMask!: Phaser.GameObjects.Graphics;
 
+  private playerSkin: CharSheetKey = 'christian';
+
   private cursors!:  Phaser.Types.Input.Keyboard.CursorKeys;
   private keyW!:     Phaser.Input.Keyboard.Key;
   private keyA!:     Phaser.Input.Keyboard.Key;
@@ -432,6 +447,8 @@ export class RunScene extends Phaser.Scene {
     this.done           = false;
     this.runEnded       = false;
     this.lastPlayerDir  = 'down';
+    const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
+    this.playerSkin = (equipped in CHAR_SHEETS) ? equipped as CharSheetKey : 'christian';
     this.maxHp          = (getPlayer()?.maxHp as number | undefined) ?? 50;
     this.hp             = this.maxHp;
     this.lastSprintTime = -STAMINA_REGEN_DELAY;
@@ -487,8 +504,9 @@ export class RunScene extends Phaser.Scene {
     if (!this.textures.exists('boss-boldear-run-sheet'))
       this.load.image('boss-boldear-run-sheet', boldearSheet);
 
-    if (!this.textures.exists('christian'))
-      this.load.image('christian', christianSheet);
+    const skinUrl = CHAR_SHEET_URLS[this.playerSkin] ?? christianSheet;
+    if (!this.textures.exists(this.playerSkin))
+      this.load.image(this.playerSkin, skinUrl);
     if (!this.textures.exists('racko'))
       this.load.image('racko',    rackoSheet);
     if (!this.textures.exists('rhonda'))
@@ -536,10 +554,10 @@ export class RunScene extends Phaser.Scene {
 
     this.px = TILE * 2;
     this.py = Math.floor(ROWS / 2) * TILE;
-    const playerScale = PLAYER_SIZE / (CHAR_SHEETS.christian.xCuts[1] - CHAR_SHEETS.christian.xCuts[0]);
-    this.playerImg = this.add.sprite(this.px, this.py, 'christian', 'christian-walk-down-1')
+    const playerScale = PLAYER_SIZE / (CHAR_SHEETS[this.playerSkin].xCuts[1] - CHAR_SHEETS[this.playerSkin].xCuts[0]);
+    this.playerImg = this.add.sprite(this.px, this.py, this.playerSkin, `${this.playerSkin}-walk-down-1`)
       .setOrigin(0, 0).setDepth(5).setScale(playerScale);
-    this.playerImg.play('christian-walk-down');
+    this.playerImg.play(`${this.playerSkin}-walk-down`);
 
     if (this.step === RUNS_PER_CYCLE - 1) {
       void this.spawnDuelBossAtGoal();
@@ -823,8 +841,8 @@ export class RunScene extends Phaser.Scene {
   }
 
   private createPlayerAnimations() {
-    this.sliceCharSheetFrames('christian');
-    this.createWalkAnimations('christian');
+    this.sliceCharSheetFrames(this.playerSkin);
+    this.createWalkAnimations(this.playerSkin);
   }
 
   private createEnemyAnimations(skinKey: CharSheetKey) {
@@ -1311,12 +1329,12 @@ export class RunScene extends Phaser.Scene {
         : (dy > 0 ? 'down' : 'up');
       if (dir !== this.lastPlayerDir || !this.playerImg.anims.isPlaying) {
         this.lastPlayerDir = dir;
-        this.playerImg.play(`christian-walk-${dir}`, true);
+        this.playerImg.play(`${this.playerSkin}-walk-${dir}`, true);
       }
       this.playerImg.anims.timeScale = this.sprinting ? 1.8 : 1;
     } else {
       this.playerImg.anims.stop();
-      this.playerImg.setFrame(`christian-walk-${this.lastPlayerDir}-1`);
+      this.playerImg.setFrame(`${this.playerSkin}-walk-${this.lastPlayerDir}-1`);
     }
 
     if (!this.leftStart && this.px > START_COLS * TILE) {

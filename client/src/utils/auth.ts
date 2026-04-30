@@ -446,6 +446,34 @@ export async function deleteMyAccount(password: string): Promise<void> {
   clearToken();
 }
 
+export async function buyCharacter(characterKey: string): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/buy-character`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ characterKey }),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Purchase failed');
+  if (data.player) setPlayer(data.player);
+  return data as Record<string, unknown>;
+}
+
+export async function equipCharacter(characterKey: string): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/shop/equip-character`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ characterKey }),
+  });
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Equip failed');
+  if (data.player) setPlayer(data.player);
+  return data as Record<string, unknown>;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetchGlobalLeaderboard(limit = 5): Promise<any[]> {
   const res = await fetch(`${API_URL}/api/leaderboard?limit=${limit}`);

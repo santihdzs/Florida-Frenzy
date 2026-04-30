@@ -116,11 +116,6 @@ export async function saveDeck(
 
   const player = await prisma.player.findUnique({
     where: { id: playerId },
-    include: {
-      playerCards: {
-        include: { cardGame: true },
-      },
-    },
   });
 
   if (!player) {
@@ -130,18 +125,14 @@ export async function saveDeck(
   const clanRank = computeClanRank(player.maxXp);
   const slotLimit = getDeckSlotLimit(clanRank);
 
-  if (cardGameIds.length !== slotLimit) {
-    throw new Error(`Deck must contain exactly ${slotLimit} cards.`);
+  if (makeActive && cardGameIds.length !== slotLimit) {
+    throw new Error(`Deck must be complete (${slotLimit} cards) to set as active.`);
   }
 
   const uniqueCardIds = [...new Set(cardGameIds)];
   if (uniqueCardIds.length !== cardGameIds.length) {
     throw new Error('Duplicate cards are not allowed in this deck.');
   }
-
-  const ownedMap = new Map(
-    player.playerCards.map(pc => [pc.cardGameId, pc])
-  );
 
   const allCardsById = new Map(
     (await prisma.cardGame.findMany()).map(card => [card.id, card])
@@ -157,15 +148,6 @@ export async function saveDeck(
     const requiredRank = getUnlockRankForRarity(dbCard.cardRarity);
     if (!hasRankAccess(clanRank, requiredRank)) {
       throw new Error(`Card ${cardGameId} requires rank ${requiredRank}.`);
-    }
-
-    if (dbCard.cardRarity === 'BASE') {
-      continue; // base cards are always available and don't require ownership checks
-    }
-
-    const owned = ownedMap.get(cardGameId);
-    if (!owned || !owned.isUnlocked || owned.numCardsOwned < 1)  {
-      throw new Error(`Card ${cardGameId} is not unlocked for this player.`);
     }
   }
 

@@ -121,6 +121,8 @@ model Player {
   magSize            Int          @default(10)
   staminaPool        Int          @default(1)
   staminaRegen       Int          @default(1)
+  equippedCharacter  String       @default("christian")
+  unlockedCharacters String[]     @default(["christian"])
 
   playerCharacters PlayerCharacter[]
   playerCards      PlayerCard[]
