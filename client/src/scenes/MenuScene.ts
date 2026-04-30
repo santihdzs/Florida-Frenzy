@@ -6,8 +6,10 @@ import titleLogo from '../assets/logos/logo.webp';
 import music from '../assets/music/Tailgate_Troubles.mp3';
 import { isLoggedIn, getPlayer, logout, hasCompletedTutorial } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
+import { translations } from '../utils/translations.ts';
 
 export class MenuScene extends Phaser.Scene {
+  private t: Record<string, string> = {};
   constructor() {
     super({ key: 'MenuScene' });
   }
@@ -24,6 +26,10 @@ export class MenuScene extends Phaser.Scene {
     const H  = this.cameras.main.height;
     const cx = W / 2;
     const cy = H / 2;
+
+    // Get current language for translations
+    const langKey = this.registry.get('language') || 'en';
+    this.t = translations[langKey];
 
     const savedVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
     this.sound.volume = savedVolume;
@@ -88,7 +94,7 @@ export class MenuScene extends Phaser.Scene {
     if (isMuted) this.sound.mute = true;
 
     // ── Main area buttons: MULTIPLAYER, SHOP, FRIENDS, LOG IN/OUT ──
-    const logoutLabel  = isLoggedIn() ? 'LOG OUT' : 'LOG IN';
+    const logoutLabel  = isLoggedIn() ? this.t.logout_btn : this.t.login_btn;
     const logoutAction = isLoggedIn()
       ? () => { logout(); this.scene.restart(); }
       : () => this.scene.launch('LoginScene', { mode: 'login' });
@@ -96,10 +102,10 @@ export class MenuScene extends Phaser.Scene {
     const mainW = 320;
     const mainH = 68;
 
-    this.createButton(cx, 320, mainW, mainH, 'PLAY',        () => this.startGame(),                 textStyle);
-    this.createButton(cx, 410, mainW, mainH, 'MULTIPLAYER', () => this.showMultiplayerComingSoon(), textStyle);
-    this.createButton(cx, 490, mainW, mainH, 'SHOP',         () => transitionTo(this, 'ShopScene'),    textStyle);
-    this.createButton(cx, 570, mainW, mainH, 'FRIENDS',     () => transitionTo(this, 'FriendsScene'), textStyle);
+    this.createButton(cx, 320, mainW, mainH, this.t.play,        () => this.startGame(),                 textStyle);
+    this.createButton(cx, 410, mainW, mainH, this.t.multiplayer, () => this.showMultiplayerComingSoon(), textStyle);
+    this.createButton(cx, 490, mainW, mainH, this.t.shop,         () => transitionTo(this, 'ShopScene'),    textStyle);
+    this.createButton(cx, 570, mainW, mainH, this.t.friends,     () => transitionTo(this, 'FriendsScene'), textStyle);
     this.createButton(cx, 650, mainW, mainH, logoutLabel,   logoutAction,                            textStyle);
   }
 
@@ -201,13 +207,13 @@ export class MenuScene extends Phaser.Scene {
     const background = this.add.graphics();
     this.drawMetalPlate(background, width, height, false);
 
-    const text = this.add.text(0, -20, 'Multiplayer mode is coming soon! Stay tuned.', {
+    const text = this.add.text(0, -20, this.t.multi_coming_soon, {
       fontFamily: 'Impact, Arial black, sans-serif',
       fontSize: '24px', color: '#c2baba',
       stroke: '#000000', strokeThickness: 3, align: 'center',
     }).setOrigin(0.5);
 
-    const okBtn = this.createButton(0, 40, 140, 60, 'OK', () => {
+    const okBtn = this.createButton(0, 40, 140, 60, this.t.confirm_ok, () => {
       overlay.destroy();
       modal.destroy();
       this.input.enabled = true;

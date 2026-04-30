@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.webp';
 import { getPlayer, upgradeHp, upgradeGunDamage, upgradeFireRate, upgradeReloadTime, upgradeNoReload, upgradeMagSize, upgradeStaminaPool, upgradeStaminaRegen } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
+import { translations } from '../utils/translations.ts';
 
 const HP_TIERS = [
   { from: 50,  to: 60,  cost: 700  },
@@ -84,6 +85,16 @@ export class ShopScene extends Phaser.Scene {
     super({ key: 'ShopScene' });
   }
 
+  // Translation table loaded in create(), used by tf()
+  private t: Record<string, any> = {};
+ 
+  // Helper: resolves both plain strings and interpolation functions
+  private tf(key: string, ...args: any[]): string {
+    const val = this.t[key];
+    if (typeof val === 'function') return val(...args);
+    return val ?? key;
+  }
+
   preload() {
     this.load.image('title-background', titleBackground);
   }
@@ -93,6 +104,10 @@ export class ShopScene extends Phaser.Scene {
     const W  = this.cameras.main.width;
     const H  = this.cameras.main.height;
     const cx = W / 2;
+
+    // Load translations for the active language
+    const langKey = this.registry.get('language') || 'en';
+    this.t = translations[langKey];
 
     const baseStyle = {
       fontFamily: 'Impact, Arial black, sans-serif',
@@ -104,7 +119,7 @@ export class ShopScene extends Phaser.Scene {
     // Fixed background + title + coins (scrollFactor 0 = stays on screen regardless of camera)
     this.add.image(cx, H / 2, 'title-background').setScrollFactor(0);
 
-    this.add.text(cx, 32, 'SHOP', {
+    this.add.text(cx, 32, this.tf('shop'), {
       ...baseStyle,
       fontSize: '52px',
       shadow: { offsetX: 3, offsetY: 3, color: '#000', blur: 0, fill: true },
@@ -113,7 +128,7 @@ export class ShopScene extends Phaser.Scene {
     const player = getPlayer();
     let coins: number = typeof player?.totalCoins === 'number' ? player.totalCoins as number : 0;
 
-    const coinsText = this.add.text(W - 24, 10, `Coins: ${coins}`, {
+    const coinsText = this.add.text(W - 24, 10, this.tf('shop_coins_display', coins), {
       ...baseStyle,
       fontSize: '22px',
       color: '#ffd700',
@@ -122,11 +137,11 @@ export class ShopScene extends Phaser.Scene {
     const refreshCoins = () => {
       const p = getPlayer();
       coins = typeof p?.totalCoins === 'number' ? p.totalCoins as number : coins;
-      coinsText.setText(`Coins: ${coins}`);
+      coinsText.setText(this.tf('shop_coins_display', coins));
     };
 
     // BACK button — fixed
-    this.add.text(cx, H - 36, 'BACK', {
+    this.add.text(cx, H - 36, this.tf('back'), {
       ...baseStyle,
       fontSize: '36px',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10)
@@ -143,12 +158,12 @@ export class ShopScene extends Phaser.Scene {
     // HP
     let currentHp = typeof player?.maxHp === 'number' ? player.maxHp as number : 50;
     this.createUpgradeCard(cx, cardY, {
-      name: 'Health Upgrade',
+      name: this.tf('shop_hp'),
       currentValue: () => currentHp,
       maxValue: 200,
-      label: (v) => `HP: ${v} / 200`,
-      nextLabel: (v) => { const t = HP_TIERS.find(x => x.from === v); return t ? `Next: ${t.from} → ${t.to}` : 'MAX LEVEL'; },
-      costLabel: (v) => { const t = HP_TIERS.find(x => x.from === v); return t ? `${t.cost} coins` : ''; },
+      label: (v) => this.tf('shop_label_hp', v),
+      nextLabel: (v) => { const t = HP_TIERS.find(x => x.from === v); return t ? this.tf('shop_next', t.from, t.to) : this.tf('shop_max_level'); },
+      costLabel: (v) => { const t = HP_TIERS.find(x => x.from === v); return t ? this.tf('shop_coins_cost', t.cost) : ''; },
       isMaxed: (v) => HP_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeHp(); const u = getPlayer(); currentHp = typeof u?.maxHp === 'number' ? u.maxHp as number : currentHp; },
       onCoinsChanged: refreshCoins,
@@ -158,12 +173,12 @@ export class ShopScene extends Phaser.Scene {
     // Bullet Damage
     let currentDmg = typeof player?.bulletDamage === 'number' ? player.bulletDamage as number : 10;
     this.createUpgradeCard(cx, cardY, {
-      name: 'Bullet Damage',
+      name: this.tf('shop_dmg'),
       currentValue: () => currentDmg,
       maxValue: 50,
       label: (v) => `DMG: ${v} / 50`,
-      nextLabel: (v) => { const t = DAMAGE_TIERS.find(x => x.from === v); return t ? `Next: ${t.from} → ${t.to}` : 'MAX LEVEL'; },
-      costLabel: (v) => { const t = DAMAGE_TIERS.find(x => x.from === v); return t ? `${t.cost} coins` : ''; },
+      nextLabel: (v) => { const t = DAMAGE_TIERS.find(x => x.from === v); return t ? this.tf('shop_next', t.from, t.to) : this.tf('shop_max_level'); },
+      costLabel: (v) => { const t = DAMAGE_TIERS.find(x => x.from === v); return t ? this.tf('shop_coins_cost', t.cost) : ''; },
       isMaxed: (v) => DAMAGE_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeGunDamage(); const u = getPlayer(); currentDmg = typeof u?.bulletDamage === 'number' ? u.bulletDamage as number : currentDmg; },
       onCoinsChanged: refreshCoins,
@@ -173,12 +188,12 @@ export class ShopScene extends Phaser.Scene {
     // Fire Rate
     let currentRate = typeof player?.fireRate === 'number' ? player.fireRate as number : 1;
     this.createUpgradeCard(cx, cardY, {
-      name: 'Fire Rate',
+      name: this.tf('shop_fire_rate'),
       currentValue: () => currentRate,
       maxValue: 5,
-      label: (v) => `Rate: ${v} / 5`,
-      nextLabel: (v) => { const t = FIRE_RATE_TIERS.find(x => x.from === v); return t ? `Next: ${t.from} → ${t.to}` : 'MAX LEVEL'; },
-      costLabel: (v) => { const t = FIRE_RATE_TIERS.find(x => x.from === v); return t ? `${t.cost} coins` : ''; },
+      label: (v) => this.tf('shop_label_rate', v),
+      nextLabel: (v) => { const t = FIRE_RATE_TIERS.find(x => x.from === v); return t ? this.tf('shop_next', t.from, t.to) : this.tf('shop_max_level'); },
+      costLabel: (v) => { const t = FIRE_RATE_TIERS.find(x => x.from === v); return t ? this.tf('shop_coins_cost', t.cost) : ''; },
       isMaxed: (v) => FIRE_RATE_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeFireRate(); const u = getPlayer(); currentRate = typeof u?.fireRate === 'number' ? u.fireRate as number : currentRate; },
       onCoinsChanged: refreshCoins,
@@ -188,12 +203,12 @@ export class ShopScene extends Phaser.Scene {
     // Reload Speed
     let currentReload = typeof player?.reloadTime === 'number' ? player.reloadTime as number : 1;
     this.createUpgradeCard(cx, cardY, {
-      name: 'Reload Speed',
+      name: this.tf('shop_reload'),
       currentValue: () => currentReload,
       maxValue: 5,
-      label: (v) => `Speed: ${v} / 5`,
-      nextLabel: (v) => { const t = RELOAD_TIERS.find(x => x.from === v); return t ? `Next: ${t.from} → ${t.to}` : 'MAX LEVEL'; },
-      costLabel: (v) => { const t = RELOAD_TIERS.find(x => x.from === v); return t ? `${t.cost} coins` : ''; },
+      label: (v) => this.tf('shop_label_speed', v),
+      nextLabel: (v) => { const t = RELOAD_TIERS.find(x => x.from === v); return t ? this.tf('shop_next', t.from, t.to) : this.tf('shop_max_level'); },
+      costLabel: (v) => { const t = RELOAD_TIERS.find(x => x.from === v); return t ? this.tf('shop_coins_cost', t.cost) : ''; },
       isMaxed: (v) => RELOAD_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeReloadTime(); const u = getPlayer(); currentReload = typeof u?.reloadTime === 'number' ? u.reloadTime as number : currentReload; },
       onCoinsChanged: refreshCoins,
@@ -207,12 +222,12 @@ export class ShopScene extends Phaser.Scene {
     // Magazine Size
     let currentMag = typeof player?.magSize === 'number' ? player.magSize as number : 10;
     this.createUpgradeCard(cx, cardY, {
-      name: 'Magazine Size',
+      name: this.tf('shop_magazine_size'),
       currentValue: () => currentMag,
       maxValue: 30,
-      label: (v) => `Ammo: ${v} / 30`,
-      nextLabel: (v) => { const t = MAG_SIZE_TIERS.find(x => x.from === v); return t ? `Next: ${t.from} → ${t.to}` : 'MAX LEVEL'; },
-      costLabel: (v) => { const t = MAG_SIZE_TIERS.find(x => x.from === v); return t ? `${t.cost} coins` : ''; },
+      label: (v) => this.tf('shop_label_ammo', v),
+      nextLabel: (v) => { const t = MAG_SIZE_TIERS.find(x => x.from === v); return t ? this.tf('shop_next', t.from, t.to) : this.tf('shop_max_level'); },
+      costLabel: (v) => { const t = MAG_SIZE_TIERS.find(x => x.from === v); return t ? this.tf('shop_coins_cost', t.cost) : ''; },
       isMaxed: (v) => MAG_SIZE_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeMagSize(); const u = getPlayer(); currentMag = typeof u?.magSize === 'number' ? u.magSize as number : currentMag; },
       onCoinsChanged: refreshCoins,
@@ -222,12 +237,12 @@ export class ShopScene extends Phaser.Scene {
     // Endurance (Stamina Pool)
     let currentStaminaPool = typeof player?.staminaPool === 'number' ? player.staminaPool as number : 1;
     this.createUpgradeCard(cx, cardY, {
-      name: 'Endurance',
+      name: this.tf('shop_endurance'),
       currentValue: () => currentStaminaPool,
       maxValue: 5,
-      label: (v) => `Level: ${v} / 5`,
-      nextLabel: (v) => { const t = STAMINA_POOL_TIERS.find(x => x.from === v); return t ? `Next: ${t.from} → ${t.to}` : 'MAX LEVEL'; },
-      costLabel: (v) => { const t = STAMINA_POOL_TIERS.find(x => x.from === v); return t ? `${t.cost} coins` : ''; },
+      label: (v) => this.tf('shop_label_level', v),
+      nextLabel: (v) => { const t = STAMINA_POOL_TIERS.find(x => x.from === v); return t ? this.tf('shop_next', t.from, t.to) : this.tf('shop_max_level'); },
+      costLabel: (v) => { const t = STAMINA_POOL_TIERS.find(x => x.from === v); return t ? this.tf('shop_coins_cost', t.cost) : ''; },
       isMaxed: (v) => STAMINA_POOL_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeStaminaPool(); const u = getPlayer(); currentStaminaPool = typeof u?.staminaPool === 'number' ? u.staminaPool as number : currentStaminaPool; },
       onCoinsChanged: refreshCoins,
@@ -237,12 +252,12 @@ export class ShopScene extends Phaser.Scene {
     // Recovery (Stamina Regen)
     let currentStaminaRegen = typeof player?.staminaRegen === 'number' ? player.staminaRegen as number : 1;
     this.createUpgradeCard(cx, cardY, {
-      name: 'Recovery',
+      name: this.tf('shop_recovery'),
       currentValue: () => currentStaminaRegen,
       maxValue: 5,
-      label: (v) => `Level: ${v} / 5`,
-      nextLabel: (v) => { const t = STAMINA_REGEN_TIERS.find(x => x.from === v); return t ? `Next: ${t.from} → ${t.to}` : 'MAX LEVEL'; },
-      costLabel: (v) => { const t = STAMINA_REGEN_TIERS.find(x => x.from === v); return t ? `${t.cost} coins` : ''; },
+      label: (v) => this.tf('shop_label_level', v),
+      nextLabel: (v) => { const t = STAMINA_REGEN_TIERS.find(x => x.from === v); return t ? this.tf('shop_next', t.from, t.to) : this.tf('shop_max_level'); },
+      costLabel: (v) => { const t = STAMINA_REGEN_TIERS.find(x => x.from === v); return t ? this.tf('shop_coins_cost', t.cost) : ''; },
       isMaxed: (v) => STAMINA_REGEN_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeStaminaRegen(); const u = getPlayer(); currentStaminaRegen = typeof u?.staminaRegen === 'number' ? u.staminaRegen as number : currentStaminaRegen; },
       onCoinsChanged: refreshCoins,
@@ -262,7 +277,7 @@ export class ShopScene extends Phaser.Scene {
       });
 
       // Scroll hint
-      this.add.text(cx, H - 16, '▼ scroll for more', {
+      this.add.text(cx, H - 16, this.tf('shop_scroll_hint'), {
         fontFamily: 'Impact, Arial black, sans-serif',
         fontSize: '14px',
         color: '#888888',
@@ -290,14 +305,14 @@ export class ShopScene extends Phaser.Scene {
       strokeThickness: 2,
     };
 
-    this.add.text(cardX + PAD, y + PAD, 'No Reload', {
+    this.add.text(cardX + PAD, y + PAD, this.tf('shop_no_reload'), {
       ...baseStyle,
       fontSize: '22px',
       color: '#ffffff',
     }).setOrigin(0, 0);
 
     if (hasNoReload) {
-      this.add.text(cx, y + CARD_H / 2 + 10, 'UNLOCKED', {
+      this.add.text(cx, y + CARD_H / 2 + 10, this.tf('shop_unlocked'), {
         ...baseStyle,
         fontSize: '28px',
         color: '#44cc66',
@@ -306,7 +321,7 @@ export class ShopScene extends Phaser.Scene {
     }
 
     if (reloadTime < 5) {
-      this.add.text(cx, y + CARD_H / 2 + 10, 'Max out Reload Speed first', {
+      this.add.text(cx, y + CARD_H / 2 + 10, this.tf('shop_no_reload_locked'), {
         fontFamily: 'Impact, Arial black, sans-serif',
         fontSize: '18px',
         color: '#666666',
@@ -319,13 +334,13 @@ export class ShopScene extends Phaser.Scene {
     // Available for purchase
     const bottomY = y + CARD_H - PAD - 28;
 
-    this.add.text(cardX + PAD, bottomY, 'Eliminates reload requirement', {
+    this.add.text(cardX + PAD, bottomY, this.tf('shop_no_reload_desc'), {
       ...baseStyle,
       fontSize: '15px',
       color: '#aaaaaa',
     }).setOrigin(0, 0.5);
 
-    const costText = this.add.text(cx, bottomY, '5000 coins', {
+    const costText = this.add.text(cx, bottomY, this.tf('shop_coins_cost', 100), {
       ...baseStyle,
       fontSize: '17px',
       color: '#ffd700',
@@ -338,7 +353,7 @@ export class ShopScene extends Phaser.Scene {
     }).setOrigin(0, 1);
 
     let busy = false;
-    const upgradeBtn = this.add.text(cardX + CARD_W - PAD, bottomY, 'UPGRADE', {
+    const upgradeBtn = this.add.text(cardX + CARD_W - PAD, bottomY, this.tf('shop_upgrade'), {
       ...baseStyle,
       fontSize: '22px',
       color: '#c2baba',
@@ -353,10 +368,10 @@ export class ShopScene extends Phaser.Scene {
       try {
         await upgradeNoReload();
         refreshCoins();
-        upgradeBtn.setText('UNLOCKED').setColor('#44cc66').disableInteractive();
+        upgradeBtn.setText(this.tf('shop_unlocked')).setColor('#44cc66').disableInteractive();
         costText.setText('');
       } catch (err: unknown) {
-        errorText.setText(err instanceof Error ? err.message : 'Upgrade failed');
+        errorText.setText(err instanceof Error ? err.message : this.tf('shop_upgrade_failed'));
       } finally {
         busy = false;
       }
@@ -429,7 +444,7 @@ export class ShopScene extends Phaser.Scene {
     }).setOrigin(0, 1);
 
     let busy = false;
-    const upgradeBtn = this.add.text(cardX + CARD_W - PAD, bottomY, 'UPGRADE', {
+    const upgradeBtn = this.add.text(cardX + CARD_W - PAD, bottomY, this.tf('shop_upgrade'), {
       ...baseStyle,
       fontSize: '22px',
       color: '#c2baba',
@@ -464,16 +479,16 @@ export class ShopScene extends Phaser.Scene {
           costText.setText('');
         }
       } catch (err: unknown) {
-        errorText.setText(err instanceof Error ? err.message : 'Upgrade failed');
+        errorText.setText(err instanceof Error ? err.message : this.tf('shop_upgrade_failed'));
       } finally {
         busy = false;
       }
     });
 
     if (config.isMaxed(config.currentValue())) {
-      upgradeBtn.setText('MAX').setColor('#666666').disableInteractive();
+      upgradeBtn.setText(this.tf('shop_max')).setColor('#666666').disableInteractive();
       costText.setText('');
-      nextText.setText('MAX LEVEL');
+      nextText.setText(this.tf('shop_max_level'));
     }
   }
 }

@@ -11,6 +11,7 @@ import skawlImg from '../assets/characters/skawl/Skawl_resized.webp';
 import rabyzImg from '../assets/characters/rabyz/Rabyz_resized.webp';
 import boldearImg from '../assets/characters/boldear/Boldear_resized.webp';
 import pythraImg from '../assets/characters/pythra/Pythra_evolution-1_resized.webp';
+import { translations } from '../utils/translations.js';
 
 interface CharacterDef {
   key: string;
@@ -20,19 +21,19 @@ interface CharacterDef {
   imgPath: string;
 }
 
-const HEROES: CharacterDef[] = [
-  { key: 'st-christian', name: 'Christian', role: 'The Balanced Fighter', desc: 'A disciplined warrior of the Crock Clan. His ultimate recovers 50% of his health and 30% shield, making him a reliable frontline fighter.', imgPath: christianImg },
-  { key: 'st-gustav',    name: 'Gustav',    role: 'The Fortress',          desc: 'Built like a tank, Gustav prioritizes defense over offense. His ultimate recovers 25% health but grants a massive 60% shield.', imgPath: gustavImg },
-  { key: 'st-gavin',     name: 'Gavin',     role: 'The All-Rounder',       desc: 'A versatile clan member who balances offense and defense equally. His ultimate restores 30% health and 30% shield.', imgPath: gavinImg },
-  { key: 'st-eddy',      name: 'Eddy',      role: 'The Berserker',         desc: 'A reckless fighter who sacrifices defense for raw survival. His ultimate recovers 75% health at the cost of 35% shield.', imgPath: eddyImg },
-  { key: 'st-klancy',    name: 'Klancy',    role: 'Clan Leader & Mentor',  desc: 'The charismatic leader of the Crock Clan. Not a lizard — an alligator, and a classy one. He guides newcomers through the swamp and dreams of reclaiming their home.', imgPath: klancyImg },
+const getHeroes: (t: Record<string, string>) => CharacterDef[] = (t) => [
+  { key: 'st-christian', name: 'Christian', role: t.christian_role, desc: t.christian_desc, imgPath: christianImg },
+  { key: 'st-gustav',    name: 'Gustav',    role: t.gustav_role,    desc: t.gustav_desc,    imgPath: gustavImg },
+  { key: 'st-gavin',     name: 'Gavin',     role: t.gavin_role,     desc: t.gavin_desc,     imgPath: gavinImg },
+  { key: 'st-eddy',      name: 'Eddy',      role: t.eddy_role,      desc: t.eddy_desc,      imgPath: eddyImg },
+  { key: 'st-klancy',    name: 'Klancy',    role: t.klancy_role,    desc: t.klancy_desc,    imgPath: klancyImg },
 ];
 
-const ENEMIES: CharacterDef[] = [
-  { key: 'st-skawl',   name: 'Skawl',   role: 'Introductory Boss — The Wired Rat',     desc: 'A cybernetic rat born from toxic waste and lab experiments. Skawl favors quick, simple plays and serves as the first real test for new clan members.', imgPath: skawlImg },
-  { key: 'st-rabyz',   name: 'Rabyz',   role: 'Control Boss — The Cyborg Raccoon',     desc: "A cunning raccoon augmented with machinery. Rabyz specializes in control tactics, special cards, and disrupting the player's rhythm.", imgPath: rabyzImg },
-  { key: 'st-boldear', name: 'Boldear', role: 'Pressure Boss — The Augmented Bear',    desc: 'A hulking bear straight out of a Silicon Valley nightmare. Boldear applies relentless pressure with defensive and punishment-based strategies.', imgPath: boldearImg },
-  { key: 'st-pythra',  name: 'Pythra',  role: 'Final Boss — The Python Mastermind',    desc: 'The supreme leader of the swamp threats. A python with a cartoon-villain complex who commands ice cards and complex control patterns. Defeating Pythra means reclaiming the swamp.', imgPath: pythraImg },
+const getEnemies: (t: Record<string, string>) => CharacterDef[] = (t) => [
+  { key: 'st-skawl',   name: 'Skawl',   role: t.skawl_role,   desc: t.skawl_desc,   imgPath: skawlImg },
+  { key: 'st-rabyz',   name: 'Rabyz',   role: t.rabyz_role,   desc: t.rabyz_desc,   imgPath: rabyzImg },
+  { key: 'st-boldear', name: 'Boldear', role: t.boldear_role, desc: t.boldear_desc, imgPath: boldearImg },
+  { key: 'st-pythra',  name: 'Pythra',  role: t.pythra_role,  desc: t.pythra_desc,  imgPath: pythraImg },
 ];
 
 export class StoryScene extends Phaser.Scene {
@@ -45,12 +46,14 @@ export class StoryScene extends Phaser.Scene {
   }
 
   preload() {
+    const allChars = [...getHeroes(translations['en']), ...getEnemies(translations['en'])];
+    allChars.forEach((c) => {
+      if (!this.textures.exists(c.key)) this.load.image(c.key, c.imgPath);
+    });
+
     if (!this.textures.exists('title-background')) {
       this.load.image('title-background', titleBackground);
     }
-    [...HEROES, ...ENEMIES].forEach((c) => {
-      if (!this.textures.exists(c.key)) this.load.image(c.key, c.imgPath);
-    });
   }
 
   create() {
@@ -58,6 +61,12 @@ export class StoryScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     const cx = width / 2;
     this.input.enabled = true;
+
+    // Get current language for translations
+    const langKey = this.registry.get('language') || 'en';
+    const t = translations[langKey];
+    const HEROES = getHeroes(t); // Get heroes with current language
+    const ENEMIES = getEnemies(t); // Get enemies with current language
 
     this.add.image(cx, height / 2, 'title-background');
     this.cameras.main.setBackgroundColor('#1a1a1a');
@@ -105,13 +114,11 @@ export class StoryScene extends Phaser.Scene {
     };
 
     const addLore = () => {
-      const lore =
-        'THE SWAMP REBELLION\n\n' +
-        'In the murky and contaminated waters of the Florida swampland, radiation and industrial waste altered the course of nature. From this toxic mud emerged the Croc Clan, a group of crocodiles that developed human intelligence due to the chemicals. With a strong punk identity, these warriors learned to survive by recycling the trash abandoned in the rivers and landfills.\n\n' +
-        'However, their home is under threat. The surrounding areas have been invaded by cruel factions of rats, raccoons and bears. Unlike the Croc Clan, these enemies are the result of bio-cybernetic experiments that ran amok. They acquired their intelligence by directly connecting their brains to computers, becoming ruthless machines willing to do anything. This entire cyber army is led by the fearsome python, Pythra.\n\n' +
-        'To defend their territory, the Croc Clan does not use conventional weapons, but have mastered the \'ancient art\' of Florida Frenzy. Through legendary relics in the form of cards, these warriors channel the Elemental Energy of their environment and their own wild instinct to unleash devastating abilities.\n\n' +
-        'Now it\'s your turn. Choose your warrior, venture into the chaos of the swampland and prove who is the true king of the food chain.';
+      // Use current language for lore text
+      const t_local = translations[this.registry.get('language') || 'en'];
 
+      const lore = t_local.lore_text;
+        
       const t = this.add.text(10, yOffset, lore, {
         fontFamily: 'Impact, Arial Black, sans-serif',
         fontSize: '20px',
@@ -162,15 +169,15 @@ export class StoryScene extends Phaser.Scene {
       yOffset += cardH + 16;
     };
 
-    addSectionTitle('THE SWAMP REBELLION', '#ffcc00');
+    addSectionTitle(t.story_rebelion_title, '#ffcc00');
     addLore();
 
-    addSectionTitle('HEROES OF THE CROCK CLAN', '#ffcc00');
+    addSectionTitle(t.story_heroes_title, '#ffcc00');
     HEROES.forEach(addCharacterCard);
 
     yOffset += 20;
 
-    addSectionTitle('THREATS OF THE SWAMP', '#ff4444');
+    addSectionTitle(t.story_enemies_title, '#ff4444');
     ENEMIES.forEach(addCharacterCard);
 
     yOffset += 30;
@@ -187,7 +194,7 @@ export class StoryScene extends Phaser.Scene {
       this.limitScroll(bgY + 20, bgH);
     });
 
-    this.createMetalBtn(cx, height - 45, 280, 55, 'BACK TO MENU', () => {
+    this.createMetalBtn(cx, height - 45, 280, 55, t.back_to_menu, () => {
       transitionTo(this, 'MenuScene');
     });
 

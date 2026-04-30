@@ -13,6 +13,7 @@ import {
   isLoggedIn,
 } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
+import { translations } from '../utils/translations.js';
 
 const SECTION_W = 640;
 const PAD = 16;
@@ -20,6 +21,16 @@ const PAD = 16;
 export class FriendsScene extends Phaser.Scene {
   constructor() {
     super({ key: 'FriendsScene' });
+  }
+
+  // Translation table loaded in create(), used by tf()
+  private t: Record<string, any> = {};
+ 
+  // Helper: resolves both plain strings and interpolation functions
+  private tf(key: string, ...args: any[]): string {
+    const val = this.t[key];
+    if (typeof val === 'function') return val(...args);
+    return val ?? key;
   }
 
   preload() {
@@ -32,6 +43,10 @@ export class FriendsScene extends Phaser.Scene {
     const H  = this.cameras.main.height;
     const cx = W / 2;
 
+    // Load translations for the active language
+    const langKey = this.registry.get('language') || 'en';
+    this.t = translations[langKey];
+
     this.add.image(cx, H / 2, 'title-background').setScrollFactor(0);
 
     const baseStyle: Phaser.Types.GameObjects.Text.TextStyle = {
@@ -41,14 +56,14 @@ export class FriendsScene extends Phaser.Scene {
       strokeThickness: 2,
     };
 
-    this.add.text(cx, 32, 'FRIENDS', {
+    this.add.text(cx, 32, this.tf('friends_title'), {
       ...baseStyle,
       fontSize: '52px',
       color: '#ffd700',
       shadow: { offsetX: 3, offsetY: 3, color: '#000', blur: 0, fill: true },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
 
-    this.add.text(cx, H - 36, 'BACK', {
+    this.add.text(cx, H - 36, this.tf('back'), {
       ...baseStyle,
       fontSize: '36px',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10)
@@ -60,7 +75,7 @@ export class FriendsScene extends Phaser.Scene {
       });
 
     if (!isLoggedIn()) {
-      this.add.text(cx, H / 2, 'Log in to manage friends', {
+      this.add.text(cx, H / 2, this.tf('friends_not_logged'), {
         ...baseStyle,
         fontSize: '28px',
       }).setOrigin(0.5);
@@ -107,7 +122,7 @@ export class FriendsScene extends Phaser.Scene {
     searchBg.fillStyle(0x000000, 0.5);
     searchBg.fillRoundedRect(sectionX, searchSectionY, SECTION_W, SEARCH_H, 12);
 
-    this.add.text(cx, searchSectionY + PAD + 10, 'Find Players', {
+    this.add.text(cx, searchSectionY + PAD + 10, this.tf('friends_find'), {
       ...baseStyle,
       fontSize: '28px',
       color: '#ffffff',
@@ -117,7 +132,7 @@ export class FriendsScene extends Phaser.Scene {
     const resultsBaseY = searchSectionY + PAD + 34 + 44;  // top of result rows
 
     this.add.dom(cx - 100, inputRowY).createFromHTML(
-      `<input type="text" id="friend-search" placeholder="Search username…"
+      `<input type="text" id="friend-search" placeholder="${this.tf('friends_search_ph')}"
         style="width:240px;padding:8px 10px;font-size:16px;border:2px solid #999797;
                background:#222;color:white;font-family:Impact,sans-serif;
                outline:none;border-radius:4px;">`
@@ -139,7 +154,7 @@ export class FriendsScene extends Phaser.Scene {
       try {
         results = await searchPlayers(q);
       } catch {
-        const t = this.add.text(cx, resultsBaseY + 22, 'Search failed', {
+        const t = this.add.text(cx, resultsBaseY + 22, this.tf('friends_search_fail'), {
           ...baseStyle, fontSize: '16px', color: '#ff4444',
         }).setOrigin(0.5);
         resultObjs.push(t);
@@ -147,7 +162,7 @@ export class FriendsScene extends Phaser.Scene {
       }
 
       if (results.length === 0) {
-        const t = this.add.text(cx, resultsBaseY + 22, 'No players found', {
+        const t = this.add.text(cx, resultsBaseY + 22, this.tf('friends_search_none'), {
           ...baseStyle, fontSize: '16px', color: '#888888',
         }).setOrigin(0.5);
         resultObjs.push(t);
@@ -161,7 +176,7 @@ export class FriendsScene extends Phaser.Scene {
           ...baseStyle, fontSize: '18px',
         }).setOrigin(0, 0.5);
 
-        const xpT = this.add.text(sectionX + PAD + 200, ry, `XP: ${String(p.maxXp ?? 0)}`, {
+        const xpT = this.add.text(sectionX + PAD + 200, ry, this.tf('friends_xp_label', p.maxXp ?? 0), {
           ...baseStyle, fontSize: '15px', color: '#888888',
         }).setOrigin(0, 0.5);
 
@@ -170,10 +185,10 @@ export class FriendsScene extends Phaser.Scene {
         }).setOrigin(0, 0.5);
 
         const { label: addLbl, zone: addZone, gfx: addGfx } =
-          this.makeBtn(cx + 262, ry, 90, 32, 'ADD', async () => {
+          this.makeBtn(cx + 262, ry, 90, 32, this.tf('friends_btn_add'), async () => {
             try {
               await sendFriendRequest(p.id as number);
-              addLbl.setText('Sent!');
+              addLbl.setText(this.tf('friends_btn_sent'));
               addLbl.setColor('#44cc66');
               addZone.disableInteractive();
             } catch (e: unknown) {
@@ -185,7 +200,7 @@ export class FriendsScene extends Phaser.Scene {
       });
     };
 
-    this.makeBtn(cx + 190, inputRowY, 110, 36, 'SEARCH', () => { void doSearch(); });
+    this.makeBtn(cx + 190, inputRowY, 110, 36, this.tf('friends_btn_search'), () => { void doSearch(); });
 
     curY = searchSectionY + SEARCH_H + 14;
 
@@ -202,14 +217,14 @@ export class FriendsScene extends Phaser.Scene {
     reqBg.fillRoundedRect(sectionX, reqSectionY, SECTION_W, REQ_H, 12);
 
     const badge = reqCount > 0 ? ` (${reqCount})` : '';
-    this.add.text(cx, reqSectionY + PAD + 10, `Requests${badge}`, {
+    this.add.text(cx, reqSectionY + PAD + 10, this.tf('friends_requests_title', reqCount), {
       ...baseStyle, fontSize: '28px', color: '#ffffff',
     }).setOrigin(0.5);
 
     const reqContentStartY = reqSectionY + PAD + 34;
 
     if (reqCount === 0) {
-      this.add.text(cx, reqContentStartY + 16, 'No pending requests', {
+      this.add.text(cx, reqContentStartY + 16, this.tf('friends_no_req'), {
         ...baseStyle, fontSize: '16px', color: '#888888',
       }).setOrigin(0.5);
     } else {
@@ -218,10 +233,10 @@ export class FriendsScene extends Phaser.Scene {
         this.add.text(sectionX + PAD + 10, ry, String(req.sender?.username ?? '?'), {
           ...baseStyle, fontSize: '18px',
         }).setOrigin(0, 0.5);
-        this.makeBtn(cx + 100, ry, 110, 34, 'ACCEPT', async () => {
+        this.makeBtn(cx + 100, ry, 110, 34, this.tf('friends_btn_accept'), async () => {
           try { await acceptFriend(req.id as number); this.scene.restart(); } catch { /* ignore */ }
         });
-        this.makeBtn(cx + 220, ry, 110, 34, 'DENY', async () => {
+        this.makeBtn(cx + 220, ry, 110, 34, this.tf('friends_btn_deny'), async () => {
           try { await rejectFriend(req.id as number); this.scene.restart(); } catch { /* ignore */ }
         });
       });
@@ -241,14 +256,14 @@ export class FriendsScene extends Phaser.Scene {
     friendsBg.fillStyle(0x000000, 0.5);
     friendsBg.fillRoundedRect(sectionX, friendsSectionY, SECTION_W, FRIENDS_H, 12);
 
-    this.add.text(cx, friendsSectionY + PAD + 10, 'Friends', {
+    this.add.text(cx, friendsSectionY + PAD + 10, this.tf('friends_title'), {
       ...baseStyle, fontSize: '28px', color: '#ffffff',
     }).setOrigin(0.5);
 
     const friendContentStartY = friendsSectionY + PAD + 34;
 
     if (fCount === 0) {
-      this.add.text(cx, friendContentStartY + 16, 'No friends yet', {
+      this.add.text(cx, friendContentStartY + 16, this.tf('friends_no_list'), {
         ...baseStyle, fontSize: '16px', color: '#888888',
       }).setOrigin(0.5);
     } else {
@@ -257,10 +272,10 @@ export class FriendsScene extends Phaser.Scene {
         this.add.text(sectionX + PAD + 10, fy, String(f.username), {
           ...baseStyle, fontSize: '18px',
         }).setOrigin(0, 0.5);
-        this.add.text(sectionX + PAD + 240, fy, `XP: ${String(f.maxXp ?? 0)}`, {
+        this.add.text(sectionX + PAD + 240, fy, this.tf('friends_xp_label', f.maxXp ?? 0), {
           ...baseStyle, fontSize: '15px', color: '#888888',
         }).setOrigin(0, 0.5);
-        this.makeBtn(cx + 262, fy, 110, 34, 'REMOVE', async () => {
+        this.makeBtn(cx + 262, fy, 110, 34, this.tf('friends_btn_remove'), async () => {
           try {
             await removeFriend((f.friendshipId as number) ?? (f.id as number));
             this.scene.restart();
@@ -283,7 +298,7 @@ export class FriendsScene extends Phaser.Scene {
           contentHeight - H,
         );
       });
-      this.add.text(cx, H - 16, '▼ scroll for more', {
+      this.add.text(cx, H - 16, this.tf('shop_scroll_hint'), {
         fontFamily: 'Impact, Arial black, sans-serif',
         fontSize: '14px',
         color: '#888888',
