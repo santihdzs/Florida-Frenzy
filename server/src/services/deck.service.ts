@@ -130,8 +130,8 @@ export async function saveDeck(
   const clanRank = computeClanRank(player.maxXp);
   const slotLimit = getDeckSlotLimit(clanRank);
 
-  if (cardGameIds.length !== slotLimit) {
-    throw new Error(`Deck must contain exactly ${slotLimit} cards.`);
+  if (makeActive && cardGameIds.length !== slotLimit) {
+    throw new Error(`Deck must be complete (${slotLimit} cards) to set as active.`);
   }
 
   const uniqueCardIds = [...new Set(cardGameIds)];

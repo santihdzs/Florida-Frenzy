@@ -25,7 +25,7 @@ export const saveDeckBodySchema = {
     characterGameId: { type: 'integer', minimum: 1 },
     cardGameIds: {
       type: 'array',
-      minItems: 1,
+      minItems: 0,
       items: { type: 'integer', minimum: 1 },
     },
     makeActive: { type: 'boolean' },
