@@ -12,11 +12,13 @@ import {
   fetchAdminStats,
 } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
+import { translations } from '../utils/translations.ts';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
+function fmtDate(iso: string, lang = 'en'): string {
+  const locale = lang === 'es' ? 'es-MX' : 'en-US';
+  return new Date(iso).toLocaleDateString(locale, {
     month: 'short', day: 'numeric', year: 'numeric',
   });
 }
@@ -46,6 +48,15 @@ export class StatsScene extends Phaser.Scene {
     super({ key: 'StatsScene' });
   }
 
+  private t: Record<string, any> = {};
+  private lang = 'en';
+
+  private tf(key: string, ...args: any[]): string {
+    const val = this.t[key];
+    if (typeof val === 'function') return val(...args);
+    return val ?? key;
+  }
+
   preload() {
     this.load.image('title-background', titleBackground);
   }
@@ -56,6 +67,9 @@ export class StatsScene extends Phaser.Scene {
     const H  = this.cameras.main.height;
     const cx = W / 2;
 
+    this.lang = this.registry.get('language') || 'en';
+    this.t = translations[this.lang];
+
     this.add.image(cx, H / 2, 'title-background');
 
     const base: Phaser.Types.GameObjects.Text.TextStyle = {
@@ -65,7 +79,7 @@ export class StatsScene extends Phaser.Scene {
     };
 
     // BACK button
-    this.add.text(cx, H - 36, 'BACK', {
+    this.add.text(cx, H - 36, this.tf('back'), {
       ...base, fontSize: '36px', color: '#c2baba',
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
@@ -74,7 +88,7 @@ export class StatsScene extends Phaser.Scene {
       .on('pointerdown', () => { this.time.delayedCall(100, () => { transitionTo(this, 'MenuScene'); }); });
 
     if (!isLoggedIn()) {
-      this.add.text(cx, H / 2, 'Log in to view your stats', {
+      this.add.text(cx, H / 2, this.tf('stats_not_logged'), {
         ...base, fontSize: '28px', color: '#888888',
       }).setOrigin(0.5);
       return;
@@ -111,7 +125,7 @@ export class StatsScene extends Phaser.Scene {
     leftBg.fillStyle(0x000000, 0.55);
     leftBg.fillRoundedRect(LEFT_X, PANEL_Y, LEFT_W, PANEL_H, 12);
 
-    this.add.text(LEFT_X + LEFT_W / 2, PANEL_Y + 28, 'Top Runs', {
+    this.add.text(LEFT_X + LEFT_W / 2, PANEL_Y + 28, this.tf('stats_top_runs'), {
       ...base, fontSize: '26px', color: '#ffd700',
     }).setOrigin(0.5);
 
@@ -123,7 +137,7 @@ export class StatsScene extends Phaser.Scene {
     const TOGGLE_Y  = PANEL_Y + 70;
     const modes: LeaderboardMode[] = ['mine', 'global', 'friends'];
     const modeLabels: Record<LeaderboardMode, string> = {
-      mine: 'Mine', global: 'Global', friends: 'Friends',
+      mine: this.tf('stats_mine'), global: this.tf('stats_global'), friends: this.tf('stats_friends_tab'),
     };
 
     let activeMode: LeaderboardMode = 'mine';
@@ -161,7 +175,7 @@ export class StatsScene extends Phaser.Scene {
       if (top.length === 0) {
         listObjs.push(this.add.text(
           LEFT_X + LEFT_W / 2, LIST_Y + 22,
-          'No runs yet — start playing!',
+          this.tf('stats_no_runs'),
           { ...base, fontSize: '16px', color: '#888888' },
         ).setOrigin(0.5));
         return;
@@ -180,7 +194,7 @@ export class StatsScene extends Phaser.Scene {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderBoard = (data: any[], mode: LeaderboardMode) => {
       if (data.length === 0) {
-        const msg = mode === 'friends' ? 'Add friends to compare!' : 'No data available';
+        const msg = mode === 'friends' ? this.tf('stats_add_friends') : this.tf('stats_no_data');
         listObjs.push(this.add.text(
           LEFT_X + LEFT_W / 2, LIST_Y + 22, msg,
           { ...base, fontSize: '16px', color: '#888888' },
@@ -206,7 +220,7 @@ export class StatsScene extends Phaser.Scene {
       const mySeq = ++seq;
       clearList();
       const loadingT = this.add.text(
-        LEFT_X + LEFT_W / 2, LIST_Y + 22, 'Loading…',
+        LEFT_X + LEFT_W / 2, LIST_Y + 22, this.tf('stats_loading'),
         { ...base, fontSize: '16px', color: '#888888' },
       ).setOrigin(0.5);
       listObjs.push(loadingT);
@@ -226,7 +240,7 @@ export class StatsScene extends Phaser.Scene {
         if (mySeq !== seq) return;
         clearList();
         listObjs.push(this.add.text(
-          LEFT_X + LEFT_W / 2, LIST_Y + 22, 'Failed to load',
+          LEFT_X + LEFT_W / 2, LIST_Y + 22, this.tf('stats_failed'),
           { ...base, fontSize: '16px', color: '#ff4444' },
         ).setOrigin(0.5));
       }
@@ -259,15 +273,15 @@ export class StatsScene extends Phaser.Scene {
 
     if (isAdmin) {
       const tabCx = RIGHT_X + RIGHT_W / 2;
-      playerTabText = this.add.text(tabCx - 80, PANEL_Y + 28, 'Player Stats', {
+      playerTabText = this.add.text(tabCx - 80, PANEL_Y + 28, this.tf('stats_player_stats'), {
         ...base, fontSize: '22px', color: '#ffffff',
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-      adminTabText = this.add.text(tabCx + 80, PANEL_Y + 28, 'Admin Stats', {
+      adminTabText = this.add.text(tabCx + 80, PANEL_Y + 28, this.tf('stats_admin_stats'), {
         ...base, fontSize: '22px', color: '#505050',
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     } else {
-      this.add.text(RIGHT_X + RIGHT_W / 2, PANEL_Y + 28, 'Player Stats', {
+      this.add.text(RIGHT_X + RIGHT_W / 2, PANEL_Y + 28, this.tf('stats_player_stats'), {
         ...base, fontSize: '26px', color: '#ffd700',
       }).setOrigin(0.5);
     }
@@ -295,17 +309,17 @@ export class StatsScene extends Phaser.Scene {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? (myRuns.reduce((s: number, r: any) => s + (Number(r.maxLevel) || 1), 0) / myRuns.length).toFixed(1)
       : 'N/A';
-    const joined = player?.firstLogin ? fmtDate(String(player.firstLogin)) : '—';
+    const joined = player?.firstLogin ? fmtDate(String(player.firstLogin), this.lang) : '—';
 
     const stats: Array<{ label: string; value: string; highlight?: string }> = [
-      { label: 'Total Games',    value: String(player?.totalGamesPlayed   ?? 0) },
-      { label: 'Joined',         value: joined },
-      { label: 'Enemies Killed', value: String(player?.totalEnemiesKilled ?? 0) },
-      { label: 'Average Level',  value: String(avgLevel) },
-      { label: 'Rank',           value: rank, highlight: rankColor(rank) },
-      { label: 'High Score',     value: String(maxXp) },
-      { label: 'Total Coins',    value: String(player?.totalCoins         ?? 0) },
-      { label: 'Global Standing', value: myRank > 0 ? `#${myRank}` : '—',
+      { label: this.tf('stats_total_games'),    value: String(player?.totalGamesPlayed   ?? 0) },
+      { label: this.tf('stats_joined'),         value: joined },
+      { label: this.tf('stats_enemies_killed'), value: String(player?.totalEnemiesKilled ?? 0) },
+      { label: this.tf('stats_avg_level'),      value: String(avgLevel) },
+      { label: this.tf('stats_rank'),           value: rank, highlight: rankColor(rank) },
+      { label: this.tf('stats_high_score'),     value: String(maxXp) },
+      { label: this.tf('stats_total_coins'),    value: String(player?.totalCoins         ?? 0) },
+      { label: this.tf('stats_global_standing'), value: myRank > 0 ? `#${myRank}` : '—',
         highlight: myRank === 1 ? '#ffd700' : myRank <= 3 ? '#c0c0c0' : '#ffffff' },
     ];
 
@@ -380,7 +394,7 @@ export class StatsScene extends Phaser.Scene {
 
     // Run history chart
     const chartStartY  = barY + barH + 18;
-    const chartTitle   = this.add.text(RIGHT_X + RIGHT_W / 2, chartStartY, 'Run History (Level)', {
+    const chartTitle   = this.add.text(RIGHT_X + RIGHT_W / 2, chartStartY, this.tf('stats_run_history'), {
       ...base, fontSize: '15px', color: '#888888',
     }).setOrigin(0.5);
     playerObjs.push(chartTitle);
@@ -456,7 +470,7 @@ export class StatsScene extends Phaser.Scene {
     } else {
       const noDataText = this.add.text(
         chartX + chartW / 2, chartY + chartH / 2,
-        'No completed runs yet',
+        this.tf('stats_no_completed'),
         { ...base, fontSize: '15px', color: '#555555' },
       ).setOrigin(0.5);
       playerObjs.push(noDataText);
@@ -476,11 +490,11 @@ export class StatsScene extends Phaser.Scene {
       levelDistribution: { level: number; count: number }[];
     }) => {
       const adminStats = [
-        { label: 'Registered Players',  value: String(data.totalPlayers) },
-        { label: 'Online Players',      value: String(data.onlinePlayers ?? 0) },
-        { label: 'Total Completed Runs', value: String(data.totalRuns) },
-        { label: 'Avg Level Reached',   value: String(data.avgLevel) },
-        { label: 'Active Sessions',     value: String(data.activeSessions) },
+        { label: this.tf('stats_reg_players'),       value: String(data.totalPlayers) },
+        { label: this.tf('stats_online'),            value: String(data.onlinePlayers ?? 0) },
+        { label: this.tf('stats_total_runs'),        value: String(data.totalRuns) },
+        { label: this.tf('stats_avg_level_reached'), value: String(data.avgLevel) },
+        { label: this.tf('stats_active_sessions'),   value: String(data.activeSessions) },
       ];
 
       adminStats.forEach(({ label, value }, i) => {
@@ -499,7 +513,7 @@ export class StatsScene extends Phaser.Scene {
 
       // Level distribution histogram
       const histStartY = STAT_START_Y + adminStats.length * STAT_ROW_H + 18;
-      const histTitle  = this.add.text(RIGHT_X + RIGHT_W / 2, histStartY, 'Level Distribution (all completed runs)', {
+      const histTitle  = this.add.text(RIGHT_X + RIGHT_W / 2, histStartY, this.tf('stats_level_dist'), {
         ...base, fontSize: '15px', color: '#888888',
       }).setOrigin(0.5);
       adminObjs.push(histTitle);
@@ -565,7 +579,7 @@ export class StatsScene extends Phaser.Scene {
       } else {
         const noData = this.add.text(
           histX + histW / 2, histY + histH / 2,
-          'No completed runs in the database',
+          this.tf('stats_no_completed_db'),
           { ...base, fontSize: '15px', color: '#555555' },
         ).setOrigin(0.5);
         adminObjs.push(noData);
@@ -585,7 +599,7 @@ export class StatsScene extends Phaser.Scene {
           adminObjs.forEach(o => (o as any).setVisible(true));
         }
       } else {
-        const errText = this.add.text(RIGHT_X + RIGHT_W / 2, STAT_START_Y + 40, 'Failed to load admin data', {
+        const errText = this.add.text(RIGHT_X + RIGHT_W / 2, STAT_START_Y + 40, this.tf('stats_admin_fail'), {
           ...base, fontSize: '16px', color: '#ff4444',
         }).setOrigin(0.5);
         adminObjs.push(errText);

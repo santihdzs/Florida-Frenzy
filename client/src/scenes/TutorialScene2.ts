@@ -9,6 +9,7 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
     private tutorialStep = 0;
     private tutorialContainer!: Phaser.GameObjects.Container;
 
+
     constructor() {
         super({ key: 'TutorialScene2' });
     }
@@ -19,7 +20,7 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
     }
 
     create() {
-        super.create(); 
+        super.create(); // sets this.t via DuelScene.create()
         this.createClanTutorialHud();
         this.startTutorial();
     }
@@ -49,10 +50,7 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
     }
 
     private startTutorial() {
-        this.updateTutorialContent(
-            'Watch out, Crock! This is the duel. Look at the Table Card in the center. You must match either the Element or the Number.',
-            '#ffffff'
-        );
+        this.updateTutorialContent(this.tf('tut2_step_0'), '#ffffff');
         
         this.isAnimating = true; 
         
@@ -67,19 +65,13 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
 
         switch(this.tutorialStep) {
             case 1:
-                this.updateTutorialContent(
-                    'If you don´t have a move, click on the Discard Pile (on the right) to draw a card. But watch out for fatigue!',
-                    '#ffd700'
-                );
+                this.updateTutorialContent(this.tf('tut2_step_1'), '#ffd700');
                 this.time.delayedCall(500, () => {
                     this.input.once('pointerdown', () => this.nextStep());
                 });
                 break;
             case 2:
-                this.updateTutorialContent(
-                    'Each card gives you EE (Elemental Energy) and EI (Instinct). Use them for brutal combos!',
-                    '#00d4ff'
-                );
+                this.updateTutorialContent(this.tf('tut2_step_2'), '#00d4ff');
                 this.time.delayedCall(500, () => {
                     this.input.once('pointerdown', () => this.finishTutorial());
                 });
@@ -100,7 +92,7 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
     }
 
     private finishTutorial() {
-        this.updateTutorialContent('¡Enough talk! Show them what the Crock Clan is made of. Let´s fight!', '#00ff88');
+        this.updateTutorialContent(this.tf('tut2_finish'), '#00ff88');
         
         this.time.delayedCall(2000, () => {
             this.tweens.add({

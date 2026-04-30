@@ -1,6 +1,25 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { badRequest } from '../utils/errors.js';
 import { SAFE_PLAYER_SELECT } from '../utils/playerSelect.js';
+import { computeClanRank, type ClanRank } from '../services/user.service.js';
+import { CardRarity } from '@prisma/client';
+
+const CARD_COSTS: Partial<Record<CardRarity, number>> = {
+  EFFECT: 1500,
+  RARE: 2000,
+};
+
+const RANK_ORDER: Record<ClanRank, number> = { ROOKIE: 0, VETERAN: 1, ELITE: 2, LEGEND: 3 };
+
+function hasRankAccessLocal(playerRank: ClanRank, requiredRank: ClanRank): boolean {
+  return RANK_ORDER[playerRank] >= RANK_ORDER[requiredRank];
+}
+
+function getRequiredRankForCardRarity(rarity: CardRarity): ClanRank {
+  if (rarity === 'EFFECT') return 'VETERAN';
+  if (rarity === 'RARE') return 'ELITE';
+  return 'LEGEND';
+}
 
 const HP_TIERS = [
   { from: 50,  to: 60,  cost: 700  },
@@ -405,6 +424,65 @@ const shopRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return reply.send({ player: updatedPlayer });
+    }
+  );
+
+  // POST /api/shop/buy-card
+  fastify.post<{ Body: { cardGameId: number } }>(
+    '/buy-card',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['cardGameId'],
+          additionalProperties: false,
+          properties: { cardGameId: { type: 'integer', minimum: 1 } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const playerId = request.user.playerId;
+      const { cardGameId } = request.body;
+
+      const player = await fastify.prisma.player.findUnique({
+        where: { id: playerId },
+        select: { id: true, maxXp: true, totalCoins: true },
+      });
+      if (!player) throw badRequest('Player not found.');
+
+      const card = await fastify.prisma.cardGame.findUnique({ where: { id: cardGameId } });
+      if (!card) throw badRequest('Card not found.');
+
+      if (card.cardRarity === 'BASE') throw badRequest('Base cards are already unlocked by default.');
+      if (card.cardRarity === 'LEGENDARY') throw badRequest('Legendary cards cannot be bought in the shop.');
+
+      const requiredRank = getRequiredRankForCardRarity(card.cardRarity);
+      const playerRank = computeClanRank(player.maxXp);
+      if (!hasRankAccessLocal(playerRank, requiredRank)) {
+        throw badRequest(`This card requires rank ${requiredRank}.`);
+      }
+
+      const cost = CARD_COSTS[card.cardRarity];
+      if (!cost) throw badRequest('This card cannot be bought.');
+      if (player.totalCoins < cost) throw badRequest('Not enough coins.');
+
+      const existing = await fastify.prisma.playerCard.findFirst({ where: { playerId, cardGameId } });
+      if (existing?.isUnlocked && existing.numCardsOwned > 0) throw badRequest('You already own this card.');
+
+      const updatedPlayer = await fastify.prisma.$transaction(async (tx) => {
+        await tx.player.update({ where: { id: playerId }, data: { totalCoins: { decrement: cost } } });
+        if (existing) {
+          await tx.playerCard.update({
+            where: { id: existing.id },
+            data: { isUnlocked: true, numCardsOwned: Math.max(existing.numCardsOwned, 1) },
+          });
+        } else {
+          await tx.playerCard.create({ data: { playerId, cardGameId, isUnlocked: true, numCardsOwned: 1 } });
+        }
+        return tx.player.findUnique({ where: { id: playerId }, select: SAFE_PLAYER_SELECT });
+      });
+
+      return reply.send({ ok: true, player: updatedPlayer, boughtCardId: cardGameId });
     }
   );
 };

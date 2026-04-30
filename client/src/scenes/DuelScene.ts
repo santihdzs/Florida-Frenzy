@@ -229,10 +229,10 @@ export class DuelScene extends Phaser.Scene {
   }
 
   // Translation table loaded in create(), used by tf()
-  private t: Record<string, any> = {};
- 
+  protected t: Record<string, any> = {};
+
   // Helper: resolves both plain strings and interpolation functions
-  private tf(key: string, ...args: any[]): string {
+  protected tf(key: string, ...args: any[]): string {
     const val = this.t[key];
     if (typeof val === 'function') return val(...args);
     return val ?? key;

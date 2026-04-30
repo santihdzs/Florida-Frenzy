@@ -33,6 +33,7 @@ import {
 import { fetchDeckBootstrap, saveDeckToBackend, activateDeckInBackend } from '../api/deckApi';
 import { mapCardData } from '../utils/cardsMapper';
 import { getPlayer } from '../utils/auth.js';
+import { translations } from '../utils/translations.ts';
 
 type BrowserRow = {
   title: string;
@@ -68,6 +69,14 @@ export class DeckScene extends Phaser.Scene {
   private isDirty = false;
   private saveBtnContainer: Phaser.GameObjects.Container | null = null;
   private browserCardRefs: Map<string, { addedOverlay: Phaser.GameObjects.Graphics; addedText: Phaser.GameObjects.Text }> = new Map();
+  private ownedCardIds: Set<number> = new Set();
+  private t: Record<string, any> = {};
+
+  private tf(key: string, ...args: any[]): string {
+    const val = this.t[key];
+    if (typeof val === 'function') return val(...args);
+    return val ?? key;
+  }
 
   constructor() {
     super({ key: 'DeckScene' });
@@ -85,6 +94,8 @@ export class DeckScene extends Phaser.Scene {
   async create() {
     const { width, height } = this.cameras.main;
     const cx = width / 2;
+    const langKey = this.registry.get('language') || 'en';
+    this.t = translations[langKey];
 
     // // temporal / local rank and deck data management - to be replaced with actual player data integration
     // const fakeBestLevel = Number(localStorage.getItem('ff_fake_best_level') ?? '15');
@@ -102,7 +113,7 @@ export class DeckScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#1a1a1a');
     this.add.rectangle(0, 0, width, height, 0x000000, 0.45).setOrigin(0);
 
-    this.add.text(cx, 42, 'DECK BUILDER', {
+    this.add.text(cx, 42, this.tf('deck_title'), {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '44px',
       color: '#ffcc00',
@@ -111,7 +122,7 @@ export class DeckScene extends Phaser.Scene {
       shadow: { offsetX: 3, offsetY: 3, color: '#000', blur: 0, fill: true },
     }).setOrigin(0.5);
 
-    this.rankText = this.add.text(cx, 82, `Rank: ${this.clanRank}  |  Slots: ${this.slotLimit}/21`, {
+    this.rankText = this.add.text(cx, 82, this.tf('deck_rank', this.clanRank, this.slotLimit), {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '22px',
       color: '#dddddd',
@@ -121,7 +132,7 @@ export class DeckScene extends Phaser.Scene {
 
     this.createMainPlate();
     this.createMessageBar();
-    this.showMessage('Loading deck data...', '#dddddd');
+    this.showMessage(this.tf('deck_loading'), '#dddddd');
     try {
         await this.loadBootstrapFromBackend();
         this.createTopDeckControls();
@@ -131,12 +142,12 @@ export class DeckScene extends Phaser.Scene {
 
         this.renderDeckSlots();
         this.renderBrowserCards();
-        this.showMessage('Deck loaded.', '#00ff88');
-    } 
-    
+        this.showMessage(this.tf('deck_loaded'), '#00ff88');
+    }
+
     catch (error) {
         console.error(error);
-        this.showMessage(error instanceof Error ? error.message : 'Failed to load deck data.', '#ff6666');
+        this.showMessage(error instanceof Error ? error.message : this.tf('deck_save_fail'), '#ff6666');
         this.createBottomButtons();
     }
   }
@@ -146,7 +157,7 @@ private async loadBootstrapFromBackend() {
     const playerId = Number(player?.id);
 
     if (!Number.isFinite(playerId) || playerId <= 0) {
-      this.showMessage('No logged-in player found.', '#ff6666');
+      this.showMessage(this.tf('deck_no_player'), '#ff6666');
       return;
     } // checks if there's a valid logged-in player before attempting to save the deck to the backend
 
@@ -156,6 +167,14 @@ private async loadBootstrapFromBackend() {
   this.slotLimit = bootstrap.player.slotLimit;
 
   const mappedCards = (bootstrap.allCards as any[]).map(mapCardData);
+
+  // Build owned set: BASE cards are always free; EFFECT/RARE require shop purchase
+  this.ownedCardIds = new Set(
+    (bootstrap.ownedCards as Array<{ cardGameId: number; isUnlocked: boolean; numCardsOwned: number }>)
+      .filter(pc => pc.isUnlocked && pc.numCardsOwned > 0)
+      .map(pc => pc.cardGameId)
+  );
+  mappedCards.filter(c => c.rarity === 'base').forEach(c => this.ownedCardIds.add(Number(c.id)));
 
   const byId = new Map(mappedCards.map(card => [Number(card.id), card]));
 
@@ -211,7 +230,7 @@ private async loadBootstrapFromBackend() {
         .filter((card): card is Card => Boolean(card))
     : [];
 
-  this.rankText.setText(`Rank: ${this.clanRank}  |  Slots: ${this.slotLimit}/21`); // update the rank and slot limit display in the UI based on the data loaded from the backend
+  this.rankText.setText(this.tf('deck_rank', this.clanRank, this.slotLimit)); // update the rank and slot limit display in the UI based on the data loaded from the backend
   this.isDirty = false;
 }
 
@@ -263,7 +282,7 @@ private createMainPlate() {
     g.lineStyle(3, 0xaaaaaa);
     g.strokeRoundedRect(cx - 300, 115, 600, 44, 8);
 
-    this.messageText = this.add.text(cx, 137, 'Select cards to build your deck.', {
+    this.messageText = this.add.text(cx, 137, this.tf('deck_select'), {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '20px',
       color: '#ffcc00',
@@ -276,7 +295,7 @@ private createMainPlate() {
   private createTopDeckControls() {
     const y = 180;
 
-    this.saveBtnContainer = this.createMetalBtn(175, y - 25, 180, 48, 'SAVED', () => {
+    this.saveBtnContainer = this.createMetalBtn(175, y - 25, 180, 48, this.tf('deck_saved'), () => {
       this.saveCurrentDeck();
     }, '#c2baba');
     this.refreshSaveBtn();
@@ -288,15 +307,14 @@ private createMainPlate() {
         g.lineStyle(3, 0xffcc00, 1);
         g.strokeRoundedRect(x - 58, (y - 140) - 27, 116, 54, 7);
       }
-      this.createMetalBtn(x, y - 140, 110, 48, `DECK ${i + 1}`, () => this.switchDeck(i), isViewing ? '#ffcc00' : '#c2baba');
+      this.createMetalBtn(x, y - 140, 110, 48, this.tf('deck_deck', i + 1), () => this.switchDeck(i), isViewing ? '#ffcc00' : '#c2baba');
     });
 
     const currentDeck = this.storage.decks[this.selectedDeckIndex];
 
     this.refreshDeckStatusWidget();
 
-    const active = currentDeck.isActive ? 'ACTIVE' : 'INACTIVE';
-    this.add.text(600, y + 8, `DECK ${this.selectedDeckIndex + 1} — ${active}`, {
+    this.add.text(600, y + 8, this.tf('deck_status', this.selectedDeckIndex + 1, currentDeck.isActive), {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '24px',
       color: '#e3941d',
@@ -308,14 +326,14 @@ private createMainPlate() {
   private async activateAndSwitchDeck(index: number) {
     const deckId = this.deckIds[index];
     if (!deckId) {
-      this.showMessage('Save this deck before using it!', '#ff6666');
+      this.showMessage(this.tf('deck_save_first'), '#ff6666');
       return;
     }
 
     const player = getPlayer();
     const playerId = Number(player?.id);
     if (!Number.isFinite(playerId) || playerId <= 0) {
-      this.showMessage('No logged-in player found.', '#ff6666');
+      this.showMessage(this.tf('deck_no_player'), '#ff6666');
       return;
     }
 
@@ -325,7 +343,7 @@ private createMainPlate() {
       this.scene.restart();
     } catch (error) {
       console.error(error);
-      this.showMessage(error instanceof Error ? error.message : 'Failed to activate deck.', '#ff6666');
+      this.showMessage(error instanceof Error ? error.message : this.tf('deck_activate_fail'), '#ff6666');
     }
   }
 
@@ -344,7 +362,7 @@ private createMainPlate() {
       graphics.fillRect(-w / 2 + 4, -h / 2 + 4, w - 8, h / 2 - 4);
       graphics.fillStyle(0x666666, 1);
       graphics.fillRect(-w / 2 + 4, 0, w - 8, h / 2 - 4);
-      text.setText('SAVE DECK');
+      text.setText(this.tf('deck_save'));
       text.setColor('#c2baba');
       this.saveBtnContainer.setInteractive();
     } else {
@@ -356,7 +374,7 @@ private createMainPlate() {
       graphics.fillRect(-w / 2 + 4, -h / 2 + 4, w - 8, h / 2 - 4);
       graphics.fillStyle(0x151515, 1);
       graphics.fillRect(-w / 2 + 4, 0, w - 8, h / 2 - 4);
-      text.setText('SAVED');
+      text.setText(this.tf('deck_saved'));
       text.setColor('#555555');
       this.saveBtnContainer.disableInteractive();
     }
@@ -376,7 +394,7 @@ private createMainPlate() {
       g.fillRoundedRect(930, 131, 180, 48, 4);
       g.lineStyle(2, 0xffcc00);
       g.strokeRoundedRect(930, 131, 180, 48, 4);
-      const t = this.add.text(1020, 155, 'SELECTED', {
+      const t = this.add.text(1020, 155, this.tf('deck_selected'), {
         fontFamily: 'Impact, Arial Black, sans-serif',
         fontSize: '20px',
         color: '#ffcc00',
@@ -385,7 +403,7 @@ private createMainPlate() {
       }).setOrigin(0.5);
       this.deckStatusObjects.push(g, t);
     } else if (isFull && !isActive) {
-      const btn = this.createMetalBtn(1020, 155, 180, 48, 'USE', () => this.activateAndSwitchDeck(this.selectedDeckIndex), '#00ff88');
+      const btn = this.createMetalBtn(1020, 155, 180, 48, this.tf('deck_use'), () => this.activateAndSwitchDeck(this.selectedDeckIndex), '#00ff88');
       this.deckStatusObjects.push(btn);
     } else {
       const g = this.add.graphics();
@@ -393,7 +411,7 @@ private createMainPlate() {
       g.fillRoundedRect(930, 131, 180, 48, 4);
       g.lineStyle(2, 0x555555);
       g.strokeRoundedRect(930, 131, 180, 48, 4);
-      const t = this.add.text(1020, 155, 'USE', {
+      const t = this.add.text(1020, 155, this.tf('deck_use'), {
         fontFamily: 'Impact, Arial Black, sans-serif',
         fontSize: '20px',
         color: '#555555',
@@ -548,7 +566,9 @@ private createMainPlate() {
           const x = startX + col * (cardW + gap);
           const y = yOffset + rowIndex * (cardH + 12);
 
-          const isUnlocked = canUseCardInDeck(card, this.clanRank);
+          // Rank gates access; for non-base cards, player must also own them (bought in shop)
+          const isUnlocked = canUseCardInDeck(card, this.clanRank) &&
+            (card.rarity === 'base' || this.ownedCardIds.has(Number(card.id)));
           const isAlreadyAdded = this.currentDeckCards.some(c => c.id === card.id);
           const { container: cardObject, addedOverlay, addedText } = this.createBrowserCard(card, isUnlocked, isAlreadyAdded, getUnlockRankForCard(card));
           cardObject.setPosition(x, y);
@@ -625,7 +645,7 @@ private createMainPlate() {
       overlay.fillRoundedRect(0, 0, 105, 138, 8);
       container.add(overlay);
 
-      const lockText = this.add.text(52, 69, `LOCKED\n${unlockRank}`, {
+      const lockText = this.add.text(52, 69, this.tf('deck_locked', unlockRank), {
         fontFamily: 'Impact, Arial Black, sans-serif',
         fontSize: '18px',
         color: '#ff5555',
@@ -641,7 +661,7 @@ private createMainPlate() {
         hitAreaCallback: Phaser.Geom.Rectangle.Contains,
         useHandCursor: true,
       });
-      container.on('pointerdown', () => this.showMessage(`Unlocks at ${unlockRank}.`, '#ff6666'));
+      container.on('pointerdown', () => this.showMessage(this.tf('deck_unlocks_at', unlockRank), '#ff6666'));
       return { container, addedOverlay: null, addedText: null };
     }
 
@@ -650,7 +670,7 @@ private createMainPlate() {
     addedOverlay.fillRoundedRect(0, 0, 105, 138, 8);
     addedOverlay.setVisible(alreadyInDeck);
 
-    const addedText = this.add.text(52, 69, 'ADDED', {
+    const addedText = this.add.text(52, 69, this.tf('deck_added'), {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '22px',
       color: '#00ff88',
@@ -682,24 +702,25 @@ private createMainPlate() {
   }
 
   private addCardToDeck(card: Card) {
-    if (!canUseCardInDeck(card, this.clanRank)) {
-      this.showMessage(`This card is locked until ${getUnlockRankForCard(card)}.`, '#ff6666');
+    if (!canUseCardInDeck(card, this.clanRank) ||
+        (card.rarity !== 'base' && !this.ownedCardIds.has(Number(card.id)))) {
+      this.showMessage(this.tf('deck_locked_until', getUnlockRankForCard(card)), '#ff6666');
       return;
-    } // checks if the card can be used in the deck based on the player's clan rank
+    }
 
     if (this.currentDeckCards.some(c => c.id === card.id)) {
-      this.showMessage('This card is already in the deck.', '#ff6666');
+      this.showMessage(this.tf('deck_duplicate'), '#ff6666');
       return;
     } // checks if the card is already in the current deck to prevent duplicates
 
     if (this.currentDeckCards.length >= this.slotLimit) {
-      this.showMessage('Deck is full.', '#ff6666');
+      this.showMessage(this.tf('deck_full'), '#ff6666');
       return;
     } // checks if the current deck has reached the slot limit based on the player's rank before allowing a new card to be added
 
     this.currentDeckCards.push(card);
     this.isDirty = true;
-    this.showMessage(`${card.name} added to deck.`, '#00ff88');
+    this.showMessage(this.tf('deck_card_added', card.name), '#00ff88');
     this.renderDeckSlots();
     this.refreshBrowserCardStates();
     this.refreshSaveBtn();
@@ -712,7 +733,7 @@ private createMainPlate() {
 
     this.currentDeckCards.splice(index, 1);
     this.isDirty = true;
-    this.showMessage(`${removed.name} removed from deck.`, '#ffcc00');
+    this.showMessage(this.tf('deck_card_removed', removed.name), '#ffcc00');
     this.renderDeckSlots();
     this.refreshBrowserCardStates();
     this.refreshSaveBtn();
@@ -729,7 +750,7 @@ private createMainPlate() {
     const playerId = Number(player?.id);
 
     if (!Number.isFinite(playerId) || playerId <= 0) {
-      this.showMessage('No logged-in player found.', '#ff6666');
+      this.showMessage(this.tf('deck_no_player'), '#ff6666');
       return;
     } // checks if there's a valid logged-in player before attempting to save the deck to the backend
 
@@ -748,10 +769,10 @@ private createMainPlate() {
 
         this.isDirty = false;
         this.refreshSaveBtn();
-        this.showMessage(`Deck ${this.selectedDeckIndex + 1} saved successfully.`, '#00ff88');
+        this.showMessage(this.tf('deck_saved_msg', this.selectedDeckIndex + 1), '#00ff88');
     } catch (error) {
         console.error(error);
-        this.showMessage(error instanceof Error ? error.message : 'Failed to save deck.', '#ff6666');
+        this.showMessage(error instanceof Error ? error.message : this.tf('deck_save_fail'), '#ff6666');
     }
   }
 
@@ -794,7 +815,7 @@ private createMainPlate() {
     const { width, height } = this.cameras.main;
     const cx = width / 2;
 
-    this.createMetalBtn(cx, height - 28, 280, 50, 'BACK TO MENU', () => {
+    this.createMetalBtn(cx, height - 28, 280, 50, this.tf('deck_back'), () => {
       this.scene.start('MenuScene');
     });
   } // return to Menu button at the bottom of the screen

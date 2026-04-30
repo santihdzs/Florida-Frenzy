@@ -17,7 +17,7 @@ export class AccountScene extends Phaser.Scene {
   private fromPause   = false;
   private returnScene = 'MenuScene';
   private confirmDom?: Phaser.GameObjects.DOMElement;
-  private t: Record<string, string> = {};
+  private t: Record<string, any> = {};
 
   constructor() {
     super({ key: 'AccountScene' });

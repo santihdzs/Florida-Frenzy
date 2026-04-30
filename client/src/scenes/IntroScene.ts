@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.webp';
 import music from '../assets/music/Lowland_Hymn.mp3';
+import { translations } from '../utils/translations.ts';
 
 // Klancy full-body expressions
 import klancyNeutralUrl from '../assets/characters/klancy/Klancy_v1_resized.webp';
@@ -28,43 +29,9 @@ const KLANCY_CONFIG: Record<string, { key: string; name: string }> = { //sprite 
   victory: { key: 'spr-klancy-victory', name: 'Klancy' },
 };
 
-const DIALOGUE_LINES: DialogueLine[] = [ // The dialogue lines for the intro cutscene, with associated expressions
-  {
-    expression: 'neutral',
-    text: "Hey, you! Yeah, you behind the screen. Don't tell me you were gonna start without introductions...",
-  },
-  {
-    expression: 'explain1',
-    text: "I'm Klancy, leader of the Crock Clan. And before you ask: no, I'm not a lizard. I'm an alligator. There's a difference. We're way more... classy.",
-  },
-  {
-    expression: 'shocked',
-    text: "What? Why am I talking to you directly? Come on, it's 2025 — games break the fourth wall all the time. Don't act so surprised.",
-  },
-  {
-    expression: 'explain2',
-    text: "Look, let me catch you up. The Florida swamps have always been our home. But lately... things have gotten a little... toxic.",
-  },
-  {
-    expression: 'sad',
-    text: "And I'm not talking about your browser history. I mean actual radiation, toxic waste, and a bunch of lab experiments that decided our swamp belongs to them now.",
-  },
-  {
-    expression: 'angry',
-    text: "Wired-up rats, cyborg raccoons, and bears straight out of a Silicon Valley nightmare. And leading them all... Pythra. A snake with a cartoon-villain complex.",
-  },
-  {
-    expression: 'fight',
-    text: "But hey, it's not all bad. We've got claws, scales, and something they don't: style. Plus ancient cards! Sounds weird, but trust me — it works.",
-  },
-  {
-    expression: 'victory',
-    text: "So, what do you say? Wanna join the Crock Clan and help us take back what's ours? I promise I won't bite you... much.",
-  },
-  {
-    expression: 'neutral',
-    text: "Come on, click something, hit SPACE, whatever. The swamp isn't gonna defend itself!",
-  },
+// Expressions only — text is loaded from translations at runtime
+const DIALOGUE_EXPRESSIONS = [
+  'neutral', 'explain1', 'shocked', 'explain2', 'sad', 'angry', 'fight', 'victory', 'neutral',
 ];
 
 export class IntroScene extends Phaser.Scene {
@@ -76,6 +43,14 @@ export class IntroScene extends Phaser.Scene {
   private bgMusic!: Phaser.Sound.BaseSound;
   private isTransitioning = false;
   private currentExpression = 'neutral';
+  private t: Record<string, any> = {};
+  private dialogueLines: DialogueLine[] = [];
+
+  private tf(key: string, ...args: any[]): string {
+    const val = this.t[key];
+    if (typeof val === 'function') return val(...args);
+    return val ?? key;
+  }
 
   constructor() {
     super({ key: 'IntroScene' });
@@ -98,6 +73,12 @@ export class IntroScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.fadeIn(300, 0, 0, 0);
+    const langKey = this.registry.get('language') || 'en';
+    this.t = translations[langKey];
+    this.dialogueLines = DIALOGUE_EXPRESSIONS.map((expression, i) => ({
+      expression,
+      text: this.tf(`intro_line_${i}`),
+    }));
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
     const cx = W / 2;
@@ -191,7 +172,7 @@ export class IntroScene extends Phaser.Scene {
 
     // Skip hint
     this.add
-      .text(W - 20, H - 20, 'Click, SPACE or ENTER to continue', {
+      .text(W - 20, H - 20, this.tf('intro_hint'), {
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
         color: '#888888',
@@ -201,7 +182,7 @@ export class IntroScene extends Phaser.Scene {
 
     // Skip button (top-right corner)
     const skipBtn = this.add
-      .text(W - 20, 20, 'SKIP >>', {
+      .text(W - 20, 20, this.tf('intro_skip'), {
         fontFamily: 'Impact, Arial black, sans-serif',
         fontSize: '20px',
         color: '#aaaaaa',
@@ -229,12 +210,12 @@ export class IntroScene extends Phaser.Scene {
   }
 
   private showLine(index: number) { // Show a specific dialogue line by index
-    if (index >= DIALOGUE_LINES.length) {
+    if (index >= this.dialogueLines.length) {
       this.finishIntro();
       return;
     }
 
-    const line = DIALOGUE_LINES[index]; // Get config for current expression
+    const line = this.dialogueLines[index]; // Get config for current expression
     const config = KLANCY_CONFIG[line.expression]; // config for current expression
 
     // Update speaker name
@@ -317,7 +298,7 @@ export class IntroScene extends Phaser.Scene {
     if (this.isTransitioning) return;
 
     // If currently typing, skip to end of current line
-    const currentFull = DIALOGUE_LINES[this.currentLine];
+    const currentFull = this.dialogueLines[this.currentLine];
     if (this.dialogueText.text !== currentFull.text) {
       this.time.removeAllEvents();
       this.dialogueText.setText(currentFull.text);
