@@ -7,6 +7,7 @@
 * Displays a semi-transparent overlay with menu options. 
 * Handles input for navigating the pause menu and resuming or exiting the game.
 *
+* ChatGPT was used to assist in writing and optimizing some of the code in this file
 */ 
 
 import Phaser from 'phaser';

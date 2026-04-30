@@ -1,9 +1,10 @@
 /*
 * Manuel Montero, Yael Ordaz & Santiago Hernandez
 * 
+* This file contains utility functions for rendering the duel UI elements such as HP bars, 
+* shield bars, and energy bars.
 *
-*
-*
+* ChatGPT was used to assist in writing and optimizing some of the code in this file
 */
 
 import Phaser from 'phaser'; // Phaser library for game development

@@ -65,6 +65,7 @@ export class DeckScene extends Phaser.Scene {
 
   private messageText!: Phaser.GameObjects.Text;
   private rankText!: Phaser.GameObjects.Text;
+  private ownedCardIds = new Set<number>(); // stores the IDs of cards owned by the player, used to determine which cards can be added to the deck based on ownership and rank restrictions
 
   private deckSlotsContainer!: Phaser.GameObjects.Container;
   private browserContainer!: Phaser.GameObjects.Container;
@@ -165,6 +166,16 @@ private async loadBootstrapFromBackend() {
 
   const mappedCards = (bootstrap.allCards as any[]).map(mapCardData);
   this.allCards = mappedCards;
+
+  this.ownedCardIds = new Set(
+      bootstrap.ownedCards
+        .filter(card => card.isUnlocked && card.numCardsOwned > 0)
+        .map(card => card.cardGameId)
+  ); // creates a set of owned card IDs based on the player's owned cards data from the backend, which will be used to determine which cards can be added to the deck based on ownership and rank restrictions
+
+  mappedCards
+    .filter(card => card.rarity === 'base')
+    .forEach(card => this.ownedCardIds.add(Number(card.id))); // ensures that all base cards are considered owned by the player, as they are always available regardless of ownership status in the backend 
 
   const byId = new Map(mappedCards.map(card => [Number(card.id), card]));
 
@@ -565,9 +576,26 @@ private async loadBootstrapFromBackend() {
           const x = startX + col * (cardW + gap);
           const y = yOffset + rowIndex * (cardH + 12);
 
-          const isUnlocked = canUseCardInDeck(card, this.clanRank);
+          // const isUnlocked = canUseCardInDeck(card, this.clanRank);
+          // const isAlreadyAdded = this.currentDeckCards.some(c => c.id === card.id);
+          // const { container: cardObject, addedOverlay, addedText } = this.createBrowserCard(card, isUnlocked, isAlreadyAdded, getUnlockRankForCard(card));
+          const meetsRank = canUseCardInDeck(card, this.clanRank);
+          const isOwned = this.ownedCardIds.has(Number(card.id));
+          const isUnlocked = meetsRank && isOwned;
           const isAlreadyAdded = this.currentDeckCards.some(c => c.id === card.id);
-          const { container: cardObject, addedOverlay, addedText } = this.createBrowserCard(card, isUnlocked, isAlreadyAdded, getUnlockRankForCard(card));
+
+          const blockedReason = !meetsRank 
+          ? `Unlocks at ${getUnlockRankForCard(card)}` 
+          : 'Buy this card in the shop!';
+
+          const { container: cardObject, addedOverlay, addedText } = this.createBrowserCard(
+            card, 
+            isUnlocked, 
+            isAlreadyAdded, 
+            getUnlockRankForCard(card),
+            blockedReason
+          );
+
           cardObject.setPosition(x, y);
           this.browserContainer.add(cardObject);
           if (addedOverlay && addedText) {
@@ -594,7 +622,8 @@ private async loadBootstrapFromBackend() {
     card: Card,
     allowed: boolean,
     alreadyInDeck: boolean,
-    unlockRank: ClanRank
+    unlockRank: ClanRank,
+    blockedReason?: string
   ): { container: Phaser.GameObjects.Container; addedOverlay: Phaser.GameObjects.Graphics | null; addedText: Phaser.GameObjects.Text | null } {
     const container = this.add.container(0, 0);
 
@@ -658,7 +687,7 @@ private async loadBootstrapFromBackend() {
         hitAreaCallback: Phaser.Geom.Rectangle.Contains,
         useHandCursor: true,
       });
-      container.on('pointerdown', () => this.showMessage(`Unlocks at ${unlockRank}.`, '#ff6666'));
+      container.on('pointerdown', () => this.showMessage(blockedReason ?? `Unlocks at ${unlockRank}.`, '#ff6666'));
       return { container, addedOverlay: null, addedText: null };
     }
 
@@ -699,10 +728,18 @@ private async loadBootstrapFromBackend() {
   }
 
   private addCardToDeck(card: Card) {
-    if (!canUseCardInDeck(card, this.clanRank)) {
+    const meetsRank = canUseCardInDeck(card, this.clanRank);
+    const isOwned = this.ownedCardIds.has(Number(card.id));
+
+    if (!meetsRank) {
       this.showMessage(`This card is locked until ${getUnlockRankForCard(card)}.`, '#ff6666');
       return;
-    } // checks if the card can be used in the deck based on the player's clan rank
+    } // checks if the player's rank meets the requirement to use this card in the deck
+
+    if (!isOwned) {
+      this.showMessage('You do not own this card yet.', '#ff6666');
+      return;
+    } // checks if the player owns this card based on the ownedCardIds set
 
     if (this.currentDeckCards.some(c => c.id === card.id)) {
       this.showMessage('This card is already in the deck.', '#ff6666');

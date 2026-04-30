@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { badRequest } from '../utils/errors.js';
 import { SAFE_PLAYER_SELECT } from '../utils/playerSelect.js';
+import { CardRarity } from '@prisma/client';
+import { computeClanRank, type ClanRank } from '../services/user.service.js';
 
 const HP_TIERS = [
   { from: 50,  to: 60,  cost: 700  },
@@ -63,6 +65,30 @@ const CHARACTER_CATALOG = [
   { key: 'gustav',    coinCost: 3000, xpRequired: 2750 },
   { key: 'eddy',      coinCost: 6000, xpRequired: 4750 },
 ] as const;
+
+const CARD_COSTS: Partial<Record<CardRarity, number>> = {
+  EFFECT: 1500,
+  RARE: 2000,
+}; // only two tiers will be purchasable in the shop, as base cards are free and legendary cards will spawn in the RunScene and cannot be bought directly
+
+function hasRankAccess(playerRank: ClanRank, requiredRank: ClanRank): boolean {
+  const order: Record<ClanRank, number> = {
+    ROOKIE: 0,
+    VETERAN: 1,
+    ELITE: 2,
+    LEGEND: 3,
+  }; // defines the hierarchy of clan ranks to determine if a player has sufficient rank to access certain cards or features in the shop
+
+  return order[playerRank] >= order[requiredRank]; // returns true if the player's rank is equal to or higher than the required rank
+}
+
+function getRequiredRankForCardRarity(rarity: CardRarity): ClanRank {
+  if (rarity === 'BASE') return 'ROOKIE';
+  if (rarity === 'EFFECT') return 'VETERAN';
+  if (rarity === 'RARE') return 'ELITE';
+  return 'LEGEND';
+} // maps card rarities to the minimum clan rank required to access them in the shop
+
 type CharacterKey = typeof CHARACTER_CATALOG[number]['key'];
 
 const shopRoutes: FastifyPluginAsync = async (fastify) => {
@@ -405,6 +431,125 @@ const shopRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return reply.send({ player: updatedPlayer });
+    }
+  );
+
+  fastify.post<{ Body: { cardGameId: number } }>(
+    '/buy-card',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['cardGameId'],
+          additionalProperties: false,
+          properties: {
+            cardGameId: { type: 'integer', minimum: 1 },
+          },
+        },
+      },
+    }, // endpoint for purchasing individual cards from the shop
+    async (request, reply) => {
+      const playerId = request.user.playerId;
+      const { cardGameId } = request.body;
+
+      const player = await fastify.prisma.player.findUnique({
+        where: { id: playerId },
+        select: {
+          id: true,
+          maxXp: true,
+          totalCoins: true,
+        },
+      }); // fetches the player's data to validate that they have enough coins and the required clan rank to purchase
+
+      if (!player) {
+        throw badRequest('Player not found.');
+      }
+
+      const card = await fastify.prisma.cardGame.findUnique({
+        where: { id: cardGameId },
+      });
+
+      if (!card) {
+        throw badRequest('Card not found.');
+      } // validates that the card exists in the database before proceeding with purchase logic
+
+      if (card.cardRarity === 'BASE') {
+        throw badRequest('Base cards are already unlocked by default.');
+      } // checks if the card is a base card, which are already unlocked by default
+
+      if (card.cardRarity === 'LEGENDARY') {
+        throw badRequest('Legendary cards cannot be bought in the shop.');
+      } // checks if the card is a legendary card, which cannot be purchased in the shop
+
+      const requiredRank = getRequiredRankForCardRarity(card.cardRarity);
+      const playerRank = computeClanRank(player.maxXp);
+
+      if (!hasRankAccess(playerRank, requiredRank)) {
+        throw badRequest(`This card requires rank ${requiredRank}.`);
+      } // simple check to ensure the player has the required clan rank to purchase this card based on its rarity
+
+      const cost = CARD_COSTS[card.cardRarity];
+      if (!cost) {
+        throw badRequest('This card cannot be bought.');
+      } // in case there are any card rarities that don't have a defined cost
+
+      if (player.totalCoins < cost) {
+        throw badRequest('Not enough coins.');
+      } // checks if the player has enough coins to purchase the card
+
+      const existing = await fastify.prisma.playerCard.findFirst({
+        where: {
+          playerId,
+          cardGameId,
+        },
+      });
+
+      if (existing?.isUnlocked && existing.numCardsOwned > 0) {
+        throw badRequest('You already own this card.');
+      } // checks if the player already owns this card and has it unlocked, in which case they cannot purchase it again
+
+      const updatedPlayer = await fastify.prisma.$transaction(async (tx) => {
+        await tx.player.update({
+          where: { id: playerId },
+          data: {
+            totalCoins: {
+              decrement: cost,
+            },
+          },
+        }); // deducts the cost of the card from the player's total coins
+
+        if (existing) {
+          await tx.playerCard.update({
+            where: { id: existing.id },
+            data: {
+              isUnlocked: true,
+              numCardsOwned: Math.max(existing.numCardsOwned, 1),
+            },
+          });
+        }  // if the player already has a record of owning this card but it is currently locked or has zero quantity, update it to be unlocked with at least 1 owned
+        
+        else {
+          await tx.playerCard.create({
+            data: {
+              playerId,
+              cardGameId,
+              isUnlocked: true,
+              numCardsOwned: 1,
+            },
+          });
+        } // if the player does not have any record of owning this card, create a new record indicating that they now own it and it is unlocked
+
+        return tx.player.findUnique({
+          where: { id: playerId },
+          select: SAFE_PLAYER_SELECT,
+        }); // return the updated player data after the transaction is complete to ensure the frontend has the latest information to reflect the purchase
+      });
+
+      return reply.send({
+        ok: true,
+        player: updatedPlayer,
+        boughtCardId: cardGameId,
+      });
     }
   );
 };

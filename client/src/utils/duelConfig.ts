@@ -4,6 +4,7 @@
 * Centralized configuration file for the duel mechanics, 
 * defining constants for HP, energy, hand size, deck size, and sprite scales.
 *
+* ChatGPT was used to assist in writing and optimizing some of the code in this file
 */ 
 
 export const MAX_HP = 100; // shared HP cap for both combatants

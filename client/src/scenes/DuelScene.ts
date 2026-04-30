@@ -23,6 +23,9 @@ import { mapCardData } from '../utils/cardsMapper'; // utility function to conve
 // import { getBaseCardPool, type Card } from '../utils/cards'; // import the Card type for type annotations in this scene
 import { fetchActiveDeck } from '../api/deckApi';
 
+import { PLAYER_VISUALS } from '../utils/playerConfig.js'; // configuration for player character visuals, including references to the sprite keys used in this scene and their rendering parameters
+import { PLAYER_ID_TO_KEY, PLAYER_NAME_TO_KEY, normalizePlayerCharacterKey, type ActiveCharacterStats, type PlayerCharacterKey } from '../utils/playerTypes.js'; 
+
 
 import {
   Card, // card data model used throughout the duel scene
@@ -84,6 +87,27 @@ import christianAttack2 from '../assets/characters/christian/Christian_attack-2.
 import christianDamage1 from '../assets/characters/christian/Christian_damage-1.webp'; // Christian hurt sprite 1
 import christianDamage2 from '../assets/characters/christian/Christian_damage-2.webp'; // Christian hurt sprite 2
 import christinDefeated from '../assets/characters/christian/Christian_defeated.webp'; // Christian defeated sprite
+
+import gustavIdle from '../assets/characters/gustav/Gustav_v3_resized.webp'; // Gustav idle sprite
+import gustavAttack1 from '../assets/characters/gustav/Gustav_attack-1.webp'; // Gustav attack animation frame 1
+import gustavAttack2 from '../assets/characters/gustav/Gustav_attack-2.webp'; // Gustav attack animation frame 2
+import gustavDamage1 from '../assets/characters/gustav/Gustav_damage-1.webp'; // Gustav hurt sprite 1
+import gustavDamage2 from '../assets/characters/gustav/Gustav_damage-2.webp'; // Gustav hurt sprite 2
+import gustavDefeated from '../assets/characters/gustav/Gustav_defeated.webp'; // Gustav defeated sprite
+
+import gavinIdle from '../assets/characters/gavin/Gavin_v3_resized.webp'; // Gavin idle sprite
+import gavinAttack1 from '../assets/characters/gavin/Gavin_attack-1.webp'; // Gavin attack animation frame 1
+import gavinAttack2 from '../assets/characters/gavin/Gavin_attack-2.webp'; // Gavin attack animation frame 2
+import gavinDamage1 from '../assets/characters/gavin/Gavin_damage-1.webp'; // Gavin hurt sprite 1
+import gavinDamage2 from '../assets/characters/gavin/Gavin_damage-2.webp'; // Gavin hurt sprite 2
+import gavinDefeated from '../assets/characters/gavin/Gavin_defeated.webp'; // Gavin defeated sprite
+
+import eddyIdle from '../assets/characters/eddy/Eddy_v2_resized.webp'; // Eddy idle sprite
+import eddyAttack1 from '../assets/characters/eddy/Eddy_attack-1.webp'; // Eddy attack animation frame 1
+import eddyAttack2 from '../assets/characters/eddy/Eddy_attack-2.webp'; // Eddy attack animation frame 2
+import eddyDamage1 from '../assets/characters/eddy/Eddy_damage-1.webp'; // Eddy hurt sprite 1
+import eddyDamage2 from '../assets/characters/eddy/Eddy_damage-2.webp'; // Eddy hurt sprite 2
+import eddyDefeated from '../assets/characters/eddy/Eddy_defeated.webp'; // Eddy defeated sprite
 
 import { BOSS_VISUALS } from '../utils/bossConfig.js';
 
@@ -215,6 +239,18 @@ export class DuelScene extends Phaser.Scene {
   private currentMap?: string; // Phaser texture key for the active RunScene map, forwarded back on cycle advance
   private pythraPhase = 1; // tracks Pythra's evolution phase for animation purposes
 
+  private selectedPlayerKey: PlayerCharacterKey = 'christian';
+  private activeCharacterStats: ActiveCharacterStats = {
+    characterGameId: 1,
+    characterName: 'Christian',
+    characterKey: 'christian',
+    baseHp: 120,
+    baseAttack: 2,
+    baseDefense: 5,
+    chUltimate: 'Vertical Leap',
+    chUltimateDesc: 'Recovers 55% of current HP and 30% shield. Gains a valid card based on the table card.',
+  }; // stats for the player's active character, used for rendering and certain card effects
+
   private playerCharacter!: Phaser.GameObjects.Image; // player character sprite
   private enemyCharacter!: Phaser.GameObjects.Image; // enemy character sprite
   private playerShadow!: Phaser.GameObjects.Graphics; // player shadow graphic
@@ -232,6 +268,7 @@ export class DuelScene extends Phaser.Scene {
     this.totalCoins = data.totalCoins ?? 0; // restore accumulated coins
     this.totalXp = data.totalXp ?? 0; // restore accumulated XP
     this.runId = data.runId ?? 0; // restore run id for server persistence
+    this.selectedPlayerKey = normalizePlayerCharacterKey(getPlayer()?.equippedCharacter); // restore selected character from user data, default to 'christian' if not set or unrecognized
     this.selectedBoss = data.selectedBoss; // restore selected boss if passed in from RunScene, otherwise will be assigned when player reaches end zone in RunScene
     this.bossLivesRemaining = this.selectedBoss?.enemyName === 'Pythra' ? 3 : 1; // if the selected boss is Pythra, set lives to 2 to account for her evolution phase
     this.pythraPhase = 1; // reset Pythra phase to 1 at the start of each duel, will evolve when her HP reaches 0 until she has no lives remaining
@@ -257,6 +294,27 @@ export class DuelScene extends Phaser.Scene {
     if (!this.textures.exists('christian-damage-1'))this.load.image('christian-damage-1', christianDamage1);
     if (!this.textures.exists('christian-damage-2'))this.load.image('christian-damage-2', christianDamage2);
     if (!this.textures.exists('christian-defeated'))this.load.image('christian-defeated', christinDefeated);
+
+    if (!this.textures.exists('gustav-idle'))      this.load.image('gustav-idle', gustavIdle);
+    if (!this.textures.exists('gustav-attack-1'))  this.load.image('gustav-attack-1', gustavAttack1);
+    if (!this.textures.exists('gustav-attack-2'))  this.load.image('gustav-attack-2', gustavAttack2);
+    if (!this.textures.exists('gustav-damage-1'))  this.load.image('gustav-damage-1', gustavDamage1);
+    if (!this.textures.exists('gustav-damage-2'))  this.load.image('gustav-damage-2', gustavDamage2);
+    if (!this.textures.exists('gustav-defeated'))  this.load.image('gustav-defeated', gustavDefeated);
+
+    if (!this.textures.exists('gavin-idle'))       this.load.image('gavin-idle', gavinIdle);
+    if (!this.textures.exists('gavin-attack-1'))   this.load.image('gavin-attack-1', gavinAttack1);
+    if (!this.textures.exists('gavin-attack-2'))   this.load.image('gavin-attack-2', gavinAttack2);
+    if (!this.textures.exists('gavin-damage-1'))   this.load.image('gavin-damage-1', gavinDamage1);
+    if (!this.textures.exists('gavin-damage-2'))   this.load.image('gavin-damage-2', gavinDamage2);
+    if (!this.textures.exists('gavin-defeated'))   this.load.image('gavin-defeated', gavinDefeated);
+
+    if (!this.textures.exists('eddy-idle'))        this.load.image('eddy-idle', eddyIdle);
+    if (!this.textures.exists('eddy-attack-1'))    this.load.image('eddy-attack-1', eddyAttack1);
+    if (!this.textures.exists('eddy-attack-2'))    this.load.image('eddy-attack-2', eddyAttack2);
+    if (!this.textures.exists('eddy-damage-1'))    this.load.image('eddy-damage-1', eddyDamage1);
+    if (!this.textures.exists('eddy-damage-2'))    this.load.image('eddy-damage-2', eddyDamage2);
+    if (!this.textures.exists('eddy-defeated'))    this.load.image('eddy-defeated', eddyDefeated);
 
     const bossName = this.selectedBoss?.enemyName ?? 'Skawl';
 
@@ -515,26 +573,34 @@ export class DuelScene extends Phaser.Scene {
     this.isShowingQuitDialog = false;
     this.sidebarNavHandler = null;
 
-    this.playerMaxHp = MAX_HP; // restore player max HP
-    this.playerHp = this.playerMaxHp; // reset player HP to max
-    this.enemyMaxHp = this.selectedBoss?.enemyBaseHp ?? MAX_HP; // set enemy max HP, using boss base HP if a boss is selected for this duel
-    this.enemyHp = this.enemyMaxHp; // reset enemy HP to max
-    this.playerElementalEnergy = 10; // reset player elemental energy (all set at 10 for testing purposes)
-    this.playerInstinctEnergy = 10; // reset player instinct energy
-    this.enemyElementalEnergy = 10; // reset enemy elemental energy
-    this.enemyInstinctEnergy = 10; // reset enemy instinct energy
     this.levelsWon = 0; // reset victory count
+
     this.playerDeck = []; // clear player deck
     this.enemyDeck = []; // clear enemy deck
     this.playerHand = []; // clear player hand
     this.enemyHand = []; // clear enemy hand
     this.discardPile = []; // clear discard pile
+
     this.playerState = createEmptyCombatState(); // reset player status effects
     this.enemyState = createEmptyCombatState(); // reset enemy status effects
+
+    this.playerMaxHp = this.activeCharacterStats.baseHp; // restore player max HP from active character
+    this.playerHp = this.playerMaxHp; // reset player HP to max
+    this.playerState.shield = this.activeCharacterStats.baseDefense; // starting shield comes from character base defense
+
+    this.enemyMaxHp = this.selectedBoss?.enemyBaseHp ?? MAX_HP; // set enemy max HP, using boss HP when available
+    this.enemyHp = this.enemyMaxHp; // reset enemy HP to max
+
+    this.playerElementalEnergy = 10; // keep your current testing values
+    this.playerInstinctEnergy = 10;
+    this.enemyElementalEnergy = 10;
+    this.enemyInstinctEnergy = 10;
+
     this.cardObjects = []; // clear rendered hand objects
     this.currentTableCardObject = undefined; // clear table card object reference
+    this.discardTopCardObject = undefined; // clear discard top card reference
+    this.discardClickZone = undefined; // clear discard click zone
     this.isAnimating = false; // unlock combat input
-    // this.currentEnemyImage = 'enemy-default'; // restore default enemy texture reference
 
     console.log('selected boss: ', this.selectedBoss); // temporal log
   }
@@ -772,21 +838,24 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private createCharacters() {
-    const { width } = this.cameras.main;
     const bossConfig = this.getCurrentBossConfig();
     const currentPhase = this.getCurrentBossVisual();
+    const playerVisual = PLAYER_VISUALS[this.selectedPlayerKey].duel;
 
     this.playerShadow = this.add.graphics().setDepth(0);
     this.playerShadow.fillStyle(0x000000, 0.22);
-    this.playerShadow.fillEllipse(210, 520, 150, 32);
+    this.playerShadow.fillEllipse(playerVisual.x, playerVisual.y + 90, 150, 32);
 
     this.enemyShadow = this.add.graphics().setDepth(0);
     this.enemyShadow.fillStyle(0x000000, 0.22);
     this.enemyShadow.fillEllipse(bossConfig.x + 90, bossConfig.y + 95, 170, 34);
 
-    this.playerCharacter = this.add.image(210, 430, 'christian-idle')
-      .setScale(PLAYER_IDLE_SCALE)
-      .setDepth(0);
+    this.playerCharacter = this.add.image(
+      playerVisual.x, playerVisual.y, playerVisual.idleKey
+    )
+      .setScale(playerVisual.idleScale)
+      .setFlipX(playerVisual.flipX)
+      .setDepth(playerVisual.depth);
 
     this.enemyCharacter = this.add.image(bossConfig.x, bossConfig.y, currentPhase.idleKey)
       .setScale(bossConfig.idleScale)
@@ -844,37 +913,69 @@ export class DuelScene extends Phaser.Scene {
     const effectPool = this.effectCardsFromDb.length > 0 ? this.effectCardsFromDb : getSpecialCardPool(); // ensure we have an effect card pool to draw from, even if the server load failed
     const rarePool = this.rareCardsFromDb.length > 0 ? this.rareCardsFromDb : getIceCardPool(); // ensure we have a rare card pool to draw from, even if the server load failed
 
-    const loadedFromBackendDeck = await this.loadPlayerDeckFromBackend(); // attempt to load the player's deck from the backend, which also sets up the starting hand if successful
+    const playerId = Number(getPlayer()?.id);
+    try {
+      const activeDeckResponse = await fetchActiveDeck(playerId);
+      const activeDeck = activeDeckResponse.deck;
 
-    if (!loadedFromBackendDeck) {
-      throw new Error('Could not load your deck.\nPlease set an active deck in the Deck Builder and try again.');
+      this.selectedPlayerKey = 
+      activeDeck.characterKey
+      ?? PLAYER_ID_TO_KEY[activeDeck.characterGameId]
+      ?? PLAYER_NAME_TO_KEY[activeDeck.characterName]
+      ?? 'christian'; // default to Christian if we can't determine the character key from the active deck data for some reason
+
+      this.activeCharacterStats = {
+        characterGameId: activeDeck.characterGameId,
+        characterName: activeDeck.characterName,
+        characterKey: this.selectedPlayerKey,
+        baseHp: activeDeck.baseHp ?? 120,
+        baseAttack: activeDeck.baseAttack ?? 2,
+        baseDefense: activeDeck.baseDefense ?? 5,
+        chUltimate: activeDeck.chUltimate ?? null,
+        chUltimateDesc: activeDeck.chUltimateDesc ?? null,
+      };
+
+      const allCardsById = new Map<number, Card>(this.allDbCards.map(card => [Number(card.id), card]));
+
+      const activeDeckCards: Card[] = activeDeck.cards
+      .map((entry: { cardGameId: number }) => allCardsById.get(entry.cardGameId))
+      .filter((card: Card | undefined): card is Card => Boolean(card));
+
+      if (activeDeckCards.length >= HAND_SIZE) {
+        this.playerDeck = shuffleCards([...activeDeckCards]);
+      } 
+      
+      else {
+        const fallbackPool = shuffleCards([...basePool, ...effectPool, ...rarePool]);
+        this.playerDeck = shuffleCards([...activeDeckCards, ...fallbackPool].slice(0, PLAYER_DECK_SIZE));
+      }
     }
 
-    const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
+    catch (error) {
+      console.error('Failed to load active deck from backend, using fallback:', error);
 
-    // const playerPool = [...basePool, ...effectPool, ...rarePool]; // combine the different rarity pools to create the player's card pool for deck generation
-    const enemyPool = this.buildEnemyPoolForBoss(); // build the enemy's card pool based on the selected boss's AI level and associated card access
+      this.selectedPlayerKey = normalizePlayerCharacterKey(getPlayer()?.equippedCharacter);
 
-    // this.playerDeck = this.generateDeckFromPool(playerPool, PLAYER_DECK_SIZE); // build the player's starting deck
-    this.enemyDeck = this.generateDeckFromPool(enemyPool, PLAYER_DECK_SIZE); // build the enemy's starting deck
+      const fallbackPlayerPool = [...basePool, ...effectPool, ...rarePool];
+      this.playerDeck = this.generateDeckFromPool(fallbackPlayerPool, PLAYER_DECK_SIZE);
+    }
 
-    // this.playerHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the player's starting hand
+    const enemyPool = this.buildEnemyPoolForBoss();
+    this.enemyDeck = this.generateDeckFromPool(enemyPool, PLAYER_DECK_SIZE);
 
-    // this.playerHand = buildHand(this.playerDeck, HAND_SIZE); // draw the player's starting hand from the generated deck, ensuring the hand reflects the actual deck content
-    this.enemyHand = buildHand(this.enemyDeck, HAND_SIZE); // draw the enemy's starting hand
+    this.playerHand = buildHand(this.playerDeck, HAND_SIZE);
+    this.enemyHand = buildHand(this.enemyDeck, HAND_SIZE);
 
-    // this.enemyHand = ICE_CARD_POOL.map((card, index) => ({
-    //   ...card,
-    //   id: `${card.id}-icehand-${index}-${Math.random().toString(36).slice(2, 7)}`,
-    // })); // for testing purposes, start the enemy with a hand of Ice wildcard cards to demonstrate the mechanic
-    
-    this.discardPile = this.createDiscardPileFromPool(basePool, DISCARD_BASE_SIZE); // seed the discard pile from the base card pool
+    const discardSeed = shuffleCards([...basePool]).slice(0, DISCARD_BASE_SIZE);
+    this.discardPile = discardSeed;
+    this.tableCard = drawOneCard(this.discardPile) ?? shuffleCards([...basePool])[0];
 
-    const openingPool = this.createDiscardPileFromPool(basePool, DISCARD_BASE_SIZE); // create a pool of cards to choose the opening table card from, using the same base as the discard pile
-    const openingCard = openingPool[0]; 
-    
-    if (!openingCard) throw new Error('Could not generate initial table card.'); // fail early if setup data is invalid
-    this.tableCard = openingCard; // place the opening card on the table
+    this.playerMaxHp = this.activeCharacterStats.baseHp;
+    this.playerHp = this.playerMaxHp;
+    this.playerState.shield = this.activeCharacterStats.baseDefense;
+
+    this.enemyMaxHp = this.selectedBoss?.enemyBaseHp ?? MAX_HP;
+    this.enemyHp = this.enemyMaxHp;
   }
 
   private generateDeckFromPool(pool: Card[], size: number): Card[] {
@@ -1699,6 +1800,10 @@ export class DuelScene extends Phaser.Scene {
     let selfDamage = 0; // recoil damage is tracked separately
     if (attackerState.weakenTurnCounter > 0) damage = Math.max(0, damage - attackerState.weakenEffectValue); // weaken reduces damage
 
+    if (attacker === 'player') {
+      damage += this.activeCharacterStats.baseAttack;
+    } // add the player's character attack stat to the damage for player cards
+
     if (attackerState.chainFireBonus > 0 && card.element === 'fire') { 
       damage += attackerState.chainFireBonus; 
       attackerState.chainFireBonus = 0; 
@@ -2101,8 +2206,15 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private animatePlayerAttack() {
-    const attackImage = Math.random() < 0.5 ? 'christian-attack-1' : 'christian-attack-2'; // randomize attack pose
-    this.playerCharacter.setTexture(attackImage).setScale(PLAYER_ATTACK_SCALE).setY(335); // switch to attack pose
+    const playerVisual = PLAYER_VISUALS[this.selectedPlayerKey].duel;
+    const attackImage = playerVisual.attackKeys[Math.floor(Math.random() * playerVisual.attackKeys.length)]; // randomly select an attack pose from the available options for the player character
+
+    this.playerCharacter
+      .setTexture(attackImage)
+      .setScale(playerVisual.attackScale)
+      .setFlipX(playerVisual.flipX)
+      .setPosition(playerVisual.x, playerVisual.y)
+      .setDepth(playerVisual.depth);
   }
 
   private animateEnemyAttack() {
@@ -2119,22 +2231,45 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private updatePlayerPose() {
-    if (this.playerHp <= 0) { 
-      this.playerCharacter.setTexture('christian-defeated').setScale(PLAYER_HURT_SCALE).setY(335);
+    const playerVisual = PLAYER_VISUALS[this.selectedPlayerKey].duel;
+    const hpRatio = this.playerHp / Math.max(1, this.playerMaxHp);
+
+    if (this.playerHp <= 0) {
+      this.playerCharacter
+        .setTexture(playerVisual.defeatedKey)
+        .setScale(playerVisual.defeatedScale)
+        .setFlipX(playerVisual.flipX)
+        .setPosition(playerVisual.x, playerVisual.y)
+        .setDepth(playerVisual.depth);
       return;
-    } // defeated pose
-
-    if (this.playerHp <= 25) { 
-      this.playerCharacter.setTexture('christian-damage-2').setScale(PLAYER_HURT_SCALE).setY(335); // critical HP pose
-      return; 
     }
 
-    if (this.playerHp <= 50) { 
-      this.playerCharacter.setTexture('christian-damage-1').setScale(PLAYER_HURT_SCALE).setY(335); // wounded pose
-      return; 
+    if (hpRatio <= 0.25 && playerVisual.hurtKeys[1]) {
+      this.playerCharacter
+        .setTexture(playerVisual.hurtKeys[1])
+        .setScale(playerVisual.hurtScale)
+        .setFlipX(playerVisual.flipX)
+        .setPosition(playerVisual.x, playerVisual.y)
+        .setDepth(playerVisual.depth);
+      return;
     }
 
-    this.playerCharacter.setTexture('christian-idle').setScale(PLAYER_IDLE_SCALE).setY(335); // healthy idle pose
+    if (hpRatio <= 0.5 && playerVisual.hurtKeys[0]) {
+      this.playerCharacter
+        .setTexture(playerVisual.hurtKeys[0])
+        .setScale(playerVisual.hurtScale)
+        .setFlipX(playerVisual.flipX)
+        .setPosition(playerVisual.x, playerVisual.y)
+        .setDepth(playerVisual.depth);
+      return;
+    }
+
+    this.playerCharacter
+      .setTexture(playerVisual.idleKey)
+      .setScale(playerVisual.idleScale)
+      .setFlipX(playerVisual.flipX)
+      .setPosition(playerVisual.x, playerVisual.y)
+      .setDepth(playerVisual.depth);
   }
 
   private updateEnemyPose() {

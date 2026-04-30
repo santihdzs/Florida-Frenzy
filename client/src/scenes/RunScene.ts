@@ -16,12 +16,20 @@
 
 import Phaser from 'phaser';
 import chrisAvatarUrl from '../assets/sprites/Chris.webp';
+import gustavAvatarUrl from '../assets/sprites/Gus.webp';
+import gavinAvatarUrl from '../assets/sprites/Gav.webp';
+import eddyAvatarUrl from '../assets/sprites/Ed.webp';
+
+
 import { MAP_CONFIGS, selectMap, type MapConfig } from '../utils/mapConfig.js';
 import { completeRun, createRun, getPlayer } from '../utils/auth.js';
 import type { DuelBossData } from '../utils/bossTypes.js';
 import { fetchRandomDuelBoss } from '../api/enemyApi.js';
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 import { transitionTo } from '../utils/sceneTransition.js';
+
+import { PLAYER_VISUALS } from '../utils/playerConfig';
+import { normalizePlayerCharacterKey, type PlayerCharacterKey } from '../utils/playerTypes';
 
 import skawlSheet from '../assets/characters/skawl/Skawl_SpriteSheet.webp';
 import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.webp';
@@ -377,6 +385,8 @@ export class RunScene extends Phaser.Scene {
   private deathReason: DeathReason = 'hp';
   private enemiesKilledThisRun = 0;
 
+  private selectedPlayerKey: PlayerCharacterKey = 'christian';
+
   private bulletDamage = 10;
   private fireRateLevel = 1;
   private reloadTimeLevel = 1;
@@ -447,8 +457,8 @@ export class RunScene extends Phaser.Scene {
     this.done           = false;
     this.runEnded       = false;
     this.lastPlayerDir  = 'down';
-    const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
-    this.playerSkin = (equipped in CHAR_SHEETS) ? equipped as CharSheetKey : 'christian';
+    this.selectedPlayerKey = normalizePlayerCharacterKey(getPlayer()?.equippedCharacter);
+    this.playerSkin = this.selectedPlayerKey as CharSheetKey;
     this.maxHp          = (getPlayer()?.maxHp as number | undefined) ?? 50;
     this.hp             = this.maxHp;
     this.lastSprintTime = -STAMINA_REGEN_DELAY;
@@ -495,8 +505,14 @@ export class RunScene extends Phaser.Scene {
       this.load.spritesheet(this.activeMap.key, this.activeMap.url, {
         frameWidth: this.activeMap.tileWidth, frameHeight: this.activeMap.tileHeight,
       });
-    if (!this.textures.exists('chris-avatar'))
-      this.load.image('chris-avatar', chrisAvatarUrl);
+    if (!this.textures.exists('player-avatar-christian'))
+      this.load.image('player-avatar-christian', chrisAvatarUrl);
+    if (!this.textures.exists('player-avatar-gustav'))
+      this.load.image('player-avatar-gustav', gustavAvatarUrl);
+    if (!this.textures.exists('player-avatar-gavin'))
+      this.load.image('player-avatar-gavin', gavinAvatarUrl);
+    if (!this.textures.exists('player-avatar-eddy'))
+      this.load.image('player-avatar-eddy', eddyAvatarUrl);
     if (!this.textures.exists('boss-skawl-run-sheet'))
       this.load.image('boss-skawl-run-sheet', skawlSheet);
     if (!this.textures.exists('boss-rabyz-run-sheet'))
@@ -1188,7 +1204,8 @@ export class RunScene extends Phaser.Scene {
     avatarOutline.lineStyle(2, 0x8899cc);
     avatarOutline.strokeCircle(35, 55, 30);
 
-    const avatarSprite = this.add.image(35, 55, 'chris-avatar');
+    const avatarVisuals = PLAYER_VISUALS[this.selectedPlayerKey];
+    const avatarSprite = this.add.image(35, 55, avatarVisuals.run.avatarKey);
     avatarSprite.setDisplaySize(56, 56);
 
     this.avatarMask = this.add.graphics();

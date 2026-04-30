@@ -116,7 +116,12 @@ export async function saveDeck(
 
   const player = await prisma.player.findUnique({
     where: { id: playerId },
-  });
+    include: {
+      playerCards: {
+        include: { cardGame: true },
+      }
+    }
+  }); // fetch the player data along with their owned cards to validate that they have access to the cards being included in the deck
 
   if (!player) {
     throw new Error('Player not found.');
@@ -138,6 +143,8 @@ export async function saveDeck(
     (await prisma.cardGame.findMany()).map(card => [card.id, card])
   );
 
+  const ownedMap = new Map(player.playerCards.map(pc => [pc.cardGameId, pc]));
+
   for (const cardGameId of cardGameIds) {
     const dbCard = allCardsById.get(cardGameId);
 
@@ -148,6 +155,15 @@ export async function saveDeck(
     const requiredRank = getUnlockRankForRarity(dbCard.cardRarity);
     if (!hasRankAccess(clanRank, requiredRank)) {
       throw new Error(`Card ${cardGameId} requires rank ${requiredRank}.`);
+    }
+
+    if (dbCard.cardRarity === 'BASE') {
+      continue; // base cards are always available and don't require ownership checks
+    }
+
+    const owned = ownedMap.get(cardGameId);
+    if (!owned || !owned.isUnlocked || owned.numCardsOwned < 1) {
+      throw new Error(`Player does not own card with game ID ${cardGameId}.`);
     }
   }
 
@@ -307,13 +323,23 @@ export async function getActiveDeck(
       isActive: activeDeck.isActive,
       characterGameId: activeDeck.characterGameId,
       characterName: activeDeck.characterGame.chName,
+      characterKey:
+        activeDeck.characterGame.chName === 'Gustav' ? 'gustav' :
+        activeDeck.characterGame.chName === 'Gavin' ? 'gavin' :
+        activeDeck.characterGame.chName === 'Eddy' ? 'eddy' :
+        'christian',
+      baseHp: activeDeck.characterGame.baseHp,
+      baseAttack: activeDeck.characterGame.baseAttack,
+      baseDefense: activeDeck.characterGame.baseDefense,
+      chUltimate: activeDeck.characterGame.chUltimate,
+      chUltimateDesc: activeDeck.characterGame.chUltimateDesc,
       slotLimit,
       cards: activeDeck.deckCards.map(dc => ({
         id: dc.id,
         cardGameId: dc.cardGameId,
         cardsIncluded: dc.cardsIncluded,
         card: dc.cardGame,
-      })), // return the active deck data including its cards and character information, along with the slot limit based on the player's clan rank for client-side validation and display purposes
+      })),
     },
-  };
+  }; // return the structured data for the active deck, including character details and the cards included in the deck, for the client to use in gameplay
 }

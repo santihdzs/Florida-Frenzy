@@ -3,8 +3,27 @@
 
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.webp';
-import { getPlayer, upgradeHp, upgradeGunDamage, upgradeFireRate, upgradeReloadTime, upgradeNoReload, upgradeMagSize, upgradeStaminaPool, upgradeStaminaRegen, buyCharacter, equipCharacter } from '../utils/auth.js';
+import { 
+  getPlayer, 
+  upgradeHp, 
+  upgradeGunDamage, 
+  upgradeFireRate, 
+  upgradeReloadTime, 
+  upgradeNoReload, 
+  upgradeMagSize, 
+  upgradeStaminaPool, 
+  upgradeStaminaRegen, 
+  buyCharacter, 
+  equipCharacter,
+  buyCard 
+} from '../utils/auth.js';
+
 import { transitionTo } from '../utils/sceneTransition.js';
+
+import { fetchDeckBootstrap } from '../api/deckApi';
+import { mapCardData } from '../utils/cardsMapper';
+import type { Card } from '../utils/cards';
+import { ELEMENT_COLORS } from '../utils/cards';
 
 import christianPortrait from '../assets/characters/christian/Christian_v4_resized.webp';
 import gavinPortrait     from '../assets/characters/gavin/Gavin_v3_resized.webp';
@@ -82,6 +101,20 @@ const BAR_H       = 20;
 const CHAR_CARD_W = 500;
 const CHAR_CARD_H = 200;
 
+type ClanRank = 'ROOKIE' | 'VETERAN' | 'ELITE' | 'LEGEND';
+type ShopTab = 'upgrades' | 'characters' | 'cards';
+
+const MINI_CARD_W = 105;
+const MINI_CARD_H = 138;
+const MINI_CARD_GAP = 14;
+
+interface OwnedCardEntry {
+  cardGameId: number;
+  isUnlocked: boolean;
+  numCardsOwned: number;
+  cardRarity: string;
+} // represents the information about a card that the player owns, including how many copies they have, whether it is unlocked for use, and its rarity which may affect how it can be used or upgraded
+
 interface UpgradeCardConfig {
   name: string;
   currentValue: () => number;
@@ -107,7 +140,7 @@ export class ShopScene extends Phaser.Scene {
     if (!this.textures.exists('shop-chr-eddy'))      this.load.image('shop-chr-eddy',       eddyPortrait);
   }
 
-  create() {
+  async create() {
     this.cameras.main.fadeIn(300, 0, 0, 0);
     const W  = this.cameras.main.width;
     const H  = this.cameras.main.height;
@@ -143,6 +176,34 @@ export class ShopScene extends Phaser.Scene {
       coinsText.setText(`Coins: ${coins}`);
     };
 
+    const playerId = Number(player?.id);
+    let clanRank: ClanRank = 'ROOKIE'; // default rank if player data is not available for some reason
+    let ownedCardIds = new Set<number>(); // a set to keep track of which card IDs the player owns and has unlocked
+    let allMappedCards: Card[] = [];
+
+    if (Number.isFinite(playerId) && playerId > 0) {
+      try {
+        const bootstrap = await fetchDeckBootstrap(playerId);
+        clanRank = bootstrap.player.clanRank;
+
+        allMappedCards = (bootstrap.allCards as any[]).map(mapCardData);
+
+        ownedCardIds = new Set(
+          (bootstrap.ownedCards as OwnedCardEntry[])
+            .filter(card => card.isUnlocked && card.numCardsOwned > 0)
+            .map(card => card.cardGameId)
+        ); // populate the set of owned card IDs based on the player's owned cards that are unlocked
+
+        allMappedCards
+          .filter(card => card.rarity === 'base')
+          .forEach(card => ownedCardIds.add(Number(card.id))); // automatically consider all base cards as owned since they are typically available to all players
+      }
+      
+      catch (error) {
+        console.error('Failed to load card shop bootstrap:', error);
+      }
+    }
+
     this.add.text(cx, H - 36, 'BACK', {
       ...baseStyle,
       fontSize: '36px',
@@ -155,7 +216,7 @@ export class ShopScene extends Phaser.Scene {
       });
 
     // ── Tabs ────────────────────────────────────────────────────────────────
-    let activeTab: 'upgrades' | 'characters' = 'upgrades';
+    let activeTab: ShopTab = 'upgrades';
 
     const upgradesTabText = this.add.text(cx - 90, 70, 'Upgrades', {
       ...baseStyle, fontSize: '22px', color: '#ffffff',
@@ -165,35 +226,49 @@ export class ShopScene extends Phaser.Scene {
       ...baseStyle, fontSize: '22px', color: '#505050',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true });
 
+    const cardsTabText = this.add.text(cx + 245, 70, 'Cards', {
+      ...baseStyle, fontSize: '22px', color: '#505050',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(10).setInteractive({ useHandCursor: true });
+
     const tabDivider = this.add.graphics().setScrollFactor(0).setDepth(10);
     tabDivider.lineStyle(1, 0x555555, 0.8);
     tabDivider.lineBetween(cx - 200, 86, cx + 200, 86);
 
-    // We hold all upgrade and character card objects in groups so we can show/hide them
+    // We hold all tab objects in groups so we can show/hide them
     const upgradeObjects:   Phaser.GameObjects.GameObject[] = [];
     const characterObjects: Phaser.GameObjects.GameObject[] = [];
+    const cardObjects:      Phaser.GameObjects.GameObject[] = [];
 
-    const switchTab = (tab: 'upgrades' | 'characters') => {
+    const clearCardObjects = () => {
+      cardObjects.forEach (obj => obj.destroy());
+      cardObjects.length = 0;
+    }; // helper function to clear out existing card objects when switching tabs to ensure we don't have lingering objects from the previous tab
+
+    const switchTab = (tab: ShopTab) => {
       activeTab = tab;
       upgradesTabText.setColor(tab === 'upgrades' ? '#ffffff' : '#505050');
       charactersTabText.setColor(tab === 'characters' ? '#ffffff' : '#505050');
+      cardsTabText.setColor(tab === 'cards' ? '#ffffff' : '#505050');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       upgradeObjects.forEach(o => (o as any).setVisible(tab === 'upgrades'));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       characterObjects.forEach(o => (o as any).setVisible(tab === 'characters'));
+
+      cardObjects.forEach(o => (o as any).setVisible(tab === 'cards'));
       // Reset camera scroll so both tabs start at top
       this.cameras.main.scrollY = 0;
     };
 
     upgradesTabText.on('pointerdown', () => { if (activeTab !== 'upgrades') switchTab('upgrades'); });
     charactersTabText.on('pointerdown', () => { if (activeTab !== 'characters') switchTab('characters'); });
+    cardsTabText.on('pointerdown', () => { if (activeTab !== 'cards') switchTab('cards'); });
 
-    // ── Upgrade Cards ────────────────────────────────────────────────────────
     let cardY = 100;
 
     const trackUpg = <T extends Phaser.GameObjects.GameObject>(obj: T): T => {
-      upgradeObjects.push(obj); return obj;
-    };
+      upgradeObjects.push(obj);
+      return obj;
+    }; // helper function to track upgrade-related game objects so we can easily show/hide them
 
     let currentHp = typeof player?.maxHp === 'number' ? player.maxHp as number : 50;
     this.createUpgradeCard(cx, cardY, {
@@ -206,7 +281,7 @@ export class ShopScene extends Phaser.Scene {
       isMaxed: (v) => HP_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeHp(); const u = getPlayer(); currentHp = typeof u?.maxHp === 'number' ? u.maxHp as number : currentHp; },
       onCoinsChanged: refreshCoins,
-    }, trackUpg);
+    }, trackUpg); // create the health upgrade card with the appropriate labels and upgrade logic
     cardY += CARD_H + CARD_GAP;
 
     let currentDmg = typeof player?.bulletDamage === 'number' ? player.bulletDamage as number : 10;
@@ -220,7 +295,7 @@ export class ShopScene extends Phaser.Scene {
       isMaxed: (v) => DAMAGE_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeGunDamage(); const u = getPlayer(); currentDmg = typeof u?.bulletDamage === 'number' ? u.bulletDamage as number : currentDmg; },
       onCoinsChanged: refreshCoins,
-    }, trackUpg);
+    }, trackUpg); // create the bullet damage upgrade card with the appropriate labels and upgrade logic
     cardY += CARD_H + CARD_GAP;
 
     let currentRate = typeof player?.fireRate === 'number' ? player.fireRate as number : 1;
@@ -234,7 +309,7 @@ export class ShopScene extends Phaser.Scene {
       isMaxed: (v) => FIRE_RATE_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeFireRate(); const u = getPlayer(); currentRate = typeof u?.fireRate === 'number' ? u.fireRate as number : currentRate; },
       onCoinsChanged: refreshCoins,
-    }, trackUpg);
+    }, trackUpg); // create the fire rate upgrade card with the appropriate labels and upgrade logic
     cardY += CARD_H + CARD_GAP;
 
     let currentReload = typeof player?.reloadTime === 'number' ? player.reloadTime as number : 1;
@@ -248,7 +323,7 @@ export class ShopScene extends Phaser.Scene {
       isMaxed: (v) => RELOAD_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeReloadTime(); const u = getPlayer(); currentReload = typeof u?.reloadTime === 'number' ? u.reloadTime as number : currentReload; },
       onCoinsChanged: refreshCoins,
-    }, trackUpg);
+    }, trackUpg); // create the reload speed upgrade card with the appropriate labels and upgrade logic
     cardY += CARD_H + CARD_GAP;
 
     this.createNoReloadCard(cx, cardY, player, refreshCoins, trackUpg);
@@ -265,7 +340,7 @@ export class ShopScene extends Phaser.Scene {
       isMaxed: (v) => MAG_SIZE_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeMagSize(); const u = getPlayer(); currentMag = typeof u?.magSize === 'number' ? u.magSize as number : currentMag; },
       onCoinsChanged: refreshCoins,
-    }, trackUpg);
+    }, trackUpg); // create the magazine size upgrade card with the appropriate labels and upgrade logic
     cardY += CARD_H + CARD_GAP;
 
     let currentStaminaPool = typeof player?.staminaPool === 'number' ? player.staminaPool as number : 1;
@@ -279,7 +354,7 @@ export class ShopScene extends Phaser.Scene {
       isMaxed: (v) => STAMINA_POOL_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeStaminaPool(); const u = getPlayer(); currentStaminaPool = typeof u?.staminaPool === 'number' ? u.staminaPool as number : currentStaminaPool; },
       onCoinsChanged: refreshCoins,
-    }, trackUpg);
+    }, trackUpg); // create the endurance upgrade card with the appropriate labels and upgrade logic
     cardY += CARD_H + CARD_GAP;
 
     let currentStaminaRegen = typeof player?.staminaRegen === 'number' ? player.staminaRegen as number : 1;
@@ -293,40 +368,182 @@ export class ShopScene extends Phaser.Scene {
       isMaxed: (v) => STAMINA_REGEN_TIERS.find(x => x.from === v) === undefined,
       onUpgrade: async () => { await upgradeStaminaRegen(); const u = getPlayer(); currentStaminaRegen = typeof u?.staminaRegen === 'number' ? u.staminaRegen as number : currentStaminaRegen; },
       onCoinsChanged: refreshCoins,
-    }, trackUpg);
+    }, trackUpg); // create the recovery upgrade card with the appropriate labels and upgrade logic
     cardY += CARD_H + CARD_GAP;
 
     const upgradeContentHeight = cardY + 20;
 
-    // ── Character Cards ──────────────────────────────────────────────────────
     let chrY = 100;
 
     const trackChr = <T extends Phaser.GameObjects.GameObject>(obj: T): T => {
-      characterObjects.push(obj); return obj;
+      characterObjects.push(obj);
+      return obj;
     };
 
-    const playerXp       = typeof player?.maxXp === 'number' ? player.maxXp as number : 0;
-    const unlockedChars  = Array.isArray(player?.unlockedCharacters) ? player!.unlockedCharacters as string[] : ['christian'];
-    let equippedChar     = typeof player?.equippedCharacter === 'string' ? player.equippedCharacter as string : 'christian';
+    const playerXp = typeof player?.maxXp === 'number' ? player.maxXp as number : 0;
+    const unlockedChars = Array.isArray(player?.unlockedCharacters) ? player.unlockedCharacters as string[] : ['christian'];
+    let equippedChar = typeof player?.equippedCharacter === 'string' ? player.equippedCharacter as string : 'christian';
 
     const cardControllers: Array<{ key: string; setEquipped: (e: boolean) => void }> = [];
 
     CHARACTER_CATALOG.forEach((charDef) => {
-      const ctrl = this.createCharacterCard(cx, chrY, charDef, playerXp, unlockedChars, equippedChar, refreshCoins, (newEquipped) => {
-        equippedChar = newEquipped;
-        cardControllers.forEach(c => c.setEquipped(c.key === newEquipped));
-      }, trackChr);
+      const ctrl = this.createCharacterCard(
+        cx,
+        chrY,
+        charDef,
+        playerXp,
+        unlockedChars,
+        equippedChar,
+        refreshCoins,
+        (newEquipped) => {
+          equippedChar = newEquipped;
+          cardControllers.forEach(c => c.setEquipped(c.key === newEquipped));
+        },
+        trackChr
+      ); // create the character card for this character definition with the appropriate labels and logic
+
       cardControllers.push({ key: charDef.key, setEquipped: ctrl.setEquipped });
       chrY += CHAR_CARD_H + CARD_GAP;
     });
 
     const charContentHeight = chrY + 20;
 
+    // ── Upgrade Cards ────────────────────────────────────────────────────────
+    let cardsContentHeight = 0;
+
+    const renderCardsTabContent = () => {
+      clearCardObjects();
+
+      let cardsY = 100;
+
+      const trackCard = <T extends Phaser.GameObjects.GameObject>(obj: T): T => {
+        cardObjects.push(obj);
+        return obj;
+      };
+
+      const addCardsSectionTitle = (title: string, y: number) => {
+        return trackCard(this.add.text(cx - 250, y, title, {
+          ...baseStyle,
+          fontSize: '26px',
+          color: '#ffd700',
+        }).setOrigin(0, 0));
+      };
+
+      const renderMiniCardRow = (
+        title: string,
+        cards: Card[],
+        y: number,
+        canBuyPredicate: (card: Card) => boolean,
+        labelForCard: (card: Card, owned: boolean) => string,
+      ) => {
+        addCardsSectionTitle(title, y);
+
+        const columns = 5;
+        const totalRowWidth = columns * MINI_CARD_W + (columns - 1) * MINI_CARD_GAP;
+        const startX = cx - totalRowWidth / 2;
+        const startY = y + 38;
+
+        cards.forEach((card, index) => {
+          const col = index % columns;
+          const row = Math.floor(index / columns);
+
+          const x = startX + col * (MINI_CARD_W + MINI_CARD_GAP);
+          const yy = startY + row * (MINI_CARD_H + 12);
+
+          const owned = ownedCardIds.has(Number(card.id));
+          const canBuy = canBuyPredicate(card) && !owned;
+
+          const cardObj = this.createShopMiniCard(
+            x,
+            yy,
+            card,
+            owned,
+            canBuy,
+            labelForCard(card, owned),
+            async () => {
+              try {
+                await buyCard(Number(card.id));
+                ownedCardIds.add(Number(card.id));
+                refreshCoins();
+                renderCardsTabContent();
+              } catch (err) {
+                console.error(err);
+              }
+            }
+          ); // create the mini card for this card definition with the appropriate labels and logic
+
+          trackCard(cardObj);
+        });
+
+        const usedRows = Math.ceil(cards.length / columns);
+        return startY + usedRows * (MINI_CARD_H + 12) + 30;
+      };
+
+      if (clanRank === 'ROOKIE') {
+        trackCard(this.add.text(cx, 140, 'Reach VETERAN to buy Special cards.', {
+          ...baseStyle,
+          fontSize: '28px',
+          color: '#cccccc',
+        }).setOrigin(0.5, 0));
+        cardsY = 220;
+      } else {
+        const specialCards = allMappedCards.filter(card => card.rarity === 'effect');
+        cardsY = renderMiniCardRow(
+          'SPECIAL CARDS',
+          specialCards,
+          cardsY,
+          () => clanRank === 'VETERAN' || clanRank === 'ELITE' || clanRank === 'LEGEND',
+          (_card, owned) => owned ? 'OWNED' : '1500 COINS'
+        );
+      }
+
+      if (clanRank === 'ELITE' || clanRank === 'LEGEND') {
+        const iceCards = allMappedCards.filter(card => card.rarity === 'rare');
+        cardsY = renderMiniCardRow(
+          'ICE CARDS',
+          iceCards,
+          cardsY,
+          () => clanRank === 'ELITE' || clanRank === 'LEGEND',
+          (_card, owned) => owned ? 'OWNED' : '2000 COINS'
+        );
+      } else {
+        trackCard(this.add.text(cx, cardsY, 'Reach ELITE to buy Ice cards.', {
+          ...baseStyle,
+          fontSize: '24px',
+          color: '#888888',
+        }).setOrigin(0.5, 0));
+        cardsY += 60;
+      }
+
+      const legendaryCards = allMappedCards.filter(card => card.rarity === 'legendary');
+      if (legendaryCards.length > 0) {
+        cardsY = renderMiniCardRow(
+          'LEGENDARY CARDS',
+          legendaryCards,
+          cardsY,
+          () => false,
+          () => 'RUN UNLOCK'
+        );
+      }
+
+      cardsContentHeight = cardsY + 20;
+
+      cardObjects.forEach(o => (o as any).setVisible(activeTab === 'cards'));
+    };
+
+    renderCardsTabContent();
+
     // ── Scroll setup ─────────────────────────────────────────────────────────
     this.cameras.main.setBounds(0, 0, W, Math.max(upgradeContentHeight, charContentHeight));
 
     this.input.on('wheel', (_ptr: unknown, _objs: unknown[], _dx: number, deltaY: number) => {
-      const contentH = activeTab === 'upgrades' ? upgradeContentHeight : charContentHeight;
+      const contentH = 
+      activeTab === 'upgrades' 
+      ? upgradeContentHeight 
+      : activeTab === 'characters'
+      ? charContentHeight
+      : cardsContentHeight; // determine the content height based on which tab is active so we know how far to allow scrolling
+
       this.cameras.main.scrollY = Phaser.Math.Clamp(
         this.cameras.main.scrollY + deltaY * 0.5,
         0,
@@ -334,17 +551,17 @@ export class ShopScene extends Phaser.Scene {
       );
     });
 
-    if (Math.max(upgradeContentHeight, charContentHeight) > H) {
+    if (Math.max(upgradeContentHeight, charContentHeight, cardsContentHeight) > H) {
       this.add.text(cx, H - 16, '▼ scroll for more', {
         fontFamily: 'Impact, Arial black, sans-serif',
         fontSize: '14px',
         color: '#888888',
       }).setOrigin(0.5).setScrollFactor(0).setDepth(10);
-    }
+    } // add a hint to scroll if the content height exceeds the screen height to improve discoverability
 
     // Hide character cards initially
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    characterObjects.forEach(o => (o as any).setVisible(false));
+    switchTab('upgrades');
   }
 
   private createCharacterCard(
@@ -419,7 +636,9 @@ export class ShopScene extends Phaser.Scene {
       actionRef = track(this.add.text(cardX + CHAR_CARD_W - PAD, actionBtnY, 'EQUIPPED', {
         ...baseStyle, fontSize: '22px', color: '#44cc66',
       }).setOrigin(1, 0.5));
-    } else if (canBeEquipped) {
+    } 
+    
+    else if (canBeEquipped) {
       actionRef = track(this.add.text(cardX + CHAR_CARD_W - PAD, actionBtnY, 'EQUIP', {
         ...baseStyle, fontSize: '22px', color: '#c2baba',
       }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true }));
@@ -434,13 +653,19 @@ export class ShopScene extends Phaser.Scene {
         try {
           await equipCharacter(charDef.key);
           onEquipped(charDef.key);
-        } catch (err) {
+        } 
+        
+        catch (err) {
           statusText.setText(err instanceof Error ? err.message : 'Failed');
-        } finally {
+        } 
+        
+        finally {
           busy = false;
         }
       });
-    } else if (canAffordXp) {
+    } 
+    
+    else if (canAffordXp) {
       actionRef = track(this.add.text(cardX + CHAR_CARD_W - PAD, actionBtnY, 'BUY', {
         ...baseStyle, fontSize: '22px', color: '#c2baba',
       }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true }));
@@ -464,22 +689,33 @@ export class ShopScene extends Phaser.Scene {
             if (busy || isEquipped) return;
             busy = true;
             statusText.setText('');
+            
             try {
               await equipCharacter(charDef.key);
               onEquipped(charDef.key);
-            } catch (err2) {
+            } 
+            
+            catch (err2) {
               statusText.setText(err2 instanceof Error ? err2.message : 'Failed');
-            } finally {
+            } 
+            
+            finally {
               busy = false;
             }
           });
-        } catch (err) {
+        } 
+        
+        catch (err) {
           statusText.setText(err instanceof Error ? err.message : 'Failed');
-        } finally {
+        } 
+        
+        finally {
           busy = false;
-        }
+        } // handle the buy character flow, and if successful, update the button to become an equip button
       });
-    } else {
+    } 
+    
+    else {
       actionRef = track(this.add.text(cardX + CHAR_CARD_W - PAD, actionBtnY, 'LOCKED', {
         ...baseStyle, fontSize: '22px', color: '#555555',
       }).setOrigin(1, 0.5));
@@ -497,6 +733,73 @@ export class ShopScene extends Phaser.Scene {
         }
       },
     };
+  }
+
+  private createShopMiniCard(
+    x: number,
+    y: number,
+    card: Card,
+    owned: boolean,
+    canBuy: boolean,
+    footerLabel: string,
+    onBuy: () => Promise<void>,
+  ): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+
+    const frameColor = ELEMENT_COLORS[card.element] ?? 0xffffff;
+
+    const bg = this.add.rectangle(0, 0, MINI_CARD_W, MINI_CARD_H, 0x1c1c1c, 0.98)
+      .setOrigin(0)
+      .setStrokeStyle(3, frameColor, 1); // card background with colored border based on element
+
+    const rarityText = this.add.text(MINI_CARD_W / 2, 12, card.rarity.toUpperCase(), {
+      fontFamily: 'Impact, Arial Black, sans-serif',
+      fontSize: '11px',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5);
+
+    const nameText = this.add.text(MINI_CARD_W / 2, 42, card.name.toUpperCase(), {
+      fontFamily: 'Impact, Arial Black, sans-serif',
+      fontSize: '15px',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 4,
+      align: 'center',
+      wordWrap: { width: 90 },
+    }).setOrigin(0.5);
+
+    const infoText = this.add.text(MINI_CARD_W / 2, 106, owned ? 'OWNED' : footerLabel, {
+      fontFamily: 'Impact, Arial Black, sans-serif',
+      fontSize: '12px',
+      color: owned ? '#00ff88' : canBuy ? '#ffd700' : '#bbbbbb',
+      stroke: '#000000',
+      strokeThickness: 4,
+      align: 'center',
+      wordWrap: { width: 92 },
+    }).setOrigin(0.5);
+
+    container.add([bg, rarityText, nameText, infoText]);
+    container.setSize(MINI_CARD_W, MINI_CARD_H);
+
+    if (canBuy) {
+      container.setInteractive({ useHandCursor: true });
+
+      container.on('pointerover', () => {
+        bg.setStrokeStyle(3, 0xffffff, 1);
+      });
+
+      container.on('pointerout', () => {
+        bg.setStrokeStyle(3, frameColor, 1);
+      });
+
+      container.on('pointerdown', async () => {
+        await onBuy();
+      });
+    } // we check canBuy instead of owned because some cards may be owned but not yet unlocked for use, so we only want to allow clicking if the card can actually be bought/unlocked
+
+    return container;
   }
 
   private createNoReloadCard(

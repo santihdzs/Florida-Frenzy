@@ -460,6 +460,27 @@ export async function buyCharacter(characterKey: string): Promise<Record<string,
   return data as Record<string, unknown>;
 }
 
+export async function buyCard(cardGameId: number): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+
+  const res = await fetch(`${API_URL}/api/shop/buy-card`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ cardGameId }), // send a request to purchase the specified card by its game ID
+  }); // send a request to purchase the specified card, which will be validated and processed by the server to ensure the player has enough coins and doesn't already own the card before completing the transaction
+
+  const data = await res.json() as { player?: Record<string, unknown>; message?: string };
+
+  if (!res.ok) throw new Error(data.message ?? 'Purchase failed');
+  if (data.player) setPlayer(data.player);
+
+  return data as Record<string, unknown>;
+}
+
 export async function equipCharacter(characterKey: string): Promise<Record<string, unknown>> {
   const token = getToken();
   if (!token) throw new Error('Not logged in');

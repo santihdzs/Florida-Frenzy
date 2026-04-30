@@ -3,7 +3,7 @@
 * 
 * Utility functions for setting up the duel, including creating a shuffled discard pile from the base card pool.
 *
-*
+* ChatGPT was used to assist in writing and optimizing some of the code in this file
 */
 
 import { Card, getBaseCardPool, shuffleCards } from './cards'; // import Card type and card utility functions
