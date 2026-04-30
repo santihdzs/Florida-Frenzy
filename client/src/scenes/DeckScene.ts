@@ -47,9 +47,14 @@ type BrowserRow = {
   cards: Card[];
 }; // defines the structure for a row in the card browser panel, which groups cards by category and element for easier navigation when building a deck
 
+let _pendingDeckIndex: number | null = null;
+
 export class DeckScene extends Phaser.Scene {
   private storage!: LocalDeckStorage; // holds the player's deck configurations loaded from localStorage
   private selectedDeckIndex = 0;
+  private _requestedDeckIndex: number | null = null;
+  private deckCharacterGameIds: number[] = [1, 1, 1];
+  private deckIds: (number | null)[] = [null, null, null];
   
   // default values for clan rank and slot limit, which will be updated based on the player's actual rank
   private clanRank: ClanRank = 'ROOKIE';
@@ -68,6 +73,9 @@ export class DeckScene extends Phaser.Scene {
   private browserPanelRect!: Phaser.Geom.Rectangle;
 
   private currentDeckCards: Card[] = [];
+  private deckStatusObjects: Phaser.GameObjects.GameObject[] = [];
+  private isDirty = false;
+  private saveBtnContainer: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: 'DeckScene' });
@@ -75,6 +83,10 @@ export class DeckScene extends Phaser.Scene {
 
   preload() {
     this.load.image('title-background', titleBackground);
+  }
+
+  init(_data: Record<string, unknown>) {
+    this._requestedDeckIndex = _pendingDeckIndex;
   }
 
   async create() {
@@ -126,7 +138,7 @@ export class DeckScene extends Phaser.Scene {
 
         this.renderDeckSlots();
         this.renderBrowserCards();
-        this.showMessage('Deck data loaded successfully.', '#00ff88');
+        this.showMessage('Deck loaded.', '#00ff88');
     } 
     
     catch (error) {
@@ -155,12 +167,10 @@ private async loadBootstrapFromBackend() {
 
   const byId = new Map(mappedCards.map(card => [Number(card.id), card]));
 
-  const selectedActiveIndex = Math.max(
-    0,
-    bootstrap.decks.findIndex(deck => deck.isActive)
-  );
-
-  this.selectedDeckIndex = selectedActiveIndex >= 0 ? selectedActiveIndex : 0;
+  const activeDeck = bootstrap.decks.find(d => d.isActive && d.cards.length === bootstrap.player.slotLimit);
+  const activeIndex = activeDeck ? parseInt(activeDeck.deckName.split(' ')[1], 10) - 1 : -1;
+  this.selectedDeckIndex = this._requestedDeckIndex ?? (activeIndex !== -1 ? activeIndex : 0);
+  _pendingDeckIndex = null;
 
   this.storage = {
     selectedDeckIndex: this.selectedDeckIndex,
@@ -176,6 +186,16 @@ private async loadBootstrapFromBackend() {
       };
     }),
   };
+
+  this.deckCharacterGameIds = [0, 1, 2].map(index => {
+    const backendDeck = bootstrap.decks.find(d => d.deckName === `Deck ${index + 1}`);
+    return backendDeck?.characterGameId ?? 1;
+  });
+
+  this.deckIds = [0, 1, 2].map(index => {
+    const backendDeck = bootstrap.decks.find(d => d.deckName === `Deck ${index + 1}`);
+    return backendDeck?.id ?? null;
+  });
 
   this.browserRows = [
     { title: 'BASE — FIRE', cards: mappedCards.filter(c => c.rarity === 'base' && c.element === 'fire') },
@@ -200,6 +220,7 @@ private async loadBootstrapFromBackend() {
     : [];
 
   this.rankText.setText(`Rank: ${this.clanRank}  |  Slots: ${this.slotLimit}/21`); // update the rank and slot limit display in the UI based on the data loaded from the backend
+  this.isDirty = false;
 }
 
 //   private buildCardCollections() {
@@ -271,15 +292,26 @@ private async loadBootstrapFromBackend() {
   private createTopDeckControls() {
     const y = 180;
 
-    this.createMetalBtn(175, y - 25, 180, 48, 'SAVE DECK', () => {
-      this.saveCurrentDeck();
+    this.saveBtnContainer = this.createMetalBtn(175, y - 25, 180, 48, 'SAVED', () => {
+      if (this.isDirty) this.saveCurrentDeck();
+    }, '#888888');
+    this.refreshSaveBtn();
+
+    [890, 1010, 1130].forEach((x, i) => {
+      const isViewing = i === this.selectedDeckIndex;
+      if (isViewing) {
+        const g = this.add.graphics();
+        g.lineStyle(3, 0xffcc00, 1);
+        g.strokeRoundedRect(x - 58, (y - 140) - 27, 116, 54, 7);
+      }
+      this.createMetalBtn(x, y - 140, 110, 48, `DECK ${i + 1}`, () => this.switchDeck(i), isViewing ? '#ffcc00' : '#c2baba');
     });
 
-    this.createMetalBtn(890, y - 140, 110, 48, 'DECK 1', () => this.switchDeck(0));
-    this.createMetalBtn(1010, y - 140, 110, 48, 'DECK 2', () => this.switchDeck(1));
-    this.createMetalBtn(1130, y - 140, 110, 48, 'DECK 3', () => this.switchDeck(2));
+    const currentDeck = this.storage.decks[this.selectedDeckIndex];
 
-    const active = this.storage.decks[this.selectedDeckIndex].isActive ? 'ACTIVE' : 'INACTIVE';
+    this.refreshDeckStatusWidget();
+
+    const active = currentDeck.isActive ? 'ACTIVE' : 'INACTIVE';
     this.add.text(600, y + 8, `DECK ${this.selectedDeckIndex + 1} — ${active}`, {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '24px',
@@ -287,36 +319,84 @@ private async loadBootstrapFromBackend() {
       stroke: '#000000',
       strokeThickness: 5,
     }).setOrigin(0.5);
+  }
 
-    this.createMetalBtn(1020, y - 25, 180, 48, 'SET ACTIVE', async () => {
-        const player = getPlayer();
-        const playerId = Number(player?.id);
+  private async activateAndSwitchDeck(index: number) {
+    const deckId = this.deckIds[index];
+    if (!deckId) {
+      this.showMessage('Save this deck before using it!', '#ff6666');
+      return;
+    }
 
-        if (!Number.isFinite(playerId) || playerId <= 0) {
-        this.showMessage('No logged-in player found.', '#ff6666');
-        return;
-        } // checks if there's a valid logged-in player before attempting to save the deck to the backend
+    const player = getPlayer();
+    const playerId = Number(player?.id);
+    if (!Number.isFinite(playerId) || playerId <= 0) {
+      this.showMessage('No logged-in player found.', '#ff6666');
+      return;
+    }
 
-        try {
-            const deckName = `Deck ${this.selectedDeckIndex + 1}`;
-            const bootstrap = await fetchDeckBootstrap(playerId);
-            const deck = bootstrap.decks.find(d => d.deckName === deckName);
+    try {
+      await activateDeckInBackend({ playerId, deckId });
+      _pendingDeckIndex = index;
+      this.scene.restart();
+    } catch (error) {
+      console.error(error);
+      this.showMessage(error instanceof Error ? error.message : 'Failed to activate deck.', '#ff6666');
+    }
+  }
 
-            if (!deck) {
-            this.showMessage('Save this deck before activating it!', '#ff6666');
-            return;
-            }
+  private refreshSaveBtn() {
+    if (!this.saveBtnContainer) return;
+    const text = this.saveBtnContainer.getAt(1) as Phaser.GameObjects.Text;
+    if (this.isDirty) {
+      text.setText('SAVE DECK');
+      text.setColor('#c2baba');
+    } else {
+      text.setText('SAVED');
+      text.setColor('#888888');
+    }
+  }
 
-            await activateDeckInBackend({ playerId: playerId, deckId: deck.id });
-            this.showMessage(`${deckName} is now active.`, '#00ff88');
-            this.scene.restart();
-        } 
-        
-        catch (error) {
-            console.error(error);
-            this.showMessage(error instanceof Error ? error.message : 'Failed to activate deck.', '#ff6666');
-        }
-    });
+  private refreshDeckStatusWidget() {
+    this.deckStatusObjects.forEach(obj => obj.destroy());
+    this.deckStatusObjects = [];
+
+    const currentDeck = this.storage.decks[this.selectedDeckIndex];
+    const isFull = this.currentDeckCards.length === this.slotLimit;
+    const isActive = currentDeck.isActive;
+
+    if (isFull && isActive) {
+      const g = this.add.graphics();
+      g.fillStyle(0x333333, 1);
+      g.fillRoundedRect(930, 131, 180, 48, 4);
+      g.lineStyle(2, 0xffcc00);
+      g.strokeRoundedRect(930, 131, 180, 48, 4);
+      const t = this.add.text(1020, 155, 'SELECTED', {
+        fontFamily: 'Impact, Arial Black, sans-serif',
+        fontSize: '20px',
+        color: '#ffcc00',
+        stroke: '#000000',
+        strokeThickness: 3,
+      }).setOrigin(0.5);
+      this.deckStatusObjects.push(g, t);
+    } else if (isFull && !isActive) {
+      const btn = this.createMetalBtn(1020, 155, 180, 48, 'USE', () => this.activateAndSwitchDeck(this.selectedDeckIndex), '#00ff88');
+      this.deckStatusObjects.push(btn);
+    } else {
+      const g = this.add.graphics();
+      g.fillStyle(0x1e1e1e, 1);
+      g.fillRoundedRect(930, 131, 180, 48, 4);
+      g.lineStyle(2, 0x555555);
+      g.strokeRoundedRect(930, 131, 180, 48, 4);
+      const t = this.add.text(1020, 155, 'USE', {
+        fontFamily: 'Impact, Arial Black, sans-serif',
+        fontSize: '20px',
+        color: '#555555',
+        stroke: '#000000',
+        strokeThickness: 3,
+      }).setOrigin(0.5);
+      this.deckStatusObjects.push(g, t);
+    }
   }
 
   private createDeckSlotsPanel() {
@@ -382,11 +462,13 @@ private async loadBootstrapFromBackend() {
           strokeThickness: 3,
           align: 'center',
           wordWrap: { width: 80 },
-        }).setOrigin(0.5); // creates the text label for the card in the slot
+        }).setOrigin(0.5);
 
-        text.setInteractive({ useHandCursor: true });
-        text.on('pointerdown', () => this.removeCardFromDeck(index));
+        const hitZone = this.add.rectangle(pos.x + 45, pos.y + 28, 90, 56, 0x000000, 0)
+          .setInteractive({ useHandCursor: true });
+        hitZone.on('pointerdown', () => this.removeCardFromDeck(index));
         this.deckSlotsContainer.add(text);
+        this.deckSlotsContainer.add(hitZone);
       } 
       
       else if (!unlockedByRank) {
@@ -537,8 +619,11 @@ private async loadBootstrapFromBackend() {
 
       container.add(lockText); // adds an overlay and lock text to the card if it's not allowed to be used in the deck due to rank restrictions
 
-      container.setSize(105, 138);
-      container.setInteractive({ useHandCursor: true });
+      container.setInteractive({
+        hitArea: new Phaser.Geom.Rectangle(0, 0, 105, 138),
+        hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+        useHandCursor: true,
+      });
       container.on('pointerdown', () => this.showMessage(`Unlocks at ${unlockRank}.`, '#ff6666'));
       return container;
     }
@@ -560,14 +645,21 @@ private async loadBootstrapFromBackend() {
       container.add(text);
     }
 
-    container.setSize(105, 138);
-    container.setInteractive({ useHandCursor: true });
+    container.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(0, 0, 105, 138),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true,
+    });
     container.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!Phaser.Geom.Rectangle.Contains(this.browserPanelRect, pointer.worldX, pointer.worldY)) {
-        return; // checks if the click is within the bounds of the card browser panel before allowing the player to add the card to their deck
+        return;
       }
-      
-      this.addCardToDeck(card); // adds an input listener to the card container that allows the player to add the card to their deck when clicked
+      if (alreadyInDeck) {
+        const idx = this.currentDeckCards.indexOf(card);
+        if (idx !== -1) this.removeCardFromDeck(idx);
+      } else {
+        this.addCardToDeck(card);
+      }
     });
 
     return container;
@@ -590,9 +682,12 @@ private async loadBootstrapFromBackend() {
     } // checks if the current deck has reached the slot limit based on the player's rank before allowing a new card to be added
 
     this.currentDeckCards.push(card);
+    this.isDirty = true;
     this.showMessage(`${card.name} added to deck.`, '#00ff88'); // adds the selected card to the current deck and shows a confirmation message to the player
     this.renderDeckSlots();
     this.renderBrowserCards();
+    this.refreshSaveBtn();
+    this.refreshDeckStatusWidget();
   }
 
   private removeCardFromDeck(index: number) {
@@ -600,24 +695,20 @@ private async loadBootstrapFromBackend() {
     if (!removed) return; // if there's no card in the specified slot index, simply return without doing anything
 
     this.currentDeckCards.splice(index, 1);
+    this.isDirty = true;
     this.showMessage(`${removed.name} removed from deck.`, '#ffcc00');
     this.renderDeckSlots();
     this.renderBrowserCards();
+    this.refreshSaveBtn();
+    this.refreshDeckStatusWidget();
   }
 
   private switchDeck(index: number) {
-    this.selectedDeckIndex = index;
-    this.storage.selectedDeckIndex = index;
-    this.loadSelectedDeckIntoDraft();
+    _pendingDeckIndex = index;
     this.scene.restart();
-  } // switches the currently selected deck based on the provided index, saves the selection to localStorage, loads the new deck into the draft for editing, and restarts the scene to reflect the changes
+  }
 
   private async saveCurrentDeck() {
-    if (this.currentDeckCards.length !== this.slotLimit) {
-      this.showMessage(`You must fill all ${this.slotLimit} slots before saving.`, '#ff6666');
-      return;
-    } // checks if the current deck has the required number of cards based on the player's rank before allowing it to be saved
-
     const player = getPlayer();
     const playerId = Number(player?.id);
 
@@ -627,14 +718,20 @@ private async loadBootstrapFromBackend() {
     } // checks if there's a valid logged-in player before attempting to save the deck to the backend
 
     try {
-        await saveDeckToBackend({
+        const savedDeck = await saveDeckToBackend({
             playerId: playerId,
             slotIndex: this.selectedDeckIndex,
-            characterGameId: 1, // por ahora Christian fijo; luego lo haremos seleccionable
+            characterGameId: this.deckCharacterGameIds[this.selectedDeckIndex],
             cardGameIds: this.currentDeckCards.map(card => Number(card.id)),
-            makeActive: this.storage.decks[this.selectedDeckIndex].isActive,
+            makeActive: false,
         });
 
+        if (savedDeck?.id) {
+          this.deckIds[this.selectedDeckIndex] = savedDeck.id;
+        }
+
+        this.isDirty = false;
+        this.refreshSaveBtn();
         this.showMessage(`Deck ${this.selectedDeckIndex + 1} saved successfully.`, '#00ff88');
     } catch (error) {
         console.error(error);
@@ -693,7 +790,8 @@ private async loadBootstrapFromBackend() {
     h: number,
     label: string,
     callback: () => void,
-  ) {
+    textColor = '#c2baba',
+  ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
     const graphics = this.add.graphics();
 
@@ -714,7 +812,7 @@ private async loadBootstrapFromBackend() {
     const text = this.add.text(0, 0, label, {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '20px',
-      color: '#c2baba',
+      color: textColor,
       stroke: '#000000',
       strokeThickness: 3,
     }).setOrigin(0.5);
@@ -725,8 +823,8 @@ private async loadBootstrapFromBackend() {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => { draw(true); text.y = 2; })
       .on('pointerup', () => { draw(false); text.y = 0; callback(); })
-      .on('pointerout', () => { draw(false); text.y = 0; })
-      .on('pointerover', () => { text.setColor('#226d1b'); })
-      .on('pointerout', () => { text.setColor('#c2baba'); });
+      .on('pointerout', () => { draw(false); text.y = 0; text.setColor(textColor); })
+      .on('pointerover', () => { text.setColor('#226d1b'); });
+    return container;
   } // same metal button style used in the MenuScene and the other scenes as well
 }
