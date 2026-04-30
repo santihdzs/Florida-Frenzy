@@ -2,6 +2,7 @@
 
 import Phaser from 'phaser';
 import { getPlayer, updatePreferences, isLoggedIn } from '../utils/auth.js';
+import { transitionTo } from '../utils/sceneTransition.js';
 
 export class SettingsScene extends Phaser.Scene {
   private fromPause = false; // track if we came from the pause menu
@@ -17,98 +18,64 @@ export class SettingsScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor('#1a1a1a');
 
-    // Apply saved mute state
     const isMuted = localStorage.getItem('ff_muted') === 'true';
     this.sound.mute = isMuted;
 
-    //text styles
     const titleStyle = {
       fontFamily: 'Impact, sans-serif',
       fontSize: '48px',
       color: '#c2baba',
       stroke: '#000',
-      strokeThickness: 4
+      strokeThickness: 4,
     };
-
     const labelStyle = {
       fontFamily: 'Arial Black, sans-serif',
       fontSize: '24px',
-      color: '#e0e0e0'
+      color: '#e0e0e0',
+    };
+    const sectionStyle = {
+      fontFamily: 'Arial Black, sans-serif',
+      fontSize: '14px',
+      color: '#888888',
     };
 
-    // Title
-    this.add.text(centerX, 80, 'SETTINGS', titleStyle).setOrigin(0.5);
+    // Back — top-left corner
+    this.createMetalBtn(60, 42, 110, 44, '< BACK', () => {
+      if (this.fromPause) {
+        this.scene.stop();
+        this.scene.launch('PauseScene', { returnScene: this.returnScene });
+      } else {
+        this.scene.start('MenuScene');
+      }
+    });
 
-    // Volume Section
+    // Title
+    this.add.text(centerX, 55, 'SETTINGS', titleStyle).setOrigin(0.5);
+
+    // ── SOUND ────────────────────────────────────────────────────────────────
+    this.add.text(centerX, 118, 'SOUND', sectionStyle).setOrigin(0.5);
+
+    // Volume
     let currentVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
     const music = this.registry.get('music');
-    if (music) {
-      music.setVolume(currentVolume);
-    }
+    if (music) music.setVolume(currentVolume);
 
-    this.add.text(centerX, 180, 'AUDIO VOLUME', labelStyle).setOrigin(0.5);
-    const volDisplay = this.add.text(centerX, 230, `${Math.round(currentVolume * 100)}%`, labelStyle).setOrigin(0.5);
+    this.add.text(centerX, 158, 'AUDIO VOLUME', labelStyle).setOrigin(0.5);
+    const volDisplay = this.add.text(centerX, 203, `${Math.round(currentVolume * 100)}%`, labelStyle).setOrigin(0.5);
 
-    // Buttons for volume control
-    this.createMetalBtn(centerX - 80, 230, 60, 50, '-', () => {
+    this.createMetalBtn(centerX - 80, 203, 60, 50, '-', () => {
       currentVolume = Math.max(0, currentVolume - 0.1);
       this.updateVolume(currentVolume, volDisplay);
     });
-
-    this.createMetalBtn(centerX + 80, 230, 60, 50, '+', () => {
+    this.createMetalBtn(centerX + 80, 203, 60, 50, '+', () => {
       currentVolume = Math.min(1, currentVolume + 0.1);
       this.updateVolume(currentVolume, volDisplay);
     });
 
-    //resolution section
-    const resolutions = [
-      { label: 'Pequeña 1024x640', width: 1024, height: 640 },
-      { label: 'Normal 1200x750', width: 1200, height: 750 },
-      { label: 'Grande 1440x900', width: 1440, height: 900 }
-    ];
-    
-    let currentResIndex = parseInt(localStorage.getItem('gameResolution') || '1'); // Default to 1200x750
-
-    this.add.text(centerX, 300, 'SCREEN RESOLUTION', labelStyle).setOrigin(0.5);
-    
-    //buttons for resolution control
-    this.createMetalBtn(centerX, 360, 300, 60, resolutions[currentResIndex].label, () => {
-      this.input.enabled = false;
-
-      // visual effect
-      this.cameras.main.fadeOut(500, 0, 0, 0);
-
-      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-          currentResIndex = (currentResIndex + 1) % resolutions.length;
-          const target = resolutions[currentResIndex];
-
-          localStorage.setItem('gameResolution', currentResIndex.toString());
-          
-          this.scale.setGameSize(target.width, target.height);
-          this.scene.restart();
-      });
-    });
-
-    //full screen toggle
-    this.add.text(centerX, 440, 'DISPLAY MODE', labelStyle).setOrigin(0.5);
-
-    const initialfslabel = this.scale.isFullscreen ? 'EXIT FULLSCREEN' : 'WINDOWED / FULLSCREEN'; // Set initial label based on current fullscreen state
-
-    // Fullscreen toggle button
-    const fullScreenBtn = this.createMetalBtn(centerX, 500, 300, 60, initialfslabel, () => {
-      if (this.scale.isFullscreen) {
-        this.scale.stopFullscreen();
-        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('WINDOWED / FULLSCREEN'); // Update label when exiting fullscreen
-      } else {
-        document.getElementById('game-container')?.requestFullscreen();
-        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('EXIT FULLSCREEN'); // Update label when entering fullscreen
-      }
-    });
-
-    // Sound mute toggle
-    this.add.text(centerX, 545, 'SOUND', labelStyle).setOrigin(0.5);
+    // Mute toggle
+    this.add.text(centerX, 255, 'MUTE', labelStyle).setOrigin(0.5);
     let currentMuted = localStorage.getItem('ff_muted') === 'true';
-    const muteBtn = this.createMetalBtn(centerX, 590, 180, 60, currentMuted ? 'OFF' : 'ON', () => {
+    const muteBtn = this.createMetalBtn(centerX, 298, 180, 60, currentMuted ? 'OFF' : 'ON', () => {
       currentMuted = !currentMuted;
       localStorage.setItem('ff_muted', currentMuted ? 'true' : 'false');
       this.sound.mute = currentMuted;
@@ -119,16 +86,45 @@ export class SettingsScene extends Phaser.Scene {
       }
     });
 
-    // Back button
-    this.createMetalBtn(centerX, 660, 180, 60, 'BACK', () => {
-      if (this.fromPause) {
-        this.scene.stop();
-        this.scene.launch('PauseScene', { returnScene: this.returnScene });
-      }
+    // ── SCREEN RESOLUTION ─────────────────────────────────────────────────────
+    const resolutions = [
+      { label: 'Pequeña 1024x640', width: 1024, height: 640 },
+      { label: 'Normal 1200x750', width: 1200, height: 750 },
+      { label: 'Grande 1440x900', width: 1440, height: 900 },
+    ];
+    let currentResIndex = parseInt(localStorage.getItem('gameResolution') || '1');
 
-      else {
-        this.scene.start('MenuScene');
+    this.add.text(centerX, 372, 'SCREEN RESOLUTION', sectionStyle).setOrigin(0.5);
+    this.createMetalBtn(centerX, 416, 300, 60, resolutions[currentResIndex].label, () => {
+      this.input.enabled = false;
+      this.cameras.main.fadeOut(500, 0, 0, 0);
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        currentResIndex = (currentResIndex + 1) % resolutions.length;
+        const target = resolutions[currentResIndex];
+        localStorage.setItem('gameResolution', currentResIndex.toString());
+        this.scale.setGameSize(target.width, target.height);
+        this.scene.restart();
+      });
+    });
+
+    // ── DISPLAY MODE ──────────────────────────────────────────────────────────
+    this.add.text(centerX, 490, 'DISPLAY MODE', sectionStyle).setOrigin(0.5);
+
+    const initialfslabel = this.scale.isFullscreen ? 'EXIT FULLSCREEN' : 'WINDOWED / FULLSCREEN';
+    const fullScreenBtn = this.createMetalBtn(centerX, 533, 300, 60, initialfslabel, () => {
+      if (this.scale.isFullscreen) {
+        this.scale.stopFullscreen();
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('WINDOWED / FULLSCREEN');
+      } else {
+        document.getElementById('game-container')?.requestFullscreen();
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('EXIT FULLSCREEN');
       }
+    });
+
+    // ── ACCOUNT ───────────────────────────────────────────────────────────────
+    this.add.text(centerX, 608, 'ACCOUNT', sectionStyle).setOrigin(0.5);
+    this.createMetalBtn(centerX, 651, 280, 55, 'Account Settings', () => {
+      transitionTo(this, 'AccountScene', { fromPause: this.fromPause, returnScene: this.returnScene });
     });
   }
 

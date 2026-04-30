@@ -61,7 +61,7 @@ import { completeRun, getPlayer } from '../utils/auth.js'; // API call to save r
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 import { transitionTo } from '../utils/sceneTransition.js';
 
-import backgroundImg from '../assets/backgrounds/everglades.jpg'; // duel background image
+import { MAP_CONFIGS } from '../utils/mapConfig.js'; // background pairing per run map
 
 import cardFrame from '../assets/sprites/FFCardFront.webp'; // card frame image
 
@@ -207,6 +207,7 @@ export class DuelScene extends Phaser.Scene {
 
   private selectedBoss?: DuelBossData; // the boss selected for the duel, assigned when the player reaches the end zone in RunScene and used to configure the DuelScene enemy
   private bossLivesRemaining = 1; // only for Pythra
+  private currentMap?: string; // Phaser texture key for the active RunScene map, forwarded back on cycle advance
   private pythraPhase = 1; // tracks Pythra's evolution phase for animation purposes
 
   private playerCharacter!: Phaser.GameObjects.Image; // player character sprite
@@ -229,13 +230,15 @@ export class DuelScene extends Phaser.Scene {
     this.selectedBoss = data.selectedBoss; // restore selected boss if passed in from RunScene, otherwise will be assigned when player reaches end zone in RunScene
     this.bossLivesRemaining = this.selectedBoss?.enemyName === 'Pythra' ? 3 : 1; // if the selected boss is Pythra, set lives to 2 to account for her evolution phase
     this.pythraPhase = 1; // reset Pythra phase to 1 at the start of each duel, will evolve when her HP reaches 0 until she has no lives remaining
+    this.currentMap = data.currentMap;
   }
 
   preload() {
     showLoadingScreen(this);
 
     if (!this.cache.audio.has('duel-music'))       this.load.audio('duel-music', music);
-    if (!this.textures.exists('background'))        this.load.image('background', backgroundImg);
+    const bg = Object.values(MAP_CONFIGS).find(m => m.key === this.currentMap) ?? MAP_CONFIGS['everglades'];
+    if (!this.textures.exists(bg.bgKey))            this.load.image(bg.bgKey, bg.bgUrl);
     if (!this.textures.exists('card-frame'))        this.load.image('card-frame', cardFrame);
     if (!this.textures.exists('card-fire-special')) this.load.image('card-fire-special', cardFireSpecial);
     if (!this.textures.exists('card-water-special'))this.load.image('card-water-special', cardWaterSpecial);
@@ -375,7 +378,8 @@ export class DuelScene extends Phaser.Scene {
 
     this.resetDuelState(); // clear all duel state before building the scene
 
-    this.add.image(centerX, height / 2, 'background').setDepth(0); // place the background in the center
+    const bgCfg = Object.values(MAP_CONFIGS).find(m => m.key === this.currentMap) ?? MAP_CONFIGS['everglades'];
+    this.add.image(centerX, height / 2, bgCfg.bgKey).setDepth(0); // place the background in the center
 
     this.createCharacters(); // place player and enemy sprites
     this.drawHudPanels(); // draw the dark HUD containers behind the UI
@@ -483,6 +487,7 @@ export class DuelScene extends Phaser.Scene {
       totalCoins: this.totalCoins,
       totalXp: this.totalXp,
       runId: this.runId, // preserve run id for server persistence
+      currentMap: this.currentMap, // forwarded so RunScene can avoid repeating the same map
     });
   }
 

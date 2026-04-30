@@ -155,10 +155,40 @@ export async function fetchMyRuns(): Promise<any[]> {
   return data;
 }
 
+// API: Rank of the current player by maxXp (1 = highest)
+export async function fetchMyRank(): Promise<number> {
+  const token = getToken();
+  if (!token) return 0;
+  const res = await fetch(`${API_URL}/api/leaderboard/my-rank`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return 0;
+  const data = await res.json() as { rank: number };
+  return data.rank;
+}
+
+// API: Admin-only aggregate stats
+export async function fetchAdminStats(): Promise<{
+  totalPlayers: number;
+  totalRuns: number;
+  avgLevel: number;
+  activeSessions: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  levelDistribution: { level: number; count: number }[];
+} | null> {
+  const token = getToken();
+  if (!token) return null;
+  const res = await fetch(`${API_URL}/api/users/admin-stats`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return res.json() as Promise<any>;
+}
+
 // API: Logout (client-side only)
 export function logout(): void {
   clearToken();
-  window.location.reload();
 }
 
 export async function updatePreferences(prefs: { isMuted?: boolean }) {
@@ -360,6 +390,60 @@ export async function removeFriend(friendshipId: number): Promise<Record<string,
   const data = await res.json() as { message?: string } & Record<string, unknown>;
   if (!res.ok) throw new Error(data.message ?? 'Failed');
   return data;
+}
+
+export async function changeUsername(username: string): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/users/me`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ username }),
+  });
+  const data = await res.json() as { message?: string } & Record<string, unknown>;
+  if (!res.ok) throw new Error(data.message ?? 'Update failed');
+  setPlayer(data);
+  return data;
+}
+
+export async function changeEmail(email: string): Promise<Record<string, unknown>> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/users/me/email`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json() as { message?: string } & Record<string, unknown>;
+  if (!res.ok) throw new Error(data.message ?? 'Update failed');
+  setPlayer(data);
+  return data;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/users/me/password`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await res.json() as { message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Update failed');
+}
+
+export async function deleteMyAccount(password: string): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error('Not logged in');
+  const res = await fetch(`${API_URL}/api/users/me`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ password }),
+  });
+  if (res.status === 204) { clearToken(); return; }
+  const data = await res.json() as { message?: string };
+  if (!res.ok) throw new Error(data.message ?? 'Delete failed');
+  clearToken();
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

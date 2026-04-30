@@ -54,6 +54,23 @@ const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
+  // GET /api/leaderboard/my-rank — rank of the logged-in player by maxXp
+  fastify.get(
+    '/my-rank',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const playerId = request.user.playerId;
+      const player = await fastify.prisma.player.findUnique({
+        where: { id: playerId },
+        select: { maxXp: true },
+      });
+      const rank = await fastify.prisma.player.count({
+        where: { maxXp: { gt: player?.maxXp ?? 0 } },
+      }) + 1;
+      return reply.send({ rank });
+    }
+  );
+
   // GET /api/leaderboard/friends — requires auth
   fastify.get(
     '/friends',
