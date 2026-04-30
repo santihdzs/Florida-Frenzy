@@ -3,6 +3,7 @@ import { transitionTo } from '../utils/sceneTransition.js';
 import pythraUrl from '../assets/characters/pythra/Pythra_damage-2.webp';
 import music from '../assets/music/Blackwater_Shuffle.mp3';
 import backgroundImg from '../assets/backgrounds/sewers_topdown.webp';
+import type { RunData } from './RunScene';
 
 // Constantes para las líneas de diálogo
 const DIALOGUE_LINES = [
@@ -22,9 +23,23 @@ export class EndScene extends Phaser.Scene {
   private isTransitioning = false;
   private nextBtn!: Phaser.GameObjects.Text;
   private skipHint!: Phaser.GameObjects.Text;
+  private nextRunData: RunData = { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 };
 
   constructor() {
     super({ key: 'EndScene' });
+  }
+
+  init(data: Partial<RunData>) {
+    this.nextRunData = {
+      level:       data.level       ?? 1,
+      step:        data.step        ?? 0,
+      totalCoins:  data.totalCoins  ?? 0,
+      totalXp:     data.totalXp     ?? 0,
+      runId:       data.runId       ?? 0,
+      currentMap:  data.currentMap,
+    };
+    this.currentLineIndex = 0;
+    this.isTransitioning = false;
   }
 
   preload() {
@@ -114,7 +129,7 @@ export class EndScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10).setVisible(false).setInteractive({ useHandCursor: true });
 
     this.nextBtn.on('pointerdown', () => {
-      transitionTo(this, 'MenuScene'); // Go to the next scene after clicking the button
+      transitionTo(this, 'RunScene', this.nextRunData);
     });
 
     // Start first line

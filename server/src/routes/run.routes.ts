@@ -109,6 +109,27 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
+  // POST /api/runs/beat-pythra
+  fastify.post('/beat-pythra', async (request, reply) => {
+    const playerId = request.user.playerId;
+
+    const player = await fastify.prisma.player.findUniqueOrThrow({
+      where: { id: playerId },
+      select: { hasBeatenPythra: true },
+    });
+
+    if (player.hasBeatenPythra) {
+      return reply.send({ firstTime: false });
+    }
+
+    await fastify.prisma.player.update({
+      where: { id: playerId },
+      data: { hasBeatenPythra: true },
+    });
+
+    return reply.send({ firstTime: true });
+  });
+
   // POST /api/runs/abandon-stale
   fastify.post('/abandon-stale', async (request, reply) => {
     const playerId = request.user.playerId;

@@ -71,6 +71,18 @@ export async function login(
   return data;
 }
 
+// API: Record first-time Pythra defeat — returns true only the very first time
+export async function beatPythra(): Promise<boolean> {
+  const token = getToken();
+  if (!token) return false;
+  const res = await fetch(`${API_URL}/api/runs/beat-pythra`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  const data = await res.json() as { firstTime: boolean };
+  return data.firstTime ?? false;
+}
+
 // API: Abandon any in-progress runs left open from a previous session (e.g. page refresh mid-run)
 export async function abandonStaleRuns(): Promise<void> {
   const token = getToken();

@@ -62,7 +62,7 @@ import { updateHpBar, updateEnergyBar, updateShieldBar } from '../utils/duelUi';
 import { CombatState, createEmptyCombatState } from '../utils/combatState'; // combat status container and reset helper
 
 import type { RunData } from './RunScene'; // run-progress data passed into this scene
-import { completeRun, getPlayer } from '../utils/auth.js'; // API call to save run result
+import { completeRun, getPlayer, beatPythra } from '../utils/auth.js'; // API call to save run result
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 import { transitionTo } from '../utils/sceneTransition.js';
 
@@ -497,15 +497,27 @@ export class DuelScene extends Phaser.Scene {
     });
   }
 
-  private advanceToNextCycle() {
-    transitionTo(this, 'RunScene', { // transition back to the overworld progression scene
-      level: this.level + 1, // advance to the next level
-      step: 0, // reset step counter
+  private async advanceToNextCycle() {
+    if ((this as any).__transitioning) return;
+
+    const runData: RunData = {
+      level: this.level + 1,
+      step: 0,
       totalCoins: this.totalCoins,
       totalXp: this.totalXp,
-      runId: this.runId, // preserve run id for server persistence
-      currentMap: this.currentMap, // forwarded so RunScene can avoid repeating the same map
-    });
+      runId: this.runId,
+      currentMap: this.currentMap,
+    };
+
+    if (this.selectedBoss?.enemyName === 'Pythra') {
+      const firstTime = await beatPythra();
+      if (firstTime) {
+        transitionTo(this, 'EndScene', runData);
+        return;
+      }
+    }
+
+    transitionTo(this, 'RunScene', runData);
   }
 
   private resetDuelState() {
