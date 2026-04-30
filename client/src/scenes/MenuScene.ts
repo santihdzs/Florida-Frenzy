@@ -104,7 +104,7 @@ export class MenuScene extends Phaser.Scene {
     const mainH = 68;
 
     this.createButton(cx, 320, mainW, mainH, this.t.play,        () => this.startGame(),                 textStyle);
-    this.createButton(cx, 410, mainW, mainH, this.t.multiplayer, () => this.showMultiplayerComingSoon(), textStyle);
+    this.createButton(cx, 410, mainW, mainH, this.t.multiplayer, () => this.goMultiplayer(), textStyle);
     this.createButton(cx, 490, mainW, mainH, this.t.shop,         () => transitionTo(this, 'ShopScene'),    textStyle);
     this.createButton(cx, 570, mainW, mainH, this.t.friends,     () => transitionTo(this, 'FriendsScene'), textStyle);
     this.createButton(cx, 650, mainW, mainH, logoutLabel,   logoutAction,                            textStyle);
