@@ -48,6 +48,11 @@ const ENEMY_BAR_Y = -6;
 const PROJ_SIZE  = 8;
 const PROJ_SPEED = 420;
 
+const ENEMY_PROJ_SIZE     = 8;
+const ENEMY_PROJ_SPEED    = 200;
+const ENEMY_PROJ_DMG      = 10;
+const SHOOTER_FIRE_INTERVAL = 2000;
+
 const HEAL_PER_SEC       = 12;
 const CAMERA_SCROLL_BASE = 100;
 
@@ -142,13 +147,19 @@ interface Projectile {
   img: Phaser.GameObjects.Image;
 }
 
+interface EnemyProjectile {
+  x: number; y: number;
+  vx: number; vy: number;
+  img: Phaser.GameObjects.Image;
+}
+
 interface PlayerSprite {
   img: Phaser.GameObjects.Sprite;
   nameLabel: Phaser.GameObjects.Text;
   lastDir: string;
   skin: CharSheetKey;
-  prevX: number;
-  prevY: number;
+  renderX: number;
+  renderY: number;
 }
 
 interface EnemySprite {
@@ -156,8 +167,9 @@ interface EnemySprite {
   skinKey: CharSheetKey;
   lastDir: string;
   hpBar: Phaser.GameObjects.Graphics;
-  prevX: number;
-  prevY: number;
+  renderX: number;
+  renderY: number;
+  shootTimer: number;
 }
 
 export interface MultiplayerRunInitData {
@@ -177,7 +189,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private serverEnemies: ServerEnemy[] = [];
   private serverPlayers: ServerPlayer[] = [];
   private level = 1;
-  private mapKey = 'garbage_dump';
+  private mapKey = 'sewers';
 
   // Local player state
   private myPlayerId  = 0;
@@ -218,6 +230,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private playerSprites = new Map<number, PlayerSprite>();
   private enemySprites  = new Map<number, EnemySprite>();
   private projectiles: Projectile[] = [];
+  private enemyProjectiles: EnemyProjectile[] = [];
 
   // Input
   private cursors!:   Phaser.Types.Input.Keyboard.CursorKeys;
@@ -251,17 +264,18 @@ export class MultiplayerRunScene extends Phaser.Scene {
     this.serverEnemies = (data.enemies ?? []) as ServerEnemy[];
     this.serverPlayers = (data.players ?? []) as ServerPlayer[];
     this.level         = data.level   ?? 1;
-    this.mapKey        = data.mapKey  ?? 'garbage_dump';
+    this.mapKey        = data.mapKey  ?? Object.keys(MAP_CONFIGS)[0]!;
     this.myPlayerId    = Number(getPlayer()?.id ?? 0);
 
-    this.localAlive  = true;
-    this.spectating  = false;
-    this.endReached  = false;
-    this.done        = false;
-    this.scrollX     = 0;
-    this.leftStart   = false;
-    this.lastDir     = 'down';
-    this.projectiles = [];
+    this.localAlive       = true;
+    this.spectating       = false;
+    this.endReached       = false;
+    this.done             = false;
+    this.scrollX          = 0;
+    this.leftStart        = false;
+    this.lastDir          = 'down';
+    this.projectiles      = [];
+    this.enemyProjectiles = [];
     this.barrierRects = [];
     this.holeRects    = [];
     this.puddleRects  = [];
@@ -297,7 +311,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
     if (!this.textures.exists('chris-avatar'))
       this.load.image('chris-avatar', chrisAvatarUrl);
 
-    const mapCfg = MAP_CONFIGS[this.mapKey] ?? MAP_CONFIGS['garbage_dump'];
+    const mapCfg = MAP_CONFIGS[this.mapKey] ?? Object.values(MAP_CONFIGS)[0]!;
     if (!this.textures.exists(mapCfg.key))
       this.load.spritesheet(mapCfg.key, mapCfg.url, {
         frameWidth: mapCfg.tileWidth, frameHeight: mapCfg.tileHeight,
@@ -375,6 +389,13 @@ export class MultiplayerRunScene extends Phaser.Scene {
       g.generateTexture('mp-proj', PROJ_SIZE, PROJ_SIZE);
       g.destroy();
     }
+    if (!this.textures.exists('mp-enemy-proj')) {
+      const g = this.make.graphics();
+      g.fillStyle(0xff4444);
+      g.fillCircle(ENEMY_PROJ_SIZE / 2, ENEMY_PROJ_SIZE / 2, ENEMY_PROJ_SIZE / 2);
+      g.generateTexture('mp-enemy-proj', ENEMY_PROJ_SIZE, ENEMY_PROJ_SIZE);
+      g.destroy();
+    }
   }
 
   // ── Animations ────────────────────────────────────────────────────────────
@@ -424,7 +445,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
   // ── World ─────────────────────────────────────────────────────────────────
 
   private buildWorld() {
-    const mapCfg = MAP_CONFIGS[this.mapKey] ?? MAP_CONFIGS['garbage_dump'];
+    const mapCfg = MAP_CONFIGS[this.mapKey] ?? Object.values(MAP_CONFIGS)[0]!;
     const { key: mapKey, frames: mapFrames } = mapCfg;
 
     const tex = this.textures.get(mapKey);
@@ -503,7 +524,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
         stroke: '#000000', strokeThickness: 2,
       }).setOrigin(0.5, 1).setDepth(6);
 
-      this.playerSprites.set(p.playerId, { img, nameLabel, lastDir: 'down', skin, prevX: p.x, prevY: p.y });
+      this.playerSprites.set(p.playerId, { img, nameLabel, lastDir: 'down', skin, renderX: p.x, renderY: p.y });
     });
   }
 
@@ -519,7 +540,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
 
       const hpBar = this.add.graphics().setDepth(5);
       this.drawEnemyBar(e.x, e.y, e.hp / e.maxHp, hpBar);
-      this.enemySprites.set(e.id, { img, skinKey, lastDir: 'down', hpBar, prevX: e.x, prevY: e.y });
+      this.enemySprites.set(e.id, { img, skinKey, lastDir: 'down', hpBar, renderX: e.x, renderY: e.y, shootTimer: 0 });
     });
   }
 
@@ -699,13 +720,9 @@ export class MultiplayerRunScene extends Phaser.Scene {
       if (e) e.alive = false;
       const sprite = this.enemySprites.get(data.enemyId);
       if (sprite) {
-        this.tweens.add({
-          targets: sprite.img, alpha: 0, scaleX: 2, scaleY: 2, duration: 300,
-          onComplete: () => {
-            sprite.img.destroy(); sprite.hpBar.destroy();
-            this.enemySprites.delete(data.enemyId);
-          },
-        });
+        sprite.img.destroy();
+        sprite.hpBar.destroy();
+        this.enemySprites.delete(data.enemyId);
       }
     });
 
@@ -758,7 +775,9 @@ export class MultiplayerRunScene extends Phaser.Scene {
       this.checkEndZone();
     }
 
-    this.syncSpritePositions();
+    this.updateEnemyShooters(dt);
+    this.updateEnemyProjectiles(dt);
+    this.syncSpritePositions(dt);
     this.scrollCamera(dt);
     this.refreshHud();
   }
@@ -789,8 +808,8 @@ export class MultiplayerRunScene extends Phaser.Scene {
     if (this.cursors.down.isDown  || this.keyS.isDown) dy =  speed * dt;
 
     this.localX = Phaser.Math.Clamp(this.localX + dx, 0, WORLD_W - PLAYER_SIZE);
-    this.localY = Phaser.Math.Clamp(this.localY + dy, 0, WORLD_H - PLAYER_SIZE);
     if (dx !== 0) this.resolveBarriers(dx, 0);
+    this.localY = Phaser.Math.Clamp(this.localY + dy, 0, WORLD_H - PLAYER_SIZE);
     if (dy !== 0) this.resolveBarriers(0, dy);
 
     // Don't let local player outrun the right edge of the camera
@@ -867,6 +886,74 @@ export class MultiplayerRunScene extends Phaser.Scene {
     }
   }
 
+  // ── Enemy shooting ────────────────────────────────────────────────────────
+
+  private updateEnemyShooters(dt: number) {
+    if (!this.localAlive) return;
+    for (const e of this.serverEnemies) {
+      if (!e.alive || e.type !== 'SHOOTER') continue;
+      const sprite = this.enemySprites.get(e.id);
+      if (!sprite) continue;
+      sprite.shootTimer += dt * 1000;
+      if (sprite.shootTimer < SHOOTER_FIRE_INTERVAL) continue;
+      sprite.shootTimer = 0;
+      const ex  = sprite.renderX + ENEMY_SIZE / 2;
+      const ey  = sprite.renderY + ENEMY_SIZE / 2;
+      const px  = this.localX + PLAYER_SIZE / 2;
+      const py  = this.localY + PLAYER_SIZE / 2;
+      const ang = Math.atan2(py - ey, px - ex);
+      this.enemyProjectiles.push({
+        x:   ex - ENEMY_PROJ_SIZE / 2,
+        y:   ey - ENEMY_PROJ_SIZE / 2,
+        vx:  Math.cos(ang) * ENEMY_PROJ_SPEED,
+        vy:  Math.sin(ang) * ENEMY_PROJ_SPEED,
+        img: this.add.image(ex, ey, 'mp-enemy-proj').setOrigin(0.5).setDepth(10),
+      });
+    }
+  }
+
+  private updateEnemyProjectiles(dt: number) {
+    for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+      const p = this.enemyProjectiles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      let remove = false;
+
+      if (p.x < 0 || p.x + ENEMY_PROJ_SIZE > WORLD_W || p.y < 0 || p.y + ENEMY_PROJ_SIZE > WORLD_H) {
+        remove = true;
+      }
+
+      if (!remove) {
+        for (const b of this.barrierRects) {
+          if (rectsOverlap(p.x, p.y, ENEMY_PROJ_SIZE, ENEMY_PROJ_SIZE, b.x, b.y, b.w, b.h)) {
+            remove = true; break;
+          }
+        }
+      }
+
+      if (!remove && this.localAlive) {
+        if (rectsOverlap(p.x, p.y, ENEMY_PROJ_SIZE, ENEMY_PROJ_SIZE, this.localX, this.localY, PLAYER_SIZE, PLAYER_SIZE)) {
+          this.localHp = Math.max(0, this.localHp - ENEMY_PROJ_DMG);
+          remove = true;
+          if (this.localHp <= 0) {
+            this.localAlive = false;
+            this.spectating = true;
+            getSocket().emit('run:player_died');
+            this.showSpectator();
+          }
+        }
+      }
+
+      if (remove) {
+        p.img.destroy();
+        this.enemyProjectiles.splice(i, 1);
+      } else {
+        p.img.setPosition(p.x + ENEMY_PROJ_SIZE / 2, p.y + ENEMY_PROJ_SIZE / 2);
+      }
+    }
+  }
+
   // ── World checks ──────────────────────────────────────────────────────────
 
   private checkHoleDeath() {
@@ -905,32 +992,50 @@ export class MultiplayerRunScene extends Phaser.Scene {
 
   // ── Sprite sync ───────────────────────────────────────────────────────────
 
-  private syncSpritePositions() {
-    // Local player
+  private syncSpritePositions(dt: number) {
+    // Local player — direct, no interpolation.
+    // Also pin renderX/renderY and serverPlayers entry to localX/localY so that
+    // if the remote lerp loop ever processes this player (e.g. ID type mismatch),
+    // the lerp computes a zero delta and setPosition lands at localX/localY.
     const mySprite = this.playerSprites.get(this.myPlayerId);
     if (mySprite) {
       mySprite.img.setPosition(this.localX, this.localY);
       mySprite.nameLabel.setPosition(this.localX + PLAYER_SIZE / 2, this.localY - 12);
+      mySprite.renderX = this.localX;
+      mySprite.renderY = this.localY;
     }
+    const myData = this.serverPlayers.find(p => p.playerId === this.myPlayerId);
+    if (myData) { myData.x = this.localX; myData.y = this.localY; }
 
-    // Remote players — update position + directional animation from server tick delta
+    // Lerp factor: frame-rate-independent, catches up to server target within ~2 frames
+    const lerpFactor = Math.min(1, 20 * dt);
+
+    // Remote players — lerp rendered position toward server target
     this.serverPlayers.forEach(p => {
       if (p.playerId === this.myPlayerId) return;
       const sprite = this.playerSprites.get(p.playerId);
       if (!sprite) return;
 
-      const dx = p.x - sprite.prevX;
-      const dy = p.y - sprite.prevY;
-      sprite.img.setPosition(p.x, p.y);
-      sprite.nameLabel.setPosition(p.x + PLAYER_SIZE / 2, p.y - 12);
-
       if (!p.alive) {
+        sprite.renderX = p.x;
+        sprite.renderY = p.y;
+        sprite.img.setPosition(p.x, p.y);
+        sprite.nameLabel.setPosition(p.x + PLAYER_SIZE / 2, p.y - 12);
         sprite.img.setAlpha(0.3);
         sprite.img.anims.stop();
         return;
       }
 
-      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      const prevRX = sprite.renderX;
+      const prevRY = sprite.renderY;
+      sprite.renderX += (p.x - sprite.renderX) * lerpFactor;
+      sprite.renderY += (p.y - sprite.renderY) * lerpFactor;
+      sprite.img.setPosition(sprite.renderX, sprite.renderY);
+      sprite.nameLabel.setPosition(sprite.renderX + PLAYER_SIZE / 2, sprite.renderY - 12);
+
+      const dx = sprite.renderX - prevRX;
+      const dy = sprite.renderY - prevRY;
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
         const dir = Math.abs(dx) >= Math.abs(dy)
           ? (dx > 0 ? 'right' : 'left')
           : (dy > 0 ? 'down' : 'up');
@@ -938,25 +1043,27 @@ export class MultiplayerRunScene extends Phaser.Scene {
           sprite.lastDir = dir;
           sprite.img.play(`${sprite.skin}-walk-${dir}`, true);
         }
-        sprite.prevX = p.x;
-        sprite.prevY = p.y;
       } else if (sprite.img.anims.isPlaying) {
         sprite.img.anims.stop();
         sprite.img.setFrame(`${sprite.skin}-walk-${sprite.lastDir}-1`);
       }
     });
 
-    // Enemies — update position + directional animation + HP bar
+    // Enemies — lerp rendered position toward server target
     this.serverEnemies.forEach(e => {
       if (!e.alive) return;
       const sprite = this.enemySprites.get(e.id);
       if (!sprite) return;
 
-      const dx = e.x - sprite.prevX;
-      const dy = e.y - sprite.prevY;
-      sprite.img.setPosition(e.x, e.y);
+      const prevRX = sprite.renderX;
+      const prevRY = sprite.renderY;
+      sprite.renderX += (e.x - sprite.renderX) * lerpFactor;
+      sprite.renderY += (e.y - sprite.renderY) * lerpFactor;
+      sprite.img.setPosition(sprite.renderX, sprite.renderY);
 
-      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      const dx = sprite.renderX - prevRX;
+      const dy = sprite.renderY - prevRY;
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
         const dir = Math.abs(dx) >= Math.abs(dy)
           ? (dx > 0 ? 'right' : 'left')
           : (dy > 0 ? 'down' : 'up');
@@ -964,14 +1071,12 @@ export class MultiplayerRunScene extends Phaser.Scene {
           sprite.lastDir = dir;
           sprite.img.play(`${sprite.skinKey}-walk-${dir}`, true);
         }
-        sprite.prevX = e.x;
-        sprite.prevY = e.y;
       } else if (sprite.img.anims.isPlaying) {
         sprite.img.anims.stop();
         sprite.img.setFrame(`${sprite.skinKey}-walk-${sprite.lastDir}-1`);
       }
 
-      this.drawEnemyBar(e.x, e.y, e.hp / e.maxHp, sprite.hpBar);
+      this.drawEnemyBar(sprite.renderX, sprite.renderY, e.hp / e.maxHp, sprite.hpBar);
     });
   }
 

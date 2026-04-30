@@ -33,7 +33,6 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
   private lobbyState: LobbyState | null = null;
   private friends: Friend[] = [];
   private uiGroup: Phaser.GameObjects.GameObject[] = [];
-  private joinCodeInput: HTMLInputElement | null = null;
   private codeInput: HTMLInputElement | null = null;
   private socket!: Socket; // captured once in create(); reused everywhere
 
@@ -109,6 +108,7 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
       level: number;
       mapKey: string;
     }) => {
+      this.removeCodeInput();
       transitionTo(this, 'MultiplayerRunScene', {
         grid:    data.grid,
         enemies: data.enemies,
@@ -123,13 +123,15 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     });
   }
 
+  private removeCodeInput() {
+    this.codeInput?.remove();
+    this.codeInput = null;
+  }
+
   private clearUI() {
     this.uiGroup.forEach(o => o.destroy());
     this.uiGroup = [];
-    this.joinCodeInput?.remove();
-    this.joinCodeInput = null;
-    this.codeInput?.remove();
-    this.codeInput = null;
+    this.removeCodeInput();
   }
 
   // ── Pre-lobby screen (create / join) ──────────────────────────────────────
@@ -140,13 +142,13 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     const H  = this.cameras.main.height;
     const cx = W / 2;
 
-    const title = this.add.text(cx, 60, 'LOBBY', {
+    const title = this.add.text(cx, 70, 'MULTIPLAYER', {
       ...BASE, fontSize: '52px', color: '#feec00',
     }).setOrigin(0.5);
     this.uiGroup.push(title);
 
-    // CREATE LOBBY button — guarded against emitting before the socket is ready
-    const createBtn = this.addButton(cx, 220, 300, 64, 'CREATE LOBBY', () => {
+    // CREATE LOBBY button
+    const createBtn = this.addButton(cx, 210, 300, 64, 'CREATE LOBBY', () => {
       if (!this.socket.connected) {
         this.showToast('Connecting to server…', '#aaaaaa');
         return;
@@ -156,24 +158,30 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     this.uiGroup.push(...createBtn);
 
     // Divider
-    const divLabel = this.add.text(cx, 310, '─── or join with code ───', {
+    const divLabel = this.add.text(cx, 305, '─── or join with code ───', {
       ...BASE, fontSize: '18px', color: '#888888',
     }).setOrigin(0.5);
     this.uiGroup.push(divLabel);
 
-    // Code input
+    // Code input — positioned using canvas bounding rect so it aligns with
+    // the scaled/centered Phaser canvas regardless of page layout.
     const inputEl = document.createElement('input');
     this.codeInput = inputEl;
+    const canvas = this.game.canvas;
+    const rect   = canvas.getBoundingClientRect();
+    const scaleX = rect.width  / W;
+    const scaleY = rect.height / H;
+    const inputGameY = 355; // game-coordinate Y centre for the input
     Object.assign(inputEl.style, {
-      position:     'absolute',
-      left:         '50%',
-      top:          '355px',
-      transform:    'translateX(-50%)',
-      width:        '160px',
-      padding:      '10px 14px',
-      fontSize:     '22px',
+      position:     'fixed',
+      left:         `${rect.left + cx * scaleX}px`,
+      top:          `${rect.top  + inputGameY * scaleY}px`,
+      transform:    'translate(-50%, -50%)',
+      width:        `${160 * scaleX}px`,
+      padding:      `${10 * scaleY}px ${14 * scaleX}px`,
+      fontSize:     `${22 * Math.min(scaleX, scaleY)}px`,
       fontFamily:   'Impact, Arial black, sans-serif',
-      background:   'rgba(0,0,0,0.7)',
+      background:   'rgba(0,0,0,0.75)',
       color:        '#ffffff',
       border:       '2px solid #4488ff',
       borderRadius: '8px',
@@ -181,14 +189,13 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
       letterSpacing:'6px',
       textTransform:'uppercase',
       outline:      'none',
+      zIndex:       '10',
     });
     inputEl.maxLength = 5;
     inputEl.placeholder = 'XXXXX';
+    document.body.appendChild(inputEl);
 
-    const container = document.getElementById('game-container') ?? document.body;
-    container.appendChild(inputEl);
-
-    const joinBtn = this.addButton(cx, 430, 200, 54, 'JOIN', () => {
+    const joinBtn = this.addButton(cx, 420, 200, 54, 'JOIN', () => {
       if (!this.socket.connected) {
         this.showToast('Connecting to server…', '#aaaaaa');
         return;
@@ -203,7 +210,8 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     this.uiGroup.push(...joinBtn);
 
     // Back button
-    const backBtn = this.addButton(cx, H - 50, 200, 54, 'BACK', () => {
+    const backBtn = this.addButton(cx, H - 55, 200, 54, 'BACK', () => {
+      this.removeCodeInput();
       transitionTo(this, 'MenuScene');
     });
     this.uiGroup.push(...backBtn);
@@ -214,56 +222,64 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
   private renderLobbyUI() {
     if (!this.lobbyState) return;
     this.clearUI();
-    const W   = this.cameras.main.width;
-    const H   = this.cameras.main.height;
-    const cx  = W / 2;
+    const W     = this.cameras.main.width;
+    const H     = this.cameras.main.height;
+    const cx    = W / 2;
     const state = this.lobbyState;
     const isHost = state.hostId === this.myPlayerId;
 
-    // Title + code
-    const titleT = this.add.text(cx, 40, 'MULTIPLAYER LOBBY', {
+    // ── Title row ─────────────────────────────────────────────────────────
+
+    const titleT = this.add.text(cx, 38, 'LOBBY', {
       ...BASE, fontSize: '42px', color: '#feec00',
     }).setOrigin(0.5);
     this.uiGroup.push(titleT);
 
-    const codeLabel = this.add.text(cx, 90, `Room Code: ${state.code}`, {
-      ...BASE, fontSize: '28px', color: '#aaccff',
+    const codeLabel = this.add.text(cx, 84, `Room Code: ${state.code}`, {
+      ...BASE, fontSize: '26px', color: '#aaccff',
     }).setOrigin(0.5);
     this.uiGroup.push(codeLabel);
 
-    const copyHint = this.add.text(cx, 118, '(share this code with friends)', {
-      ...BASE, fontSize: '14px', color: '#666666',
+    const copyHint = this.add.text(cx, 110, '(share this code with friends)', {
+      ...BASE, fontSize: '13px', color: '#666666',
     }).setOrigin(0.5);
     this.uiGroup.push(copyHint);
 
-    // ── Players panel ──────────────────────────────────────────────────────
+    // ── Two panels split evenly across the width ───────────────────────────
 
-    const PX = 50, PY = 145, PW = 420, PH = 340;
+    const PANEL_TOP = 132;
+    const PANEL_H   = H - PANEL_TOP - 100; // leave room for bottom buttons
+    const GAP       = 20;
+    const PW        = Math.floor((W - 60 - GAP) / 2);  // each panel half width
+    const PX        = 30;                               // left panel x
+    const FX        = PX + PW + GAP;                   // right panel x
+
+    // Players panel
     const panelBg = this.add.graphics();
     panelBg.fillStyle(0x000000, 0.6);
-    panelBg.fillRoundedRect(PX, PY, PW, PH, 12);
+    panelBg.fillRoundedRect(PX, PANEL_TOP, PW, PANEL_H, 12);
     panelBg.lineStyle(2, 0x4488ff, 0.8);
-    panelBg.strokeRoundedRect(PX, PY, PW, PH, 12);
+    panelBg.strokeRoundedRect(PX, PANEL_TOP, PW, PANEL_H, 12);
     this.uiGroup.push(panelBg);
 
-    const playersTitle = this.add.text(PX + PW / 2, PY + 22, 'PLAYERS', {
+    const playersTitle = this.add.text(PX + PW / 2, PANEL_TOP + 22, 'PLAYERS', {
       ...BASE, fontSize: '22px', color: '#ffd700',
     }).setOrigin(0.5);
     this.uiGroup.push(playersTitle);
 
+    const ROW_H = Math.min(70, Math.floor((PANEL_H - 50) / 3));
     state.players.forEach((p, i) => {
-      const y = PY + 60 + i * 70;
-      const isMe = p.playerId === this.myPlayerId;
+      const y = PANEL_TOP + 55 + i * ROW_H;
+      const isMe       = p.playerId === this.myPlayerId;
       const isRoomHost = p.playerId === state.hostId;
 
-      const name = this.add.text(PX + 20, y, `${isRoomHost ? '♦ ' : '  '}${p.username}${isMe ? ' (you)' : ''}`, {
+      const name = this.add.text(PX + 18, y, `${isRoomHost ? '♦ ' : '  '}${p.username}${isMe ? ' (you)' : ''}`, {
         ...BASE, fontSize: '20px', color: isMe ? '#88ddff' : '#c2baba',
       }).setOrigin(0, 0.5);
       this.uiGroup.push(name);
 
       const readyColor = p.ready ? '#44ff88' : '#ff8844';
-      const readyLabel = p.ready ? 'READY' : 'WAITING';
-      const readyT = this.add.text(PX + PW - 20, y, readyLabel, {
+      const readyT = this.add.text(PX + PW - 18, y, p.ready ? 'READY' : 'WAITING', {
         ...BASE, fontSize: '18px', color: readyColor,
       }).setOrigin(1, 0.5);
       this.uiGroup.push(readyT);
@@ -271,15 +287,14 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
       if (i < state.players.length - 1) {
         const divG = this.add.graphics();
         divG.lineStyle(1, 0x333333, 0.7);
-        divG.lineBetween(PX + 14, y + 34, PX + PW - 14, y + 34);
+        divG.lineBetween(PX + 14, y + ROW_H / 2, PX + PW - 14, y + ROW_H / 2);
         this.uiGroup.push(divG);
       }
     });
 
     if (state.players.length < 3) {
-      const emptySlots = 3 - state.players.length;
-      for (let i = 0; i < emptySlots; i++) {
-        const y = PY + 60 + (state.players.length + i) * 70;
+      for (let i = 0; i < 3 - state.players.length; i++) {
+        const y = PANEL_TOP + 55 + (state.players.length + i) * ROW_H;
         const emptyT = this.add.text(PX + PW / 2, y, '— waiting for player —', {
           ...BASE, fontSize: '16px', color: '#444444',
         }).setOrigin(0.5);
@@ -287,37 +302,36 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
       }
     }
 
-    // ── Friends panel ──────────────────────────────────────────────────────
-
-    const FX = W - 50 - 360, FY = 145, FW = 360, FH = 340;
+    // Friends panel
+    const FW = W - 30 - FX;
     const friendsBg = this.add.graphics();
     friendsBg.fillStyle(0x000000, 0.6);
-    friendsBg.fillRoundedRect(FX, FY, FW, FH, 12);
+    friendsBg.fillRoundedRect(FX, PANEL_TOP, FW, PANEL_H, 12);
     friendsBg.lineStyle(2, 0x224466, 0.8);
-    friendsBg.strokeRoundedRect(FX, FY, FW, FH, 12);
+    friendsBg.strokeRoundedRect(FX, PANEL_TOP, FW, PANEL_H, 12);
     this.uiGroup.push(friendsBg);
 
-    const friendsTitle = this.add.text(FX + FW / 2, FY + 22, 'INVITE FRIENDS', {
+    const friendsTitle = this.add.text(FX + FW / 2, PANEL_TOP + 22, 'INVITE FRIENDS', {
       ...BASE, fontSize: '20px', color: '#ffd700',
     }).setOrigin(0.5);
     this.uiGroup.push(friendsTitle);
 
     if (this.friends.length === 0) {
-      const noFriends = this.add.text(FX + FW / 2, FY + 80, 'No friends yet.\nAdd some in the Friends menu!', {
+      const noFriends = this.add.text(FX + FW / 2, PANEL_TOP + PANEL_H / 2, 'No friends yet.\nAdd some in the Friends menu!', {
         ...BASE, fontSize: '15px', color: '#555555', align: 'center',
       }).setOrigin(0.5);
       this.uiGroup.push(noFriends);
     } else {
       const maxShow = 5;
       this.friends.slice(0, maxShow).forEach((f, i) => {
-        const y = FY + 56 + i * 52;
+        const y = PANEL_TOP + 56 + i * 52;
         const nameT = this.add.text(FX + 14, y, f.username, {
           ...BASE, fontSize: '17px', color: '#c2baba',
         }).setOrigin(0, 0.5);
         this.uiGroup.push(nameT);
 
         const alreadyIn = state.players.some(p => p.playerId === f.id);
-        const inviteBtns = this.addSmallButton(FX + FW - 14, y, alreadyIn ? 'IN ROOM' : 'INVITE', alreadyIn ? '#555555' : '#226d1b', () => {
+        const inviteBtns = this.addSmallButton(FX + FW - 14, y, alreadyIn ? 'IN LOBBY' : 'INVITE', alreadyIn ? '#555555' : '#226d1b', () => {
           if (!alreadyIn) {
             this.socket.emit('lobby:invite', { friendId: f.id });
             this.showToast(`Invited ${f.username}`, '#44ff88');
@@ -329,31 +343,29 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
 
     // ── Bottom controls ────────────────────────────────────────────────────
 
+    const BY = H - 52;
     const myPlayer = state.players.find(p => p.playerId === this.myPlayerId);
     const amReady = myPlayer?.ready ?? false;
     const allPlayersReady = state.players.length > 0 && state.players.every(p => p.ready);
 
-    // Ready toggle (only if not host, or host can ready too)
-    const readyBtns = this.addButton(cx - 180, H - 80, 260, 56, amReady ? 'CANCEL READY' : 'READY UP', () => {
+    const leaveBtns = this.addButton(120, BY, 160, 52, 'LEAVE', () => {
+      this.socket.emit('lobby:leave');
+    }, '#3d1a1a');
+    this.uiGroup.push(...leaveBtns);
+
+    const readyBtns = this.addButton(cx, BY, 260, 52, amReady ? 'CANCEL READY' : 'READY UP', () => {
       this.socket.emit('lobby:ready', { ready: !amReady });
     }, amReady ? '#224422' : '#1a3d1a');
     this.uiGroup.push(...readyBtns);
 
-    // Start button (host only, shown only when all ready)
     if (isHost) {
       const startColor = allPlayersReady ? '#226d1b' : '#333333';
-      const startBtns = this.addButton(cx + 100, H - 80, 220, 56, 'START', () => {
+      const startBtns = this.addButton(W - 140, BY, 220, 52, 'START', () => {
         if (!allPlayersReady) { this.showToast('All players must be ready', '#ff8800'); return; }
         this.socket.emit('lobby:start');
       }, startColor);
       this.uiGroup.push(...startBtns);
     }
-
-    // Leave room button
-    const leaveBtns = this.addButton(80, H - 80, 140, 56, 'LEAVE', () => {
-      this.socket.emit('lobby:leave');
-    }, '#3d1a1a');
-    this.uiGroup.push(...leaveBtns);
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

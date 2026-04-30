@@ -784,7 +784,6 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private createCharacters() {
-    const { width } = this.cameras.main;
     const bossConfig = this.getCurrentBossConfig();
     const currentPhase = this.getCurrentBossVisual();
 
@@ -853,16 +852,11 @@ export class DuelScene extends Phaser.Scene {
 
   private async setupDecks() {
     const basePool = this.baseCardsFromDb.length > 0 ? this.baseCardsFromDb : getBaseCardPool(); // ensure we have a base card pool to draw from, even if the server load failed
-    const effectPool = this.effectCardsFromDb.length > 0 ? this.effectCardsFromDb : getSpecialCardPool(); // ensure we have an effect card pool to draw from, even if the server load failed
-    const rarePool = this.rareCardsFromDb.length > 0 ? this.rareCardsFromDb : getIceCardPool(); // ensure we have a rare card pool to draw from, even if the server load failed
-
     const loadedFromBackendDeck = await this.loadPlayerDeckFromBackend(); // attempt to load the player's deck from the backend, which also sets up the starting hand if successful
 
     if (!loadedFromBackendDeck) {
       throw new Error('Could not load your deck.\nPlease set an active deck in the Deck Builder and try again.');
     }
-
-    const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
 
     // const playerPool = [...basePool, ...effectPool, ...rarePool]; // combine the different rarity pools to create the player's card pool for deck generation
     const enemyPool = this.buildEnemyPoolForBoss(); // build the enemy's card pool based on the selected boss's AI level and associated card access

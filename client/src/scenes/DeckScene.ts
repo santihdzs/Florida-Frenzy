@@ -16,25 +16,17 @@ import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.png'; // background image for the deck builder scene
 
 import {
-  getBaseCardPool,
-  getSpecialCardPool,
-  getIceCardPool,
-  getLegendaryCardPool,
   type Card,
   ELEMENT_COLORS,
 } from '../utils/cards'; // importing card-related functions and types to build the card collections and render them in the deck builder interface
 
 import {
   type ClanRank,
-  computeClanRank,
 } from '../../../server/src/services/user.service'; // importing clan rank types and functions to determine the player's rank based on their progress, which affects deck building options and restrictions
 
 import {
   canUseCardInDeck,
-  getDeckSlotLimit,
   getUnlockRankForCard,
-  loadLocalDeckStorage,
-  saveLocalDeckStorage,
   type LocalDeckStorage,
 } from '../utils/deckHelpers'; // importing functions and types related to deck storage and management, allowing the scene to save and load deck configurations from localStorage, enforce deck building rules based on player rank, and manage the state of the current deck being edited
 
@@ -60,7 +52,6 @@ export class DeckScene extends Phaser.Scene {
   private clanRank: ClanRank = 'ROOKIE';
   private slotLimit = 12;
 
-  private allCards: Card[] = [];
   private browserRows: BrowserRow[] = [];
 
   private messageText!: Phaser.GameObjects.Text;
@@ -165,7 +156,6 @@ private async loadBootstrapFromBackend() {
   this.slotLimit = bootstrap.player.slotLimit;
 
   const mappedCards = (bootstrap.allCards as any[]).map(mapCardData);
-  this.allCards = mappedCards;
 
   const byId = new Map(mappedCards.map(card => [Number(card.id), card]));
 
@@ -249,15 +239,7 @@ private async loadBootstrapFromBackend() {
 //     ];
 //   } // builds the complete list of cards available in the game and organizes them into rows for the card browser panel
 
-  private loadSelectedDeckIntoDraft() {
-    const selected = this.storage.decks[this.selectedDeckIndex]; // retrieves the currently selected deck from storage based on the selectedDeckIndex
-    const byId = new Map(this.allCards.map(card => [card.id, card])); // creates a mapping of card IDs to card objects for easy lookup when loading the deck's card IDs into the currentDeckCards array
-    this.currentDeckCards = selected.slotCards
-      .map(id => byId.get(id))
-      .filter((card): card is Card => Boolean(card)); // maps the card IDs in the selected deck's slotCards to actual Card objects using the byId map
-  } // loads the currently selected deck into the draft for editing
-
-  private createMainPlate() {
+private createMainPlate() {
     const { width, height } = this.cameras.main;
     const bgX = width * 0.05;
     const bgY = 100;

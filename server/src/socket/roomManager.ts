@@ -92,7 +92,7 @@ export function createRoom(
     grid: [],
     enemies: [],
     level: 1,
-    mapKey: 'garbage_dump',
+    mapKey: 'sewers',
   };
   rooms.set(code, room);
   return room;

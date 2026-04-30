@@ -185,7 +185,7 @@ export function registerSocketHandlers(fastify: FastifyInstance): void {
         mapKey:  room.mapKey,
       });
 
-      // Server-authoritative enemy movement at 100ms ticks
+      // Server-authoritative enemy movement at 50ms ticks
       let lastTick = Date.now();
       room.intervalId = setInterval(() => {
         const now = Date.now();
@@ -195,7 +195,7 @@ export function registerSocketHandlers(fastify: FastifyInstance): void {
           enemies: room.enemies.map(e => ({ id: e.id, x: e.x, y: e.y, hp: e.hp, alive: e.alive })),
           players: rm.serializePlayers(room),
         });
-      }, 100);
+      }, 50);
     });
 
     // ── Run: player position update ─────────────────────────────────────────
@@ -204,6 +204,7 @@ export function registerSocketHandlers(fastify: FastifyInstance): void {
       const room = rm.getRoomByPlayerId(playerId);
       if (!room || room.state !== 'running') return;
       const p = room.players.get(playerId);
+      console.log(`[run:move] playerId=${playerId} x=${Math.round(data.x)} y=${Math.round(data.y)} found=${!!p} alive=${p?.alive}`);
       if (p?.alive) { p.x = data.x; p.y = data.y; }
     });
 

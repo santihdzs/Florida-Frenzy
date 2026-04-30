@@ -190,7 +190,7 @@ export class MenuScene extends Phaser.Scene {
     }
 
     try {
-      const activeDeck = await fetchActiveDeck(player.id);
+      const activeDeck = await fetchActiveDeck(Number(player.id));
       const cards = activeDeck?.deck?.cards;
       if (
         !cards ||

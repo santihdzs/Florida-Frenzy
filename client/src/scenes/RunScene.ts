@@ -88,7 +88,6 @@ const ENEMY_PROJ_DMG   = 10;
 const COIN_SIZE      = 12;
 const COIN_COUNT_MIN = 8;
 const COIN_COUNT_MAX = 15;
-const COIN_VALUE     = 10;
 const COIN_COLLECT_R = 24;
 
 const PROJ_SIZE  = 8;
