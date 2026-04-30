@@ -33,9 +33,7 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
   private lobbyState: LobbyState | null = null;
   private friends: Friend[] = [];
   private uiGroup: Phaser.GameObjects.GameObject[] = [];
-  private codeInput: HTMLInputElement | null = null;
   private socket!: Socket; // captured once in create(); reused everywhere
-  private sidebarNavHandler: EventListener | null = null;
 
   constructor() {
     super({ key: 'MultiplayerLobbyScene' });
@@ -70,16 +68,6 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     initInviteNotifications((roomCode) => {
       this.socket.emit('lobby:join', { code: roomCode });
     });
-
-    // Sidebar navigation — remove the HTML code input before the scene changes
-    const onSidebarNavRequest = ((e: Event) => {
-      const target = (e as CustomEvent<{ target: string }>).detail.target;
-      this.removeCodeInput();
-      if (this.lobbyState) this.socket?.emit('lobby:leave');
-      transitionTo(this, target);
-    }) as EventListener;
-    this.sidebarNavHandler = onSidebarNavRequest;
-    window.addEventListener('sidebar-nav-request', this.sidebarNavHandler);
   }
 
   private setupSocketListeners() {
@@ -119,7 +107,6 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
       level: number;
       mapKey: string;
     }) => {
-      this.removeCodeInput();
       transitionTo(this, 'MultiplayerRunScene', {
         grid:    data.grid,
         enemies: data.enemies,
@@ -134,15 +121,9 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     });
   }
 
-  private removeCodeInput() {
-    this.codeInput?.remove();
-    this.codeInput = null;
-  }
-
   private clearUI() {
     this.uiGroup.forEach(o => o.destroy());
     this.uiGroup = [];
-    this.removeCodeInput();
   }
 
   // ── Pre-lobby screen (create / join) ──────────────────────────────────────
@@ -174,37 +155,27 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.uiGroup.push(divLabel);
 
-    // Code input — positioned using canvas bounding rect so it aligns with
-    // the scaled/centered Phaser canvas regardless of page layout.
+    // Code input — managed as a Phaser DOMElement so it is destroyed automatically
+    // when the scene shuts down or clearUI() runs (no manual cleanup needed).
     const inputEl = document.createElement('input');
-    this.codeInput = inputEl;
-    const canvas = this.game.canvas;
-    const rect   = canvas.getBoundingClientRect();
-    const scaleX = rect.width  / W;
-    const scaleY = rect.height / H;
-    const inputGameY = 355; // game-coordinate Y centre for the input
-    Object.assign(inputEl.style, {
-      position:     'fixed',
-      left:         `${rect.left + cx * scaleX}px`,
-      top:          `${rect.top  + inputGameY * scaleY}px`,
-      transform:    'translate(-50%, -50%)',
-      width:        `${160 * scaleX}px`,
-      padding:      `${10 * scaleY}px ${14 * scaleX}px`,
-      fontSize:     `${22 * Math.min(scaleX, scaleY)}px`,
-      fontFamily:   'Impact, Arial black, sans-serif',
-      background:   'rgba(0,0,0,0.75)',
-      color:        '#ffffff',
-      border:       '2px solid #4488ff',
-      borderRadius: '8px',
-      textAlign:    'center',
-      letterSpacing:'6px',
-      textTransform:'uppercase',
-      outline:      'none',
-      zIndex:       '10',
-    });
     inputEl.maxLength = 5;
     inputEl.placeholder = 'XXXXX';
-    document.body.appendChild(inputEl);
+    Object.assign(inputEl.style, {
+      width:         '160px',
+      padding:       '10px 14px',
+      fontSize:      '22px',
+      fontFamily:    'Impact, Arial black, sans-serif',
+      background:    'rgba(0,0,0,0.75)',
+      color:         '#ffffff',
+      border:        '2px solid #4488ff',
+      borderRadius:  '8px',
+      textAlign:     'center',
+      letterSpacing: '6px',
+      textTransform: 'uppercase',
+      outline:       'none',
+    });
+    const domInput = this.add.dom(cx, 355, inputEl).setScrollFactor(0);
+    this.uiGroup.push(domInput);
 
     const joinBtn = this.addButton(cx, 420, 200, 54, 'JOIN', () => {
       if (!this.socket.connected) {
@@ -222,7 +193,6 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
 
     // Back button
     const backBtn = this.addButton(cx, H - 55, 200, 54, 'BACK', () => {
-      this.removeCodeInput();
       transitionTo(this, 'MenuScene');
     });
     this.uiGroup.push(...backBtn);
@@ -442,10 +412,6 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
 
   shutdown() {
     this.clearUI();
-    if (this.sidebarNavHandler) {
-      window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
-      this.sidebarNavHandler = null;
-    }
     // Remove socket listeners so stale events don't call into a destroyed scene
     if (this.socket) {
       this.socket.off('connected');

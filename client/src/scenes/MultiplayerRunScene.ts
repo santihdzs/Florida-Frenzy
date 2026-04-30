@@ -1110,7 +1110,8 @@ export class MultiplayerRunScene extends Phaser.Scene {
     if (myData) { myData.x = this.localX; myData.y = this.localY; }
 
     // Lerp factor: frame-rate-independent, catches up to server target within ~2 frames
-    const lerpFactor = Math.min(1, 20 * dt);
+    const lerpFactor      = Math.min(1, 20 * dt);
+    const enemyLerpFactor = Math.min(1, 40 * dt);
 
     // Remote players — lerp rendered position toward server target
     this.serverPlayers.forEach(p => {
@@ -1159,8 +1160,8 @@ export class MultiplayerRunScene extends Phaser.Scene {
 
       const prevRX = sprite.renderX;
       const prevRY = sprite.renderY;
-      sprite.renderX += (e.x - sprite.renderX) * lerpFactor;
-      sprite.renderY += (e.y - sprite.renderY) * lerpFactor;
+      sprite.renderX += (e.x - sprite.renderX) * enemyLerpFactor;
+      sprite.renderY += (e.y - sprite.renderY) * enemyLerpFactor;
       sprite.img.setPosition(sprite.renderX, sprite.renderY);
 
       const dx = sprite.renderX - prevRX;
