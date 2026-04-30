@@ -196,7 +196,7 @@ export class MenuScene extends Phaser.Scene {
     }
 
     try {
-      const activeDeck = await fetchActiveDeck(player.id);
+      const activeDeck = await fetchActiveDeck(Number(player.id));
       const cards = activeDeck?.deck?.cards;
       if (
         !cards ||
@@ -249,6 +249,14 @@ export class MenuScene extends Phaser.Scene {
     modal.setScale(0.5).setAlpha(0);
     this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 300, ease: 'Back.easeOut' });
     goBtn.setDepth(101);
+  }
+
+  goMultiplayer() {
+    if (!isLoggedIn()) {
+      this.scene.launch('LoginScene', { mode: 'login' });
+      return;
+    }
+    transitionTo(this, 'MultiplayerLobbyScene');
   }
 
   showMultiplayerComingSoon() {

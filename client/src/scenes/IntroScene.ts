@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.webp';
 import music from '../assets/music/Lowland_Hymn.mp3';
-import { transitionTo } from '../utils/sceneTransition.js';
 
 // Klancy full-body expressions
 import klancyNeutralUrl from '../assets/characters/klancy/Klancy_v1_resized.webp';

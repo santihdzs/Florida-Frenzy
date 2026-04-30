@@ -3,6 +3,7 @@ import { computeClanRank } from '../services/user.service.js';
 import { hashPassword, verifyPassword } from '../services/auth.service.js';
 import { notFound, conflict, unauthorized, badRequest } from '../utils/errors.js';
 import { SAFE_PLAYER_SELECT } from '../utils/playerSelect.js';
+import { getOnlineCount } from '../socket/roomManager.js';
 
 interface PatchMeBody {
   username?: string;
@@ -47,6 +48,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
       totalRuns,
       avgLevel: Number((avgData._avg.maxLevel ?? 0).toFixed(1)),
       activeSessions,
+      onlinePlayers: getOnlineCount(),
       levelDistribution: levelDist.map(r => ({ level: r.maxLevel, count: r._count.maxLevel })),
     });
   });

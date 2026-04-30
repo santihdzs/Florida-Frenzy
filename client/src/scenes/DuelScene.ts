@@ -63,7 +63,7 @@ import { updateHpBar, updateEnergyBar, updateShieldBar } from '../utils/duelUi';
 import { CombatState, createEmptyCombatState } from '../utils/combatState'; // combat status container and reset helper
 
 import type { RunData } from './RunScene'; // run-progress data passed into this scene
-import { completeRun, getPlayer } from '../utils/auth.js'; // API call to save run result
+import { completeRun, getPlayer, beatPythra } from '../utils/auth.js'; // API call to save run result
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 import { transitionTo } from '../utils/sceneTransition.js';
 
@@ -512,15 +512,27 @@ export class DuelScene extends Phaser.Scene {
     });
   }
 
-  private advanceToNextCycle() {
-    transitionTo(this, 'RunScene', { // transition back to the overworld progression scene
-      level: this.level + 1, // advance to the next level
-      step: 0, // reset step counter
+  private async advanceToNextCycle() {
+    if ((this as any).__transitioning) return;
+
+    const runData: RunData = {
+      level: this.level + 1,
+      step: 0,
       totalCoins: this.totalCoins,
       totalXp: this.totalXp,
-      runId: this.runId, // preserve run id for server persistence
-      currentMap: this.currentMap, // forwarded so RunScene can avoid repeating the same map
-    });
+      runId: this.runId,
+      currentMap: this.currentMap,
+    };
+
+    if (this.selectedBoss?.enemyName === 'Pythra') {
+      const firstTime = await beatPythra();
+      if (firstTime) {
+        transitionTo(this, 'EndScene', runData);
+        return;
+      }
+    }
+
+    transitionTo(this, 'RunScene', runData);
   }
 
   private resetDuelState() {
@@ -787,7 +799,6 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private createCharacters() {
-    const { width } = this.cameras.main;
     const bossConfig = this.getCurrentBossConfig();
     const currentPhase = this.getCurrentBossVisual();
 
@@ -856,16 +867,11 @@ export class DuelScene extends Phaser.Scene {
 
   private async setupDecks() {
     const basePool = this.baseCardsFromDb.length > 0 ? this.baseCardsFromDb : getBaseCardPool(); // ensure we have a base card pool to draw from, even if the server load failed
-    const effectPool = this.effectCardsFromDb.length > 0 ? this.effectCardsFromDb : getSpecialCardPool(); // ensure we have an effect card pool to draw from, even if the server load failed
-    const rarePool = this.rareCardsFromDb.length > 0 ? this.rareCardsFromDb : getIceCardPool(); // ensure we have a rare card pool to draw from, even if the server load failed
-
     const loadedFromBackendDeck = await this.loadPlayerDeckFromBackend(); // attempt to load the player's deck from the backend, which also sets up the starting hand if successful
 
     if (!loadedFromBackendDeck) {
       throw new Error('Could not load your deck.\nPlease set an active deck in the Deck Builder and try again.');
     }
-
-    const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
 
     // const playerPool = [...basePool, ...effectPool, ...rarePool]; // combine the different rarity pools to create the player's card pool for deck generation
     const enemyPool = this.buildEnemyPoolForBoss(); // build the enemy's card pool based on the selected boss's AI level and associated card access

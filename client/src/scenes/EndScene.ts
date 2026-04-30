@@ -24,9 +24,23 @@ export class EndScene extends Phaser.Scene {
   private nextBtn!: Phaser.GameObjects.Text;
   private skipHint!: Phaser.GameObjects.Text;
   private DIALOGUE_LINES: string[] = [];
+  private nextRunData: RunData = { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 };
 
   constructor() {
     super({ key: 'EndScene' });
+  }
+
+  init(data: Partial<RunData>) {
+    this.nextRunData = {
+      level:       data.level       ?? 1,
+      step:        data.step        ?? 0,
+      totalCoins:  data.totalCoins  ?? 0,
+      totalXp:     data.totalXp     ?? 0,
+      runId:       data.runId       ?? 0,
+      currentMap:  data.currentMap,
+    };
+    this.currentLineIndex = 0;
+    this.isTransitioning = false;
   }
 
   preload() {
@@ -121,7 +135,7 @@ export class EndScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10).setVisible(false).setInteractive({ useHandCursor: true });
 
     this.nextBtn.on('pointerdown', () => {
-      transitionTo(this, 'MenuScene'); // Go to the next scene after clicking the button
+      transitionTo(this, 'RunScene', this.nextRunData);
     });
 
     // Start first line
