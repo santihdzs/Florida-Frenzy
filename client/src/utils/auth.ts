@@ -185,6 +185,7 @@ export async function fetchAdminStats(): Promise<{
   totalRuns: number;
   avgLevel: number;
   activeSessions: number;
+  onlinePlayers: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   levelDistribution: { level: number; count: number }[];
 } | null> {

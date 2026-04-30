@@ -16,7 +16,7 @@
 
 import Phaser from 'phaser';
 import chrisAvatarUrl from '../assets/sprites/Chris.webp';
-import { MAP_CONFIGS, selectMap, type MapConfig } from '../utils/mapConfig.js';
+import { MAP_CONFIGS, selectMap, type MapConfig, type TileRect } from '../utils/mapConfig.js';
 import { completeRun, createRun, getPlayer } from '../utils/auth.js';
 import type { DuelBossData } from '../utils/bossTypes.js';
 import { fetchRandomDuelBoss } from '../api/enemyApi.js';
@@ -227,7 +227,7 @@ const CHAR_SHEET_URLS: Partial<Record<string, string>> = {
 
 const CHAR_SHEETS = {
   christian: { xCuts: [0, 293, 587, 880],   yCuts: [0, 300, 600, 900,  1200] },
-  gavin:     { xCuts: [0, 576, 1152, 1728],  yCuts: [0, 576, 1152, 1728, 2304] },
+  gavin:     { xCuts: [0, 292, 584, 876],    yCuts: [0, 304, 608, 912,  1216] },
   gustav:    { xCuts: [0, 292, 584, 875],    yCuts: [0, 304, 608, 912,  1216] },
   eddy:      { xCuts: [0, 293, 587, 880],    yCuts: [0, 300, 599, 899,  1198] },
   racko:     { xCuts: [0, 355, 711, 1066], yCuts: [0, 369, 738, 1106, 1475] },
@@ -1051,11 +1051,21 @@ export class RunScene extends Phaser.Scene {
   // ── World building ──
 
   private buildWorld(grid: number[][]) {
-    // TODO: pair activeMap.key with the corresponding TCG background texture when ready
-    const { key: mapKey, frames: mapFrames, tileWidth } = this.activeMap;
-    const tileScale = TILE / tileWidth;
-    this.add.tileSprite(0, 0, WORLD_W, WORLD_H, mapKey, mapFrames.grass)
-      .setOrigin(0, 0).setDepth(0).setTileScale(tileScale, tileScale);
+    const { key: mapKey, frames: mapFrames } = this.activeMap;
+
+    // Register named frames from TileRect values so tileSprite and image can reference them by name
+    const tex = this.textures.get(mapKey);
+    const reg = (name: string, r: TileRect) => {
+      if (!tex.has(name)) tex.add(name, 0, r.x, r.y, r.w, r.h);
+    };
+    reg(`${mapKey}-grass`,   mapFrames.grass);
+    reg(`${mapKey}-barrier`, mapFrames.barrier);
+    reg(`${mapKey}-hole`,    mapFrames.hole);
+    reg(`${mapKey}-puddle`,  mapFrames.puddle);
+
+    this.add.tileSprite(0, 0, WORLD_W, WORLD_H, mapKey, `${mapKey}-grass`)
+      .setOrigin(0, 0).setDepth(0)
+      .setTileScale(TILE / mapFrames.grass.w, TILE / mapFrames.grass.h);
 
     const gfx = this.add.graphics().setDepth(1);
     gfx.fillStyle(0x336677, 0.3);
@@ -1073,13 +1083,13 @@ export class RunScene extends Phaser.Scene {
         const py   = row * TILE;
 
         if (tile === BARRIER) {
-          this.add.image(px, py, mapKey, mapFrames.barrier)
+          this.add.image(px, py, mapKey, `${mapKey}-barrier`)
             .setOrigin(0, 0).setDisplaySize(TILE, TILE).setDepth(2);
           this.barrierRects.push({ x: px, y: py, w: TILE, h: TILE });
 
         } else if (tile === HOLE) {
           const nb = this.tileNeighbors(grid, row, col, HOLE);
-          this.add.image(px, py, mapKey, mapFrames.hole)
+          this.add.image(px, py, mapKey, `${mapKey}-hole`)
             .setOrigin(0, 0).setDisplaySize(TILE, TILE).setDepth(2);
           this.holeRects.push({
             x: nb.w ? px       : px + 8,
@@ -1089,7 +1099,7 @@ export class RunScene extends Phaser.Scene {
           });
 
         } else if (tile === PUDDLE) {
-          this.add.image(px, py, mapKey, mapFrames.puddle)
+          this.add.image(px, py, mapKey, `${mapKey}-puddle`)
             .setOrigin(0, 0).setDisplaySize(TILE, TILE).setDepth(2);
           this.puddleRects.push({ x: px, y: py, w: TILE, h: TILE });
         }

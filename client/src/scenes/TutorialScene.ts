@@ -3,14 +3,19 @@ import { transitionTo } from '../utils/sceneTransition.js';
 import evTilesUrl from '../assets/maps/everglades.webp';
 // Import cropped Clancy image
 import clanUrl from '../assets/sprites/Klan.webp';
-import music from '../assets/music/Lowland_Hymn.mp3'
+import music from '../assets/music/Lowland_Hymn.mp3';
+import { getPlayer } from '../utils/auth.js';
+
+import christianSheet from '../assets/characters/christian/Christian_SpriteSheet.webp';
+import gavinSheet     from '../assets/characters/gavin/Gavin_SpriteSheet.webp';
+import gustavSheet    from '../assets/characters/gustav/Gustav_SpriteSheet.webp';
+import eddySheet      from '../assets/characters/eddy/Eddy_SpriteSheet.webp';
 
 const TILE = 48;
 const WORLD_W = 1200;
 const WORLD_H = 800;
 
 const KEY_EV_TILES = 'ev-tiles';
-const KEY_SPR_PLAYER = 'spr-player';
 const KEY_SPR_PROJ = 'spr-projectile';
 const KEY_CLAN = 'spr-clan'; // portrait key
 
@@ -18,13 +23,30 @@ const PLAYER_SIZE = 48;
 const PLAYER_SPEED = 220;
 const PLAYER_SPRINT = 340;
 
+const CHAR_SHEET_URLS: Partial<Record<string, string>> = {
+    christian: christianSheet,
+    gavin:     gavinSheet,
+    gustav:    gustavSheet,
+    eddy:      eddySheet,
+};
+
+const CHAR_SHEETS = {
+    christian: { xCuts: [0, 293, 587, 880],   yCuts: [0, 300, 600, 900,  1200] },
+    gavin:     { xCuts: [0, 292, 584, 876],    yCuts: [0, 304, 608, 912,  1216] },
+    gustav:    { xCuts: [0, 292, 584, 875],    yCuts: [0, 304, 608, 912,  1216] },
+    eddy:      { xCuts: [0, 293, 587, 880],    yCuts: [0, 300, 599, 899,  1198] },
+} as const;
+type CharSheetKey = keyof typeof CHAR_SHEETS;
+
 const PROJ_SIZE = 8;
 const PROJ_SPEED = 420;
 
 export class TutorialScene extends Phaser.Scene {
     private px = 100;
     private py = 300;
-    private playerImg!: Phaser.GameObjects.Image;
+    private playerImg!: Phaser.GameObjects.Sprite;
+    private playerSkin: CharSheetKey = 'christian';
+    private lastPlayerDir = 'down';
     private clanPortrait!: Phaser.GameObjects.Image; // cutted photo
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private instructionText!: Phaser.GameObjects.Text;
@@ -44,11 +66,21 @@ export class TutorialScene extends Phaser.Scene {
         super({ key: 'TutorialScene' });
     }
 
+    init() {
+        const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
+        this.playerSkin = (equipped in CHAR_SHEETS) ? equipped as CharSheetKey : 'christian';
+        this.lastPlayerDir = 'down';
+    }
+
     preload() {
         this.load.spritesheet(KEY_EV_TILES, evTilesUrl, { frameWidth: 16, frameHeight: 16 });
         // Load portrait image
         this.load.image(KEY_CLAN, clanUrl);
         this.load.audio('tutorial-music', music);
+
+        const skinUrl = CHAR_SHEET_URLS[this.playerSkin] ?? christianSheet;
+        if (!this.textures.exists(this.playerSkin))
+            this.load.image(this.playerSkin, skinUrl);
     }
 
     create() {
@@ -73,7 +105,12 @@ export class TutorialScene extends Phaser.Scene {
             .setOrigin(0, 0).setDisplaySize(WORLD_W, WORLD_H).setTileScale(TILE/16);
 
         // player
-        this.playerImg = this.add.image(this.px, this.py, KEY_SPR_PLAYER).setOrigin(0, 0).setDepth(5);
+        this.sliceCharSheetFrames(this.playerSkin);
+        this.createWalkAnimations(this.playerSkin);
+        const playerScale = PLAYER_SIZE / (CHAR_SHEETS[this.playerSkin].xCuts[1] - CHAR_SHEETS[this.playerSkin].xCuts[0]);
+        this.playerImg = this.add.sprite(this.px, this.py, this.playerSkin, `${this.playerSkin}-walk-down-1`)
+            .setOrigin(0, 0).setDepth(5).setScale(playerScale);
+        this.playerImg.play(`${this.playerSkin}-walk-down`);
 
         //HUB Clan
         const HUD_X = 800; // X position
@@ -191,17 +228,50 @@ export class TutorialScene extends Phaser.Scene {
     }
 
     private generateTextures() {
-        const makeRect = (key: string, w: number, h: number, color: number) => {
-            if (this.textures.exists(key)) return;
-            const g = this.make.graphics();
-            g.fillStyle(color);
-            g.fillRect(0, 0, w, h);
-            g.generateTexture(key, w, h);
-            g.destroy();
-        };
+        if (this.textures.exists(KEY_SPR_PROJ)) return;
+        const g = this.make.graphics();
+        g.fillStyle(0x44aaff);
+        g.fillRect(0, 0, PROJ_SIZE, PROJ_SIZE);
+        g.generateTexture(KEY_SPR_PROJ, PROJ_SIZE, PROJ_SIZE);
+        g.destroy();
+    }
 
-        makeRect(KEY_SPR_PLAYER, PLAYER_SIZE, PLAYER_SIZE, 0x3366ff);
-        makeRect(KEY_SPR_PROJ, PROJ_SIZE, PROJ_SIZE, 0x44aaff);
+    private sliceCharSheetFrames(skinKey: CharSheetKey) {
+        const sheet = CHAR_SHEETS[skinKey];
+        const texture = this.textures.get(skinKey);
+        const dirs = ['down', 'left', 'right', 'up'];
+        for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 3; col++) {
+                const frameName = `${skinKey}-walk-${dirs[row]}-${col}`;
+                if (!texture.has(frameName)) {
+                    texture.add(
+                        frameName, 0,
+                        sheet.xCuts[col], sheet.yCuts[row],
+                        sheet.xCuts[col + 1] - sheet.xCuts[col],
+                        sheet.yCuts[row + 1] - sheet.yCuts[row],
+                    );
+                }
+            }
+        }
+    }
+
+    private createWalkAnimations(skinKey: CharSheetKey) {
+        const dirs = ['down', 'left', 'right', 'up'];
+        for (const dir of dirs) {
+            const animKey = `${skinKey}-walk-${dir}`;
+            if (!this.anims.exists(animKey)) {
+                this.anims.create({
+                    key: animKey,
+                    frames: [
+                        { key: skinKey, frame: `${skinKey}-walk-${dir}-0` },
+                        { key: skinKey, frame: `${skinKey}-walk-${dir}-1` },
+                        { key: skinKey, frame: `${skinKey}-walk-${dir}-2` },
+                    ],
+                    frameRate: 8,
+                    repeat: -1,
+                });
+            }
+        }
     }
 
     private fireProjectile(ptr: Phaser.Input.Pointer) {
@@ -225,14 +295,32 @@ export class TutorialScene extends Phaser.Scene {
         const speed = this.keys.SHIFT.isDown ? PLAYER_SPRINT : PLAYER_SPEED;
 
         // Movement
-        if (this.cursors.left.isDown || this.keys.A.isDown) this.px -= speed * dt;
-        else if (this.cursors.right.isDown || this.keys.D.isDown) this.px += speed * dt;
-        if (this.cursors.up.isDown || this.keys.W.isDown) this.py -= speed * dt;
-        else if (this.cursors.down.isDown || this.keys.S.isDown) this.py += speed * dt;
+        let dx = 0;
+        let dy = 0;
+        if (this.cursors.left.isDown || this.keys.A.isDown) dx = -speed * dt;
+        else if (this.cursors.right.isDown || this.keys.D.isDown) dx = speed * dt;
+        if (this.cursors.up.isDown || this.keys.W.isDown) dy = -speed * dt;
+        else if (this.cursors.down.isDown || this.keys.S.isDown) dy = speed * dt;
 
-        this.playerImg.setPosition(this.px, this.py);
+        this.px += dx;
+        this.py += dy;
         this.px = Phaser.Math.Clamp(this.px, 0, WORLD_W - PLAYER_SIZE);
         this.py = Phaser.Math.Clamp(this.py, 0, WORLD_H - PLAYER_SIZE);
+        this.playerImg.setPosition(this.px, this.py);
+
+        if (dx !== 0 || dy !== 0) {
+            const dir = Math.abs(dx) >= Math.abs(dy)
+                ? (dx > 0 ? 'right' : 'left')
+                : (dy > 0 ? 'down' : 'up');
+            if (dir !== this.lastPlayerDir || !this.playerImg.anims.isPlaying) {
+                this.lastPlayerDir = dir;
+                this.playerImg.play(`${this.playerSkin}-walk-${dir}`, true);
+            }
+            this.playerImg.anims.timeScale = this.keys.SHIFT.isDown ? 1.8 : 1;
+        } else {
+            this.playerImg.anims.stop();
+            this.playerImg.setFrame(`${this.playerSkin}-walk-${this.lastPlayerDir}-1`);
+        }
 
         // Projectiles
         for (let i = this.projectiles.length - 1; i >= 0; i--) {

@@ -98,7 +98,7 @@ export class MenuScene extends Phaser.Scene {
     const mainH = 68;
 
     this.createButton(cx, 320, mainW, mainH, 'PLAY',        () => this.startGame(),                 textStyle);
-    this.createButton(cx, 410, mainW, mainH, 'MULTIPLAYER', () => this.showMultiplayerComingSoon(), textStyle);
+    this.createButton(cx, 410, mainW, mainH, 'MULTIPLAYER', () => this.goMultiplayer(), textStyle);
     this.createButton(cx, 490, mainW, mainH, 'SHOP',         () => transitionTo(this, 'ShopScene'),    textStyle);
     this.createButton(cx, 570, mainW, mainH, 'FRIENDS',     () => transitionTo(this, 'FriendsScene'), textStyle);
     this.createButton(cx, 650, mainW, mainH, logoutLabel,   logoutAction,                            textStyle);
@@ -243,6 +243,14 @@ export class MenuScene extends Phaser.Scene {
     modal.setScale(0.5).setAlpha(0);
     this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 300, ease: 'Back.easeOut' });
     goBtn.setDepth(101);
+  }
+
+  goMultiplayer() {
+    if (!isLoggedIn()) {
+      this.scene.launch('LoginScene', { mode: 'login' });
+      return;
+    }
+    transitionTo(this, 'MultiplayerLobbyScene');
   }
 
   showMultiplayerComingSoon() {
