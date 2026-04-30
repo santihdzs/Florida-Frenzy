@@ -88,6 +88,7 @@ export class DeckScene extends Phaser.Scene {
 
   init(_data: Record<string, unknown>) {
     this._requestedDeckIndex = _pendingDeckIndex;
+    this.saveBtnContainer = null;
   }
 
   async create() {
@@ -363,7 +364,7 @@ private async loadBootstrapFromBackend() {
       graphics.fillRect(-w / 2 + 4, 0, w - 8, h / 2 - 4);
       text.setText('SAVE DECK');
       text.setColor('#c2baba');
-      this.saveBtnContainer.setInteractive({ useHandCursor: true });
+      this.saveBtnContainer.setInteractive();
     } else {
       graphics.fillStyle(0x000000, 0.4);
       graphics.fillRoundedRect(-w / 2 + 3, -h / 2 + 3, w, h, 6);
