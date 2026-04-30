@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.webp';
 import { register, login } from '../utils/auth.js';
+import { translations } from '../utils/translations.ts';
 
 type Mode = 'login' | 'register';
 
@@ -10,6 +11,7 @@ export class LoginScene extends Phaser.Scene {
     private loginForm!: Phaser.GameObjects.DOMElement;
     private mode: Mode = 'login';
     private errorText!: Phaser.GameObjects.Text;
+    private t: Record<string, string> = {};
 
     constructor() {
         super({ key: 'LoginScene' });
@@ -29,6 +31,10 @@ export class LoginScene extends Phaser.Scene {
         const centerY = this.cameras.main.height / 2;
         const isRegister = this.mode === 'register';
 
+        // Get current language for translations
+        const langKey = this.registry.get('language') || 'en';
+        this.t = translations[langKey];
+
         this.add.image(centerX, centerY, 'title-background');
 
         // Full-screen overlay — blocks clicks from passing to MenuScene below
@@ -44,7 +50,7 @@ export class LoginScene extends Phaser.Scene {
         const background = this.add.graphics();
         this.drawMetalPlate(background, bgWidth, bgHeight, false);
 
-        const titleLabel = isRegister ? 'SIGN UP' : 'LOG IN';
+        const titleLabel = isRegister ? this.t.signup_title : this.t.login_title;
         const title = this.add.text(0, -bgHeight / 2 + 45, titleLabel, {
             fontFamily: 'Impact, sans-serif',
             fontSize: '32px',
@@ -56,17 +62,17 @@ export class LoginScene extends Phaser.Scene {
         // DOM form — positioned in absolute scene coords (not inside modal container)
         const formHtml = isRegister
             ? `<div style="display:flex;flex-direction:column;gap:12px;width:300px;">
-                <input type="text" id="username" placeholder="Username"
+                <input type="text" id="username" placeholder="${this.t.username_ph}"
                     style="padding:10px;font-size:18px;border:2px solid #999797;background:#222;color:white;font-family:Impact,sans-serif;">
-                <input type="email" id="email" placeholder="Email"
+                <input type="email" id="email" placeholder="${this.t.email_ph}"
                     style="padding:10px;font-size:18px;border:2px solid #999797;background:#222;color:white;font-family:Impact,sans-serif;">
-                <input type="password" id="password" placeholder="Password"
+                <input type="password" id="password" placeholder="${this.t.password_ph}"
                     style="padding:10px;font-size:18px;border:2px solid #999797;background:#222;color:white;font-family:Impact,sans-serif;">
                </div>`
             : `<div style="display:flex;flex-direction:column;gap:12px;width:300px;">
-                <input type="email" id="email" placeholder="Email"
+                <input type="email" id="email" placeholder="${this.t.email_ph}"
                     style="padding:10px;font-size:18px;border:2px solid #999797;background:#222;color:white;font-family:Impact,sans-serif;">
-                <input type="password" id="password" placeholder="Password"
+                <input type="password" id="password" placeholder="${this.t.password_ph}"
                     style="padding:10px;font-size:18px;border:2px solid #999797;background:#222;color:white;font-family:Impact,sans-serif;">
                </div>`;
 
@@ -107,18 +113,18 @@ export class LoginScene extends Phaser.Scene {
         const cancelY   = isRegister ? 210 : 180;
         const toggleAbsY = centerY + (isRegister ? 162 : 133);
 
-        const submitBtn = this.createButton(0, submitY, 200, 50, isRegister ? 'SIGN UP' : 'LOG IN', () => {
+        const submitBtn = this.createButton(0, submitY, 200, 50, isRegister ? this.t.signup_title : this.t.login_title, () => {
             void this.handleSubmit();
         }, btnStyle);
 
-        const cancelBtn = this.createButton(0, cancelY, 150, 40, 'CANCEL', () => {
+        const cancelBtn = this.createButton(0, cancelY, 150, 40, this.t.cancel, () => {
             this.scene.stop('LoginScene');
         }, smallBtnStyle);
 
         // Toggle link — outside modal container so it sits on top and keeps its own position
         const toggleMsg = isRegister
-            ? "Already have an account? Log in"
-            : "Don't have an account? Sign up";
+            ? this.t.already_acc
+            : this.t.no_acc;
         const toggleText = this.add
             .text(centerX, toggleAbsY, toggleMsg, {
                 fontFamily: 'Impact, sans-serif',
@@ -175,7 +181,7 @@ export class LoginScene extends Phaser.Scene {
         const password = passwordEl?.value.trim() ?? '';
 
         if (!email || !password) {
-            this.showError('Please fill in all fields.');
+            this.showError(this.t.err_fields);
             return;
         }
 
@@ -184,7 +190,7 @@ export class LoginScene extends Phaser.Scene {
                 const usernameEl = document.getElementById('username') as HTMLInputElement | null;
                 const username   = usernameEl?.value.trim() ?? '';
                 if (!username) {
-                    this.showError('Please enter a username.');
+                    this.showError(this.t.err_user);
                     return;
                 }
                 await register(username, email, password);
@@ -196,7 +202,7 @@ export class LoginScene extends Phaser.Scene {
                 this.goToIntroOrMenu();
             }
         } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Something went wrong.';
+            const msg = err instanceof Error ? err.message : this.t.err_generic;
             this.showError(msg);
         }
     }

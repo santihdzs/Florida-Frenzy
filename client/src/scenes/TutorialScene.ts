@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { transitionTo } from '../utils/sceneTransition.js';
+import { translations } from '../utils/translations.js';
 import evTilesUrl from '../assets/maps/everglades.webp';
 // Import cropped Clancy image
 import clanUrl from '../assets/sprites/Klan.webp';
@@ -42,6 +43,7 @@ const PROJ_SIZE = 8;
 const PROJ_SPEED = 420;
 
 export class TutorialScene extends Phaser.Scene {
+    private t: Record<string, any> = {};
     private px = 100;
     private py = 300;
     private playerImg!: Phaser.GameObjects.Sprite;
@@ -87,6 +89,10 @@ export class TutorialScene extends Phaser.Scene {
         this.cameras.main.fadeIn(300, 0, 0, 0);
         if (this.input.keyboard) this.input.keyboard.enabled = true;
         this.generateTextures();
+
+        // Get current language for translations
+        const langKey = this.registry.get('language') || 'en';
+        this.t = translations[langKey];
 
         //music
         let currentMusic = this.registry.get('music');
@@ -140,7 +146,7 @@ export class TutorialScene extends Phaser.Scene {
         };
 
         // instructions text
-        this.instructionText = this.add.text(100, 15, 'Hey Crock, ¡Let´s do it!\nUse WASD or the arrow keys to move.', textStyle)
+        this.instructionText = this.add.text(100, 15, this.t.tut_dialog_0, textStyle)
             .setAlign('left');
 
         // Container grouping the HUD background, portrait, and text
@@ -158,7 +164,7 @@ export class TutorialScene extends Phaser.Scene {
             this.scene.pause();
         });
 
-        const pauseButton = this.add.text(20, 20, 'PAUSE', {
+        const pauseButton = this.add.text(20, 20, this.t.pause, {
             fontSize: '28px',
             color: '#feec00',
             fontStyle: 'bold',
@@ -199,7 +205,7 @@ export class TutorialScene extends Phaser.Scene {
                 this.fireProjectile(ptr);
                 if (this.step === 2) {
                     this.step = 3;
-                    this.clanDialog('¡Crock-Níal! Press the spacebar to continue.', '#00ff88');
+                    this.clanDialog(this.t.tut_dialog_3, '#00ff88');
                 }
             }
         });
@@ -341,11 +347,11 @@ export class TutorialScene extends Phaser.Scene {
         // Sequential step progression
         if (this.step === 0 && this.px > 350) {
             this.step = 1;
-            this.clanDialog('¡Good! Hold SHIFT to run.\nBe careful with your stamina, Crock.');
+            this.clanDialog(this.t.tut_dialog_1, '#ff8844');
         } 
         else if (this.step === 1 && this.px > 700) {
             this.step = 2;
-            this.clanDialog('Click to shoot.\nAim with the mouse (8 directions).');
+            this.clanDialog(this.t.tut_dialog_2, '#00ff88');
         } 
     }
 }

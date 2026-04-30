@@ -11,11 +11,13 @@ import {
   deleteMyAccount,
 } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
+import { translations } from '../utils/translations.ts';
 
 export class AccountScene extends Phaser.Scene {
   private fromPause   = false;
   private returnScene = 'MenuScene';
   private confirmDom?: Phaser.GameObjects.DOMElement;
+  private t: Record<string, string> = {};
 
   constructor() {
     super({ key: 'AccountScene' });
@@ -39,6 +41,10 @@ export class AccountScene extends Phaser.Scene {
     const cx = W / 2;
     const cy = H / 2;
 
+    // Get current language for translations    
+    const langKey = this.registry.get('language') || 'en';
+    this.t = translations[langKey];
+
     this.add.image(cx, cy, 'title-background');
     this.add.rectangle(0, 0, W, H, 0x000000, 0.75).setOrigin(0);
 
@@ -48,11 +54,11 @@ export class AccountScene extends Phaser.Scene {
       strokeThickness: 2,
     };
 
-    this.add.text(cx, 46, 'ACCOUNT SETTINGS', {
+    this.add.text(cx, 46, this.t.acc_title, {
       ...base, fontSize: '36px', color: '#c2baba',
     }).setOrigin(0.5);
 
-    this.add.text(80, 60, '< BACK', {
+    this.add.text(80, 60, '< ' + this.t.back, {
       ...base, fontSize: '22px', color: '#888888',
     }).setOrigin(0, 0.5)
       .setInteractive({ useHandCursor: true })
@@ -63,7 +69,7 @@ export class AccountScene extends Phaser.Scene {
       });
 
     if (!isLoggedIn()) {
-      this.add.text(cx, cy, 'Log in to manage your account.', {
+      this.add.text(cx, cy, this.t.acc_not_logged, {
         ...base, fontSize: '22px', color: '#888888',
       }).setOrigin(0.5);
       return;
@@ -83,32 +89,32 @@ export class AccountScene extends Phaser.Scene {
     const html = `
       <div style="width:380px;max-height:560px;overflow-y:auto;">
         <div style="${panel}">
-          <div style="${hdr}">CHANGE USERNAME</div>
-          <div style="font-size:11px;color:#777;margin-bottom:5px;font-family:Arial,sans-serif;">Current: ${currentUsername}</div>
-          <input type="text" id="acc-username" placeholder="New username (min 3 chars)" minlength="3" maxlength="30" style="${inp}">
-          <button id="btn-username" style="${greenBtn}">Save</button>
+          <div style="${hdr}">${this.t.acc_hdr_username}</div>
+          <div style="font-size:11px;color:#777;margin-bottom:5px;font-family:Arial,sans-serif;">${this.t.acc_current_user(currentUsername)}</div>
+          <input type="text" id="acc-username" placeholder="${this.t.acc_ph_username}" minlength="3" maxlength="30" style="${inp}">
+          <button id="btn-username" style="${greenBtn}">${this.t.acc_btn_save}</button>
           <div id="fb-username" style="${fbDiv}"></div>
         </div>
         <div style="${panel}">
-          <div style="${hdr}">CHANGE EMAIL</div>
-          <input type="email" id="acc-email" placeholder="New email address" style="${inp}">
-          <button id="btn-email" style="${greenBtn}">Save</button>
+          <div style="${hdr}">${this.t.acc_hdr_email}</div>
+          <input type="email" id="acc-email" placeholder="${this.t.acc_ph_email}" style="${inp}">
+          <button id="btn-email" style="${greenBtn}">${this.t.acc_btn_save}</button>
           <div id="fb-email" style="${fbDiv}"></div>
         </div>
         <div style="${panel}">
-          <div style="${hdr}">CHANGE PASSWORD</div>
-          <input type="password" id="acc-cur-pw" placeholder="Current password" style="${inp}">
-          <input type="password" id="acc-new-pw" placeholder="New password (min 6 chars)" style="${inp}">
-          <button id="btn-pw" style="${greenBtn}">Save</button>
+          <div style="${hdr}">${this.t.acc_hdr_password}</div>
+          <input type="password" id="acc-cur-pw" placeholder="${this.t.acc_ph_cur_pw}" style="${inp}">
+          <input type="password" id="acc-new-pw" placeholder="${this.t.acc_ph_new_pw}" style="${inp}">
+          <button id="btn-pw" style="${greenBtn}">${this.t.acc_btn_save}</button>
           <div id="fb-pw" style="${fbDiv}"></div>
         </div>
         <div style="${panel}border-color:#5a1a1a;background:rgba(60,0,0,0.35);">
-          <div style="${hdr}color:#ff8888;">DANGER ZONE</div>
-          <input type="password" id="acc-del-pw" placeholder="Enter password to continue" style="${inp}display:none;">
+          <div style="${hdr}color:#ff8888;">${this.t.acc_hdr_danger}</div>
+          <input type="password" id="acc-del-pw" placeholder="${this.t.acc_ph_del_pw}" style="${inp}display:none;">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button id="btn-delete"      style="${redBtn}">Delete Account</button>
-            <button id="btn-del-confirm" style="${redBtn}display:none;">Confirm Delete</button>
-            <button id="btn-del-cancel"  style="${greyBtn}display:none;">Cancel</button>
+            <button id="btn-delete"      style="${redBtn}">${this.t.acc_btn_delete}</button>
+            <button id="btn-del-confirm" style="${redBtn}display:none;">${this.t.acc_btn_confirm}</button>
+            <button id="btn-del-cancel"  style="${greyBtn}display:none;">${this.t.acc_btn_cancel}</button>
           </div>
           <div id="fb-delete" style="${fbDiv}"></div>
         </div>
@@ -146,43 +152,43 @@ export class AccountScene extends Phaser.Scene {
   private async doUsernameChange(): Promise<void> {
     const input = document.getElementById('acc-username') as HTMLInputElement | null;
     const val = input?.value.trim() ?? '';
-    if (val.length < 3) { this.fb('fb-username', 'Username must be at least 3 characters.', false); return; }
+    if (val.length < 3) { this.fb('fb-username', this.t.acc_err_user_short, false); return; }
     try {
       await changeUsername(val);
-      this.fb('fb-username', 'Username updated!', true);
+      this.fb('fb-username', this.t.acc_msg_user_ok, true);
       if (input) input.value = '';
     } catch (err) {
-      this.fb('fb-username', err instanceof Error ? err.message : 'Update failed.', false);
+      this.fb('fb-username', err instanceof Error ? err.message : this.t.acc_msg_fail, false);
     }
   }
 
   private async doEmailChange(): Promise<void> {
     const input = document.getElementById('acc-email') as HTMLInputElement | null;
     const val = input?.value.trim() ?? '';
-    if (!val.includes('@') || val.length < 5) { this.fb('fb-email', 'Enter a valid email address.', false); return; }
+    if (!val.includes('@') || val.length < 5) { this.fb('fb-email', this.t.acc_err_email_invalid, false); return; }
     try {
       await changeEmail(val);
-      this.fb('fb-email', 'Email updated!', true);
+      this.fb('fb-email', this.t.acc_msg_email_ok, true);
       if (input) input.value = '';
     } catch (err) {
-      this.fb('fb-email', err instanceof Error ? err.message : 'Update failed.', false);
+      this.fb('fb-email', err instanceof Error ? err.message : this.t.acc_msg_fail, false);
     }
   }
 
   private async doPasswordChange(): Promise<void> {
     const cur = (document.getElementById('acc-cur-pw') as HTMLInputElement | null)?.value ?? '';
     const nw  = (document.getElementById('acc-new-pw') as HTMLInputElement | null)?.value ?? '';
-    if (!cur) { this.fb('fb-pw', 'Enter your current password.', false); return; }
-    if (nw.length < 6) { this.fb('fb-pw', 'New password must be at least 6 characters.', false); return; }
+    if (!cur) { this.fb('fb-pw', this.t.acc_err_pw_current, false); return; }
+    if (nw.length < 6) { this.fb('fb-pw', this.t.acc_err_pw_short, false); return; }
     try {
       await changePassword(cur, nw);
-      this.fb('fb-pw', 'Password updated!', true);
+      this.fb('fb-pw', this.t.acc_msg_pw_ok, true);
       const curEl = document.getElementById('acc-cur-pw') as HTMLInputElement | null;
       const newEl = document.getElementById('acc-new-pw') as HTMLInputElement | null;
       if (curEl) curEl.value = '';
       if (newEl) newEl.value = '';
     } catch (err) {
-      this.fb('fb-pw', err instanceof Error ? err.message : 'Update failed.', false);
+      this.fb('fb-pw', err instanceof Error ? err.message : this.t.acc_msg_fail, false);
     }
   }
 
@@ -212,7 +218,7 @@ export class AccountScene extends Phaser.Scene {
 
   private showDeleteConfirm(): void {
     const pw = (document.getElementById('acc-del-pw') as HTMLInputElement | null)?.value ?? '';
-    if (!pw) { this.fb('fb-delete', 'Enter your password first.', false); return; }
+    if (!pw) { this.fb('fb-delete', this.t.acc_err_pw_current, false); return; }
 
     const W  = this.cameras.main.width;
     const H  = this.cameras.main.height;
@@ -237,22 +243,22 @@ export class AccountScene extends Phaser.Scene {
           box-shadow:0 0 40px rgba(139,0,0,0.4);
         ">
           <div style="font-family:Impact,sans-serif;font-size:26px;color:#ff6666;margin-bottom:14px;">
-            Delete Account
+            ${this.t.acc_modal_title}
           </div>
           <div style="font-family:Arial,sans-serif;font-size:16px;color:#cccccc;margin-bottom:26px;line-height:1.6;">
-            This action is permanent and cannot<br>be undone. Are you sure?
+            ${this.t.acc_modal_body}
           </div>
           <div style="display:flex;gap:16px;justify-content:center;">
             <button id="dlg-yes" style="
               padding:10px 28px;background:#8b0000;color:#fff;
               border:1px solid #cc0000;border-radius:4px;
               font-family:Impact,sans-serif;font-size:18px;cursor:pointer;
-            ">DELETE</button>
+            ">${this.t.acc_btn_delete_big}</button>
             <button id="dlg-no" style="
               padding:10px 28px;background:#1a3a1a;color:#fff;
               border:1px solid #4a7a4a;border-radius:4px;
               font-family:Impact,sans-serif;font-size:18px;cursor:pointer;
-            ">CANCEL</button>
+            ">${this.t.acc_btn_cancel}</button>
           </div>
         </div>
       </div>`;
@@ -277,10 +283,10 @@ export class AccountScene extends Phaser.Scene {
   private async doDeleteAccount(password: string): Promise<void> {
     try {
       await deleteMyAccount(password);
-      this.fb('fb-delete', 'Account deleted.', true);
+      this.fb('fb-delete', this.t.acc_msg_del_ok, true);
       this.time.delayedCall(1200, () => { transitionTo(this, 'MenuScene'); });
     } catch (err) {
-      this.fb('fb-delete', err instanceof Error ? err.message : 'Delete failed.', false);
+      this.fb('fb-delete', err instanceof Error ? err.message : this.t.acc_msg_fail, false);
       this.hideDeleteEntry();
     }
   }

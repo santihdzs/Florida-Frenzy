@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import { getPlayer, updatePreferences, isLoggedIn } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
+import { translations } from '../utils/translations.ts';
 
 export class SettingsScene extends Phaser.Scene {
   private fromPause = false; // track if we came from the pause menu
@@ -15,6 +16,10 @@ export class SettingsScene extends Phaser.Scene {
   create() {
     const { width } = this.cameras.main;
     const centerX = width / 2;
+
+    // Get current language for translations
+    const langKey = this.registry.get('language') || 'en';
+    const t = translations[langKey];
 
     this.cameras.main.setBackgroundColor('#1a1a1a');
 
@@ -39,62 +44,63 @@ export class SettingsScene extends Phaser.Scene {
       color: '#888888',
     };
 
-    // Back — top-left corner
-    this.createMetalBtn(60, 42, 110, 44, '< BACK', () => {
-      if (this.fromPause) {
-        this.scene.stop();
-        this.scene.launch('PauseScene', { returnScene: this.returnScene });
-      } else {
-        this.scene.start('MenuScene');
-      }
-    });
-
     // Title
-    this.add.text(centerX, 55, 'SETTINGS', titleStyle).setOrigin(0.5);
+    this.add.text(centerX, 80, t.settings, titleStyle).setOrigin(0.5);
 
     // ── SOUND ────────────────────────────────────────────────────────────────
-    this.add.text(centerX, 118, 'SOUND', sectionStyle).setOrigin(0.5);
+    this.add.text(centerX, 118, t.sound, sectionStyle).setOrigin(0.5);
 
     // Volume
     let currentVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
     const music = this.registry.get('music');
     if (music) music.setVolume(currentVolume);
 
-    this.add.text(centerX, 158, 'AUDIO VOLUME', labelStyle).setOrigin(0.5);
-    const volDisplay = this.add.text(centerX, 203, `${Math.round(currentVolume * 100)}%`, labelStyle).setOrigin(0.5);
+    this.add.text(centerX - 190, 158, t.audio_vol, labelStyle).setOrigin(0.5);
+    const volDisplay = this.add.text(centerX - 190, 203, `${Math.round(currentVolume * 100)}%`, labelStyle).setOrigin(0.5);
 
-    this.createMetalBtn(centerX - 80, 203, 60, 50, '-', () => {
+    this.createMetalBtn(centerX - 260, 203, 60, 50, '-', () => {
       currentVolume = Math.max(0, currentVolume - 0.1);
       this.updateVolume(currentVolume, volDisplay);
     });
-    this.createMetalBtn(centerX + 80, 203, 60, 50, '+', () => {
+    this.createMetalBtn(centerX - 120, 203, 60, 50, '+', () => {
       currentVolume = Math.min(1, currentVolume + 0.1);
       this.updateVolume(currentVolume, volDisplay);
     });
 
     // Mute toggle
-    this.add.text(centerX, 255, 'MUTE', labelStyle).setOrigin(0.5);
+    this.add.text(centerX + 190, 158, t.sound, labelStyle).setOrigin(0.5);
     let currentMuted = localStorage.getItem('ff_muted') === 'true';
-    const muteBtn = this.createMetalBtn(centerX, 298, 180, 60, currentMuted ? 'OFF' : 'ON', () => {
+    const muteBtn = this.createMetalBtn(centerX + 190, 203, 180, 60, currentMuted ? t.off : t.on, () => {
       currentMuted = !currentMuted;
       localStorage.setItem('ff_muted', currentMuted ? 'true' : 'false');
       this.sound.mute = currentMuted;
-      (muteBtn.getAt(1) as Phaser.GameObjects.Text).setText(currentMuted ? 'OFF' : 'ON');
+      (muteBtn.getAt(1) as Phaser.GameObjects.Text).setText(currentMuted ? t.off : t.on);
       if (isLoggedIn()) {
         const player = getPlayer();
         if (player) updatePreferences({ isMuted: currentMuted }).catch(() => {});
       }
     });
 
+    // ── LANGUAGE ───────────────────────────────────────────────────────────
+    this.add.text(centerX, 240, t.lang, sectionStyle).setOrigin(0.5);
+    const updateLang = (newLang: string) => {
+      localStorage.setItem('gameLanguage', newLang);
+      this.registry.set('language', newLang);
+      this.scene.restart();
+    };
+    const langEBtn = this.createMetalBtn(centerX - 91, 288, 180, 60, t.english, () => updateLang('en'));
+    const langSBtn = this.createMetalBtn(centerX + 91, 288, 180, 60, t.spanish, () => updateLang('es'));
+    if(langKey === 'en') langEBtn.setAlpha(0.7); else langSBtn.setAlpha(0.7);
+
     // ── SCREEN RESOLUTION ─────────────────────────────────────────────────────
     const resolutions = [
-      { label: 'Pequeña 1024x640', width: 1024, height: 640 },
-      { label: 'Normal 1200x750', width: 1200, height: 750 },
-      { label: 'Grande 1440x900', width: 1440, height: 900 },
+      { label: t.res_s, width: 1024, height: 640 },
+      { label: t.res_n, width: 1200, height: 750 },
+      { label: t.res_g, width: 1440, height: 900 },
     ];
     let currentResIndex = parseInt(localStorage.getItem('gameResolution') || '1');
 
-    this.add.text(centerX, 372, 'SCREEN RESOLUTION', sectionStyle).setOrigin(0.5);
+    this.add.text(centerX, 372, t.res, sectionStyle).setOrigin(0.5);
     this.createMetalBtn(centerX, 416, 300, 60, resolutions[currentResIndex].label, () => {
       this.input.enabled = false;
       this.cameras.main.fadeOut(500, 0, 0, 0);
@@ -108,22 +114,22 @@ export class SettingsScene extends Phaser.Scene {
     });
 
     // ── DISPLAY MODE ──────────────────────────────────────────────────────────
-    this.add.text(centerX, 490, 'DISPLAY MODE', sectionStyle).setOrigin(0.5);
+    this.add.text(centerX, 490, t.display, sectionStyle).setOrigin(0.5);
 
-    const initialfslabel = this.scale.isFullscreen ? 'EXIT FULLSCREEN' : 'WINDOWED / FULLSCREEN';
+    const initialfslabel = this.scale.isFullscreen ? t.exit_fs : t.window_fs;
     const fullScreenBtn = this.createMetalBtn(centerX, 533, 300, 60, initialfslabel, () => {
       if (this.scale.isFullscreen) {
         this.scale.stopFullscreen();
-        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('WINDOWED / FULLSCREEN');
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText(t.window_fs);
       } else {
         document.getElementById('game-container')?.requestFullscreen();
-        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText('EXIT FULLSCREEN');
+        (fullScreenBtn.getAt(1) as Phaser.GameObjects.Text).setText(t.exit_fs);
       }
     });
 
     // ── ACCOUNT ───────────────────────────────────────────────────────────────
-    this.add.text(centerX, 608, 'ACCOUNT', sectionStyle).setOrigin(0.5);
-    this.createMetalBtn(centerX, 651, 280, 55, 'Account Settings', () => {
+    this.add.text(centerX, 608, t.account, sectionStyle).setOrigin(0.5);
+    this.createMetalBtn(centerX, 651, 280, 55, t.account_settings, () => {
       transitionTo(this, 'AccountScene', { fromPause: this.fromPause, returnScene: this.returnScene });
     });
   }
@@ -150,7 +156,7 @@ export class SettingsScene extends Phaser.Scene {
     const container = this.add.container(x, y);
     const graphics = this.add.graphics();
 
-    const draw = (pressed: boolean) => {
+    const draw = (pressed: boolean) => { // Draw button background with layered rectangles for a metallic effect
       graphics.clear();
       graphics.fillStyle(0x000000, 0.4);
       graphics.fillRoundedRect(-w/2 + 3, -h/2 + 3, w, h, 6);
