@@ -1,5 +1,7 @@
 /*
-* Manuel Montero, Yael Ordaz & Santiago Hernandez
+* Santiago Hernandez - A01787550
+* Manuel Montero - A01660761
+* Yael Ordaz - A01786776
 * 
 * Main script for the DuelScene, which manages the card-based combat system of the game.
 * This script defines the DuelScene class, which extends Phaser.Scene, 
@@ -10,7 +12,8 @@
 * The script also defines a CombatState interface to track various status effects and conditions 
 * for both the player and the enemy during combat.
 * 
-* (thank you Copilot for helping me with the comments in this one)
+* ChatGPT was used to assist in writing and optimizing some of the code in this file
+* and Copilot to comment about 50% of the comments in this file
 */ 
 
 import Phaser from 'phaser'; // direct import to ensure Phaser types are available in this file
@@ -18,6 +21,8 @@ import Phaser from 'phaser'; // direct import to ensure Phaser types are availab
 import { fetchCards } from '../api/cardsApi'; // API function to fetch card data from the server
 import { mapCardData } from '../utils/cardsMapper'; // utility function to convert database card format to the Card type used in the client application
 // import { getBaseCardPool, type Card } from '../utils/cards'; // import the Card type for type annotations in this scene
+import { fetchActiveDeck } from '../api/deckApi';
+
 
 import {
   Card, // card data model used throughout the duel scene
@@ -772,21 +777,76 @@ export class DuelScene extends Phaser.Scene {
       .setDepth(bossConfig.depth);
   }
 
-  private setupDecks() {
+  private cloneDeckCard(card: Card, index: number): Card {
+    return {
+      ...card, // copy all properties from the source card
+      id: `${card.id}-deck-${index}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, // generate a unique ID for this instance of the card in the deck
+    };
+  }
+
+  private async loadPlayerDeckFromBackend(): Promise<boolean> {
+    const player = getPlayer();
+    const playerId = Number(player?.id);
+
+    if (!Number.isFinite(playerId) || playerId <= 0) {
+      console.warn('No valid playerId found. Falling back to local deck generation.');
+      return false;
+    }
+
+    const response = await fetchActiveDeck(playerId);
+
+    if (!response?.deck?.cards || !Array.isArray(response.deck.cards)) {
+      console.warn('Active deck response is invalid. Falling back to local deck generation.');
+      return false;
+    }
+
+    const mappedCards: Card[] = response.deck.cards.map((entry: any, index: number) => {
+      const dbCard = entry.card;
+      if (!dbCard) return null; // skip invalid entries
+
+      const mapped = mapCardData(dbCard);
+      return this.cloneDeckCard(mapped, index); // create a unique instance of the card for the player's deck
+    }).filter((card: Card | null): card is Card => Boolean(card)); // filter out any null entries resulting from invalid data
+
+    const shuffled = shuffleCards(mappedCards); // shuffle the loaded deck to add variability to the starting hand and draw order
+
+    this.playerDeck = shuffled.slice(5); // use the shuffled loaded deck as the player's deck, leaving the top 5 cards to be drawn into the starting hand
+    this.playerHand = shuffled.slice(0, 5); // draw the top 5 cards from the loaded deck into the player's starting hand
+
+    console.log('Active deck loaded from backend:', { 
+      total: shuffled.length, 
+      hand: this.playerHand.length, 
+      deck: this.playerDeck.length, 
+    });
+
+    return true; // indicate that the deck was successfully loaded from the backend
+  }
+
+  private async setupDecks() {
     const basePool = this.baseCardsFromDb.length > 0 ? this.baseCardsFromDb : getBaseCardPool(); // ensure we have a base card pool to draw from, even if the server load failed
     const effectPool = this.effectCardsFromDb.length > 0 ? this.effectCardsFromDb : getSpecialCardPool(); // ensure we have an effect card pool to draw from, even if the server load failed
     const rarePool = this.rareCardsFromDb.length > 0 ? this.rareCardsFromDb : getIceCardPool(); // ensure we have a rare card pool to draw from, even if the server load failed
-    // const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
 
-    const playerPool = [...basePool, ...effectPool, ...rarePool]; // combine the different rarity pools to create the player's card pool for deck generation
+    const loadedFromBackendDeck = await this.loadPlayerDeckFromBackend(); // attempt to load the player's deck from the backend, which also sets up the starting hand if successful
+
+    if (!loadedFromBackendDeck) {
+      console.warn('Using fallback local deck generation.');
+      const fallbackDeck = this.generateDeckFromPool([...basePool, ...effectPool, ...rarePool], PLAYER_DECK_SIZE); // generate a fallback deck from the combined pools if backend load fails
+      this.playerDeck = fallbackDeck.slice(5); // use the generated fallback deck, leaving the top 5 cards to be drawn into the starting hand
+      this.playerHand = fallbackDeck.slice(0, 5); // draw the top 5 cards from the generated fallback deck into the player's starting hand
+    }
+
+    const legendaryPool = this.legendaryCardsFromDb.length > 0 ? this.legendaryCardsFromDb : getLegendaryCardPool(); // ensure we have a legendary card pool to draw from, even if the server load failed
+
+    // const playerPool = [...basePool, ...effectPool, ...rarePool]; // combine the different rarity pools to create the player's card pool for deck generation
     const enemyPool = this.buildEnemyPoolForBoss(); // build the enemy's card pool based on the selected boss's AI level and associated card access
 
-    this.playerDeck = this.generateDeckFromPool(playerPool, PLAYER_DECK_SIZE); // build the player's starting deck
+    // this.playerDeck = this.generateDeckFromPool(playerPool, PLAYER_DECK_SIZE); // build the player's starting deck
     this.enemyDeck = this.generateDeckFromPool(enemyPool, PLAYER_DECK_SIZE); // build the enemy's starting deck
 
     // this.playerHand = buildHand(generateDeck(HAND_SIZE), HAND_SIZE); // draw the player's starting hand
 
-    this.playerHand = buildHand(this.playerDeck, HAND_SIZE); // draw the player's starting hand from the generated deck, ensuring the hand reflects the actual deck content
+    // this.playerHand = buildHand(this.playerDeck, HAND_SIZE); // draw the player's starting hand from the generated deck, ensuring the hand reflects the actual deck content
     this.enemyHand = buildHand(this.enemyDeck, HAND_SIZE); // draw the enemy's starting hand
 
     // this.enemyHand = ICE_CARD_POOL.map((card, index) => ({

@@ -20,6 +20,8 @@ export interface DbCard { // Define the structure of the card data as it is stor
   cardRarity: string;
 }
 
+import { API_URL } from './apiBase'; // Import the base API URL from the apiBase module
+
 export async function fetchCards(): Promise<DbCard[]> { // Function to fetch card data from the backend API
   const response = await fetch(`${API_URL}/api/cards`);
 

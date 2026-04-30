@@ -1,11 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { CardRarity, CardCategory, CardElement } from '@prisma/client';
 import { listCardsSchema } from '../schemas/cards.schema.js';
 import { listCards } from '../services/cards.service.js';
 
 interface CardsQuery { // Define the query parameters for listing cards
-    rarity?: string;
-    element?: string;
-    category?: string;
+    rarity?: CardRarity;
+    element?: CardElement;
+    category?: CardCategory;
 }
 
 const cardRoutes: FastifyPluginAsync = async (fastify) => { // Define the route for listing cards with optional filters

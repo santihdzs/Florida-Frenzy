@@ -8,12 +8,32 @@
 import type { Card, Element, CardCategory, CardRarity, CardEffect } from './cards'; // Import the Card type and related types from the cards module
 import type { DbCard } from '../api/cardsApi'; // Import the DbCard type from the cardsApi module
 
+const rarityMap: Record<string, CardRarity> = {
+    BASE: 'base',
+    EFFECT: 'effect',
+    RARE: 'rare',
+    LEGENDARY: 'legendary',
+}; // map database rarity strings to CardRarity types
+
+const categoryMap: Record<string, CardCategory> = {
+    BASE: 'attack',
+    SPECIAL: 'special',
+}; // map database category strings to CardCategory types
+
+const elementMap: Record<string, Element> = {
+    FIRE: 'fire',
+    WATER: 'water',
+    SWAMP: 'swamp',
+    SAND: 'sand',
+    ICE: 'ice',
+} // map database element strings to Element types
+
 export function mapCardData(db: DbCard): Card { // Function to map a database card object to the Card type used in the client application
     return {
         id: String(db.id),
         name: db.cardName,
-        category: db.cardCategory.toLowerCase() as CardCategory,
-        element: db.cardElement.toLowerCase() as Element,
+        category: categoryMap[db.cardCategory] ?? 'special',
+        element: elementMap[db.cardElement] ?? 'fire',
         power: db.cardNumber,
         effect: db.cardEffect as CardEffect | null,
         effectDescription: db.effectDesc ?? '',
@@ -26,6 +46,6 @@ export function mapCardData(db: DbCard): Card { // Function to map a database ca
         energyIGain: db.energyIGain ?? 0,
         energyECost: db.energyECost ?? 0,
         energyICost: db.energyICost ?? 0,
-        rarity: db.cardRarity.toLowerCase() as CardRarity,
+        rarity: rarityMap[db.cardRarity] ?? 'base',
     };
 }

@@ -19,7 +19,7 @@ export const listCardsSchema = { // Validation for query parameters when listing
             },
             category: {
                 type: 'string',
-                enum: ['ATTACK', 'DEFENSE', 'STATUS', 'SPECIAL'], // Allowed values for category filter
+                enum: ['BASE', 'SPECIAL'], // Allowed values for category filter
             },
         },
         additionalProperties: false, // Disallow additional query parameters
