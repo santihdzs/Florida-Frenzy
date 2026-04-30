@@ -821,12 +821,30 @@ export class MultiplayerRunScene extends Phaser.Scene {
       enemies: ServerEnemy[];
       players: ServerPlayer[];
     }) => {
-      transitionTo(this, 'MultiplayerRunScene', {
-        grid:    data.grid,
-        enemies: data.enemies,
-        players: data.players,
-        level:   data.level,
-        mapKey:  this.mapKey,
+      if (this.done) return;
+      this.done = true;
+
+      const cx = this.cameras.main.width / 2;
+      const cy = this.cameras.main.height / 2;
+      this.add.text(cx, cy - 20, `LEVEL ${data.level - 1} COMPLETE!`, {
+        fontFamily: 'Impact, Arial black, sans-serif',
+        fontSize: '52px', color: '#feec00',
+        stroke: '#000000', strokeThickness: 5,
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+      this.add.text(cx, cy + 46, 'Get ready...', {
+        fontFamily: 'Impact, Arial black, sans-serif',
+        fontSize: '26px', color: '#c2baba',
+        stroke: '#000000', strokeThickness: 3,
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+
+      this.time.delayedCall(2000, () => {
+        this.scene.restart({
+          grid:    data.grid,
+          enemies: data.enemies,
+          players: data.players,
+          level:   data.level,
+          mapKey:  this.mapKey,
+        });
       });
     });
   }

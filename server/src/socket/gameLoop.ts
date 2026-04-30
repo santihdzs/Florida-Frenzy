@@ -105,6 +105,21 @@ export function generateGrid(seed: number): number[][] {
 }
 
 const ENEMY_SPEEDS: Record<string, number> = { SHOOTER: 80, TANK: 55, SWIFT: 160 };
+const ENEMY_SIZE = 48;
+
+function isBlockedCell(grid: number[][], ex: number, ey: number): boolean {
+  const col0 = Math.max(0, Math.floor(ex / TILE));
+  const row0 = Math.max(0, Math.floor(ey / TILE));
+  const col1 = Math.min(COLS - 1, Math.floor((ex + ENEMY_SIZE - 1) / TILE));
+  const row1 = Math.min(ROWS - 1, Math.floor((ey + ENEMY_SIZE - 1) / TILE));
+  for (let r = row0; r <= row1; r++) {
+    for (let c = col0; c <= col1; c++) {
+      const cell = grid[r]?.[c] ?? FLOOR;
+      if (cell === BARRIER || cell === HOLE) return true;
+    }
+  }
+  return false;
+}
 
 let _enemyIdCounter = 0;
 
@@ -140,9 +155,17 @@ export function tickEnemies(room: Room, dt: number): void {
     const dy = cy - e.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < 32) continue;
-    e.x += (dx / dist) * speed * dt;
-    e.y += (dy / dist) * speed * dt;
-    e.x = Math.max(0, Math.min(WORLD_W - 48, e.x));
-    e.y = Math.max(0, Math.min(WORLD_H - 48, e.y));
+
+    const nx = Math.max(0, Math.min(WORLD_W - ENEMY_SIZE, e.x + (dx / dist) * speed * dt));
+    const ny = Math.max(0, Math.min(WORLD_H - ENEMY_SIZE, e.y + (dy / dist) * speed * dt));
+
+    if (!isBlockedCell(room.grid, nx, ny)) {
+      e.x = nx; e.y = ny;
+    } else if (!isBlockedCell(room.grid, nx, e.y)) {
+      e.x = nx;
+    } else if (!isBlockedCell(room.grid, e.x, ny)) {
+      e.y = ny;
+    }
+    // fully blocked: enemy stays in place this tick
   }
 }
