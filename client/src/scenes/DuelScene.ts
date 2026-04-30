@@ -22,6 +22,7 @@ import { fetchCards } from '../api/cardsApi'; // API function to fetch card data
 import { mapCardData } from '../utils/cardsMapper'; // utility function to convert database card format to the Card type used in the client application
 // import { getBaseCardPool, type Card } from '../utils/cards'; // import the Card type for type annotations in this scene
 import { fetchActiveDeck } from '../api/deckApi';
+import { translations } from '../utils/translations.js';
 
 import { PLAYER_VISUALS } from '../utils/playerConfig.js'; // configuration for player character visuals, including references to the sprite keys used in this scene and their rendering parameters
 import { PLAYER_ID_TO_KEY, PLAYER_NAME_TO_KEY, normalizePlayerCharacterKey, type ActiveCharacterStats, type PlayerCharacterKey } from '../utils/playerTypes.js'; 
@@ -65,7 +66,7 @@ import { updateHpBar, updateEnergyBar, updateShieldBar } from '../utils/duelUi';
 import { CombatState, createEmptyCombatState } from '../utils/combatState'; // combat status container and reset helper
 
 import type { RunData } from './RunScene'; // run-progress data passed into this scene
-import { completeRun, getPlayer } from '../utils/auth.js'; // API call to save run result
+import { completeRun, getPlayer, beatPythra } from '../utils/auth.js'; // API call to save run result
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 import { transitionTo } from '../utils/sceneTransition.js';
 
@@ -263,6 +264,16 @@ export class DuelScene extends Phaser.Scene {
     super(config); // scene key used by Phaser
   }
 
+  // Translation table loaded in create(), used by tf()
+  private t: Record<string, any> = {};
+ 
+  // Helper: resolves both plain strings and interpolation functions
+  private tf(key: string, ...args: any[]): string {
+    const val = this.t[key];
+    if (typeof val === 'function') return val(...args);
+    return val ?? key;
+  }
+
   init(data: Partial<RunData>) {
     this.level = data.level ?? 1; // restore level if passed in, otherwise start at level 1
     this.totalCoins = data.totalCoins ?? 0; // restore accumulated coins
@@ -421,6 +432,10 @@ export class DuelScene extends Phaser.Scene {
     const { width, height } = this.cameras.main; // current scene dimensions
     const centerX = width / 2; // horizontal center point
 
+    // Load translations for the active language
+    const langKey = this.registry.get('language') || 'en';
+    this.t = translations[langKey];
+
     let currentMusic = this.registry.get('music');
     if (currentMusic && currentMusic.key !== 'duel-music') {
         currentMusic.stop();
@@ -504,18 +519,18 @@ export class DuelScene extends Phaser.Scene {
         const boxBg = this.add.graphics().setDepth(10000).setScrollFactor(0);
         boxBg.fillStyle(0x1a1a1a, 0.9);
         boxBg.fillRoundedRect(cx - 200, cy - 100, 400, 200, 12);
-        const promptText = this.add.text(cx, cy - 48, 'Quit current game?', {
+        const promptText = this.add.text(cx, cy - 48, this.tf('duel_quit_title'), {
           fontSize: '28px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
         }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
-        const subText = this.add.text(cx, cy - 10, 'Your current run will end', {
+        const subText = this.add.text(cx, cy - 10, this.tf('duel_quit_sub'), {
           fontSize: '18px', color: '#aaaaaa', fontFamily: 'Arial',
         }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
-        const yesBtn = this.add.text(cx - 75, cy + 58, 'YES', {
+        const yesBtn = this.add.text(cx - 75, cy + 58, this.tf('duel_quit_yes'), {
           fontSize: '22px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
           backgroundColor: '#8b0000', padding: { x: 30, y: 10 },
         }).setOrigin(0.5).setDepth(10001).setScrollFactor(0)
           .setInteractive({ useHandCursor: true });
-        const noBtn = this.add.text(cx + 75, cy + 58, 'NO', {
+        const noBtn = this.add.text(cx + 75, cy + 58, this.tf('duel_quit_no'), {
           fontSize: '22px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
           backgroundColor: '#006400', padding: { x: 30, y: 10 },
         }).setOrigin(0.5).setDepth(10001).setScrollFactor(0)
@@ -555,15 +570,27 @@ export class DuelScene extends Phaser.Scene {
     });
   }
 
-  private advanceToNextCycle() {
-    transitionTo(this, 'RunScene', { // transition back to the overworld progression scene
-      level: this.level + 1, // advance to the next level
-      step: 0, // reset step counter
+  private async advanceToNextCycle() {
+    if ((this as any).__transitioning) return;
+
+    const runData: RunData = {
+      level: this.level + 1,
+      step: 0,
       totalCoins: this.totalCoins,
       totalXp: this.totalXp,
-      runId: this.runId, // preserve run id for server persistence
-      currentMap: this.currentMap, // forwarded so RunScene can avoid repeating the same map
-    });
+      runId: this.runId,
+      currentMap: this.currentMap,
+    };
+
+    if (this.selectedBoss?.enemyName === 'Pythra') {
+      const firstTime = await beatPythra();
+      if (firstTime) {
+        transitionTo(this, 'EndScene', runData);
+        return;
+      }
+    }
+
+    transitionTo(this, 'RunScene', runData);
   }
 
   private resetDuelState() {
@@ -622,7 +649,7 @@ export class DuelScene extends Phaser.Scene {
   private createHud() {
     const centerX = this.cameras.main.width / 2; // shared horizontal center for top HUD
 
-    this.levelText = this.add.text(centerX, 50, `Level ${this.level}`, {
+    this.levelText = this.add.text(centerX, 50, this.tf('duel_level', this.level), {
       fontSize: '36px',
       color: '#d1fcb2',
       fontStyle: 'bold',
@@ -641,7 +668,7 @@ export class DuelScene extends Phaser.Scene {
     this.battleMessageText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the battle message text for better visibility
     this.battleMessageText.setAlpha(0.9); // slightly fade the battle message text for a more integrated look
 
-    this.tableCardLabel = this.add.text(centerX, 185, 'TABLE CARD', {
+    this.tableCardLabel = this.add.text(centerX, 185, this.tf('duel_table_card'), {
       fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -649,7 +676,7 @@ export class DuelScene extends Phaser.Scene {
       strokeThickness: 5,
     }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#84ff00', 2, false, true).setAlpha(0.9); // label above the main card in play
 
-    this.instructionText = this.add.text(centerX, 540, 'Choose a valid card or right-click to discard.', {
+    this.instructionText = this.add.text(centerX, 540, this.tf('duel_instruction'), {
       fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -660,7 +687,7 @@ export class DuelScene extends Phaser.Scene {
     this.instructionText.setAlpha(0.9); // slightly fade the instruction text for a more integrated look
 
 
-    this.add.text(125, 28, 'PLAYER', {
+    this.add.text(125, 28, this.tf('duel_player'), {
       fontSize: '22px',
       color: '#00ff88',
       fontStyle: 'bold',
@@ -690,14 +717,14 @@ export class DuelScene extends Phaser.Scene {
     this.playerShieldText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the player shield text for better visibility
     this.playerShieldText.setAlpha(0.9); // slightly fade the player shield text for a more integrated look
 
-    this.add.text(48, 136, 'EE', { 
+    this.add.text(48, 136, this.tf('duel_ee'), { 
       fontSize: '15px', 
       color: '#9ae66e', 
       fontStyle: 'bold' 
     }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // elemental energy label
 
     this.playerEeBar = this.add.graphics().setDepth(5); // player elemental energy bar renderer
-    this.add.text(48, 166, 'IE', { 
+    this.add.text(48, 166, this.tf('duel_ie'), { 
       fontSize: '15px', 
       color: '#69c0ff', 
       fontStyle: 'bold' 
@@ -705,7 +732,7 @@ export class DuelScene extends Phaser.Scene {
 
     this.playerEiBar = this.add.graphics().setDepth(5); // player instinct energy bar renderer
 
-    this.totalXpText = this.add.text(48, 188, `XP: ${this.totalXp}`, {
+    this.totalXpText = this.add.text(48, 188, this.tf('duel_xp', this.totalXp), {
       fontSize: '14px',
       color: '#66ccff',
       fontStyle: 'bold'
@@ -713,7 +740,7 @@ export class DuelScene extends Phaser.Scene {
     this.totalXpText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the total XP text for better visibility
     this.totalXpText.setAlpha(0.9); // slightly fade the total XP text for a more integrated look
 
-    this.totalCoinsText = this.add.text(170, 188, `Coins: ${this.totalCoins}`, {
+    this.totalCoinsText = this.add.text(170, 188, this.tf('duel_coins', this.totalCoins), {
       fontSize: '14px',
       color: '#ffd700',
       fontStyle: 'bold'
@@ -721,7 +748,7 @@ export class DuelScene extends Phaser.Scene {
     this.totalCoinsText.setShadow(1, 1, '#000000', 2, false, true); // add a shadow to the total coins text for better visibility
     this.totalCoinsText.setAlpha(0.9); // slightly fade the total coins text for a more integrated look
 
-    this.add.text(this.cameras.main.width - 220, 28, 'ENEMY', {
+    this.add.text(this.cameras.main.width - 220, 28, this.tf('duel_enemy'), {
       fontSize: '22px',
       color: '#ff6666',
       fontStyle: 'bold',
@@ -747,7 +774,7 @@ export class DuelScene extends Phaser.Scene {
       strokeThickness: 4
     }).setDepth(5).setShadow(1, 1, '#000000', 2, false, true).setAlpha(0.9); // enemy shield text
 
-    this.add.text(this.cameras.main.width - 292, 136, 'EE', {
+    this.add.text(this.cameras.main.width - 292, 136, this.tf('duel_ee'), {
       fontSize: '15px',
       color: '#9ae66e',
       fontStyle: 'bold',
@@ -755,7 +782,7 @@ export class DuelScene extends Phaser.Scene {
 
     this.enemyEeBar = this.add.graphics().setDepth(5); // enemy elemental energy bar renderer
 
-    this.add.text(this.cameras.main.width - 292, 166, 'IE', {
+    this.add.text(this.cameras.main.width - 292, 166, this.tf('duel_ie'), {
       fontSize: '15px',
       color: '#69c0ff',
       fontStyle: 'bold',
@@ -829,7 +856,7 @@ export class DuelScene extends Phaser.Scene {
 
     this.drawDeckPlaceholder(centerX - 135, 478, 'Deck').setDepth(5); // visual placeholder for the deck pile
 
-    this.discardDrawHintText = this.add.text(centerX + 243, 489, '<- CLICK TO DRAW', {
+    this.discardDrawHintText = this.add.text(centerX + 243, 489, this.tf('duel_discard_hint'), {
       fontSize: '12px',
       color: '#eed112',
       fontStyle: 'bold',
@@ -940,6 +967,7 @@ export class DuelScene extends Phaser.Scene {
       const activeDeckCards: Card[] = activeDeck.cards
       .map((entry: { cardGameId: number }) => allCardsById.get(entry.cardGameId))
       .filter((card: Card | undefined): card is Card => Boolean(card));
+    const loadedFromBackendDeck = await this.loadPlayerDeckFromBackend(); // attempt to load the player's deck from the backend, which also sets up the starting hand if successful
 
       if (activeDeckCards.length >= HAND_SIZE) {
         this.playerDeck = shuffleCards([...activeDeckCards]);
@@ -955,6 +983,8 @@ export class DuelScene extends Phaser.Scene {
       console.error('Failed to load active deck from backend, using fallback:', error);
 
       this.selectedPlayerKey = normalizePlayerCharacterKey(getPlayer()?.equippedCharacter);
+    // const playerPool = [...basePool, ...effectPool, ...rarePool]; // combine the different rarity pools to create the player's card pool for deck generation
+    const enemyPool = this.buildEnemyPoolForBoss(); // build the enemy's card pool based on the selected boss's AI level and associated card access
 
       const fallbackPlayerPool = [...basePool, ...effectPool, ...rarePool];
       this.playerDeck = this.generateDeckFromPool(fallbackPlayerPool, PLAYER_DECK_SIZE);
@@ -1066,7 +1096,7 @@ export class DuelScene extends Phaser.Scene {
 
       this.enemyHp = this.selectedBoss.enemyBaseHp;
       this.updatePythraPhaseVisuals();
-      this.showBattleMessage(`Pythra evolved! ${this.bossLivesRemaining} lives left`, '#ff9966');
+      this.showBattleMessage(this.tf('duel_pythra_evolved', this.bossLivesRemaining), '#ff9966');
       return false;
     }
 
@@ -1111,10 +1141,10 @@ export class DuelScene extends Phaser.Scene {
     updateShieldBar(this.playerShieldBar, this.playerState.shield, 48, 84, this.playerShieldText); // update player shield visuals
     updateShieldBar(this.enemyShieldBar, this.enemyState.shield, this.cameras.main.width - 292, 84, this.enemyShieldText); // update enemy shield visuals
     
-    this.deckCountText.setText(`DECK: ${this.playerDeck.length}`); // refresh player deck count
-    this.discardCountText.setText(`DISCARD: ${this.discardPile.length}`); // refresh discard count
-    this.totalXpText.setText(`XP: ${this.totalXp}`); // refresh total XP display
-    this.totalCoinsText.setText(`COINS: ${this.totalCoins}`); // refresh total coin display
+    this.deckCountText.setText(this.tf('duel_deck_count', this.playerDeck.length)); // refresh player deck count
+    this.discardCountText.setText(this.tf('duel_discard_count', this.discardPile.length)); // refresh discard count
+    this.totalXpText.setText(this.tf('duel_xp', this.totalXp)); // refresh total XP display
+    this.totalCoinsText.setText(this.tf('duel_coins', this.totalCoins)); // refresh total coin display
   }
 
   private drawDeckPlaceholder(
@@ -1775,7 +1805,7 @@ export class DuelScene extends Phaser.Scene {
     }
 
     if (this.playerHand.length >= HAND_SIZE) {
-      this.showBattleMessage('Discard or play first!', '#ffaa00'); // explain why drawing is blocked
+      this.showBattleMessage(this.tf('duel_discard_first'), '#ffaa00'); // explain why drawing is blocked
       return null;
     }
 
@@ -2049,21 +2079,21 @@ export class DuelScene extends Phaser.Scene {
     }
 
     if (remainingDamage <= 0) { 
-      this.showBattleMessage('Shield blocked the attack!', '#7fd7ff'); // notify the player that the hit was fully blocked
+      this.showBattleMessage(this.tf('duel_shield_blocked'), '#7fd7ff'); // notify the player that the hit was fully blocked
       return; 
     }
 
     if (isPlayer) { 
       this.enemyHp = Math.max(0, this.enemyHp - remainingDamage); // apply damage to the enemy
       this.enemyDamageText.setText(`-${remainingDamage}`); // show enemy damage popup
-      this.showBattleMessage(`Player used ${element.toUpperCase()}`, '#00ff88'); // show attack feedback for the player
+      this.showBattleMessage(this.tf('duel_player_used', { element: element.toUpperCase() }), '#00ff88'); // show attack feedback for the player
       this.updateEnemyPose(); // update enemy sprite based on HP
     }
 
     else { 
       this.playerHp = Math.max(0, this.playerHp - remainingDamage); // apply damage to the player
       this.playerDamageText.setText(`-${remainingDamage}`); // show player damage popup
-      this.showBattleMessage(`Enemy used ${element.toUpperCase()}`, '#ff6666'); // show attack feedback for the enemy
+      this.showBattleMessage(this.tf('duel_enemy_used', { element: element.toUpperCase() }), '#ff6666'); // show attack feedback for the enemy
       this.updatePlayerPose(); // update player sprite based on HP
     }
 

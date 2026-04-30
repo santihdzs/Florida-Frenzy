@@ -23,6 +23,8 @@ import { IntroScene } from './scenes/IntroScene';
 import { StoryScene } from './scenes/StoryScene';
 import { AccountScene } from './scenes/AccountScene';
 import { DeckScene } from './scenes/DeckScene.js';
+import { MultiplayerLobbyScene } from './scenes/MultiplayerLobbyScene';
+import { MultiplayerRunScene } from './scenes/MultiplayerRunScene';
 
 const loggedIn = isLoggedIn();
 
@@ -45,8 +47,8 @@ const config: Phaser.Types.Core.GameConfig = { // Phaser game configuration obje
   },
   // Logged-in users skip the intro cutscene entirely — MenuScene starts first
   scene: loggedIn
-    ? [MenuScene, IntroScene, DuelScene, RunScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene, EndScene, StoryScene, AccountScene, DeckScene]
-    : [IntroScene, MenuScene, DuelScene, RunScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene, EndScene, StoryScene, AccountScene, DeckScene],
+    ? [MenuScene, IntroScene, DuelScene, RunScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene, EndScene, StoryScene, AccountScene, DeckScene, MultiplayerLobbyScene, MultiplayerRunScene]
+    : [IntroScene, MenuScene, DuelScene, RunScene, InstructionScene, SettingsScene, LoginScene, PauseScene, TutorialScene, TutorialScene2, ShopScene, StatsScene, FriendsScene, EndScene, StoryScene, AccountScene, DeckScene, MultiplayerLobbyScene, MultiplayerRunScene],
 };
 
 const game = new Phaser.Game(config); // create a new Phaser game instance with the specified configuration

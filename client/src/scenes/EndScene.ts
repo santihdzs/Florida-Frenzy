@@ -3,16 +3,17 @@ import { transitionTo } from '../utils/sceneTransition.js';
 import pythraUrl from '../assets/characters/pythra/Pythra_damage-2.webp';
 import music from '../assets/music/Blackwater_Shuffle.mp3';
 import backgroundImg from '../assets/backgrounds/sewers_topdown.webp';
+import { translations } from '../utils/translations.ts';
 
-// Constantes para las líneas de diálogo
-const DIALOGUE_LINES = [
-  "So you managed to survive the Everglades... Heh, don't get cocky, rookie.",
-  'This swamp has been claiming runners for centuries. What you just experienced was only the beginning — one cycle in an endless spiral.',
-  'Every time you fall, the Run resets... but the swamp remembers. The deeper you go, the hungrier it gets.',
-  'There is no "final boss" waiting to grant you peace. There is only the next Run, and the next, and the next... semi-infinite, just like the hunger of the creatures that dwell here.',
-  'Get stronger. Adapt. Or become another pile of bones beneath the cypress trees.',
-  'See you in the next Run, Crock... if you make it that far.',
-] as const;
+// Dialogue lines for the end scene, pulled from translations for easy localization
+const getDialogueLines = (t: Record<string, any>): string[] => [
+  t.end_line_0,
+  t.end_line_1,
+  t.end_line_2,
+  t.end_line_3,
+  t.end_line_4,
+  t.end_line_5,
+];
 
 export class EndScene extends Phaser.Scene {
   private dialogContainer!: Phaser.GameObjects.Container;
@@ -22,9 +23,24 @@ export class EndScene extends Phaser.Scene {
   private isTransitioning = false;
   private nextBtn!: Phaser.GameObjects.Text;
   private skipHint!: Phaser.GameObjects.Text;
+  private DIALOGUE_LINES: string[] = [];
+  private nextRunData: RunData = { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 };
 
   constructor() {
     super({ key: 'EndScene' });
+  }
+
+  init(data: Partial<RunData>) {
+    this.nextRunData = {
+      level:       data.level       ?? 1,
+      step:        data.step        ?? 0,
+      totalCoins:  data.totalCoins  ?? 0,
+      totalXp:     data.totalXp     ?? 0,
+      runId:       data.runId       ?? 0,
+      currentMap:  data.currentMap,
+    };
+    this.currentLineIndex = 0;
+    this.isTransitioning = false;
   }
 
   preload() {
@@ -38,6 +54,11 @@ export class EndScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     const centerX = width / 2;
     const centerY = height / 2;
+
+    // Get translations for current language
+    const langKey = this.registry.get('language') || 'en';
+    const t = translations[langKey];
+    this.DIALOGUE_LINES = getDialogueLines(t);
 
     // Music
     let currentMusic = this.registry.get('music');
@@ -63,7 +84,7 @@ export class EndScene extends Phaser.Scene {
     this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.35).setDepth(1);
 
     // Title
-    this.add.text(centerX, 60, 'THE JOURNEY CONTINUES...', {
+    this.add.text(centerX, 60, t.end_title, {
       fontFamily: 'Impact, Arial black, sans-serif',
       fontSize: '48px',
       color: '#ff3333',
@@ -98,14 +119,14 @@ export class EndScene extends Phaser.Scene {
     this.dialogContainer.setDepth(10);
 
     // Skip hint
-    this.skipHint = this.add.text(centerX, height - 30, 'Click or press SPACE or ENTER to continue', {
+    this.skipHint = this.add.text(centerX, height - 30, t.end_skip_hint, {
       fontSize: '16px',
       color: '#aaaaaa',
       fontStyle: 'italic',
     }).setOrigin(0.5).setDepth(10);
 
     // next button (initially hidden), will be shown after dialogue ends to return to menu
-    this.nextBtn = this.add.text(centerX, height - 100, 'NEXT', {
+    this.nextBtn = this.add.text(centerX, height - 100, t.end_next, {
       fontSize: '32px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -114,7 +135,7 @@ export class EndScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10).setVisible(false).setInteractive({ useHandCursor: true });
 
     this.nextBtn.on('pointerdown', () => {
-      transitionTo(this, 'MenuScene'); // Go to the next scene after clicking the button
+      transitionTo(this, 'RunScene', this.nextRunData);
     });
 
     // Start first line
@@ -136,7 +157,7 @@ export class EndScene extends Phaser.Scene {
     });
 
     // Pause button
-    const pauseBtn = this.add.text(width - 20, 20, 'PAUSE', {
+    const pauseBtn = this.add.text(width - 20, 20, t.pause, {
       fontSize: '28px',
       color: '#feec00',
       fontStyle: 'bold',
@@ -163,29 +184,29 @@ export class EndScene extends Phaser.Scene {
   }
 
   private startLine(index: number) {
-    if (index >= DIALOGUE_LINES.length) {
+    if (index >= this.DIALOGUE_LINES.length) {
       this.showMenuButton();
       return;
     }
     this.currentLineIndex = index;
-    const fullText = DIALOGUE_LINES[index];
+    const fullText = this.DIALOGUE_LINES[index];
     this.dialogText.setText('');
     let charIndex = 0;
 
-    this.typewriterEvent?.remove();
-    this.typewriterEvent = this.time.addEvent({
-      delay: 35,
-      callback: () => {
-        if (charIndex < fullText.length) {
-          this.dialogText.setText(fullText.substring(0, charIndex + 1));
-          charIndex++;
-        } else {
-          this.typewriterEvent?.remove();
-          this.typewriterEvent = undefined;
+    this.typewriterEvent?.remove(); // Remove any existing event before creating a new one
+    this.typewriterEvent = this.time.addEvent({ // Typewriter effect
+      delay: 35, // milliseconds per character
+      callback: () => { // Add next character or finish line
+        if (charIndex < fullText.length) { // Add next character
+          this.dialogText.setText(fullText.substring(0, charIndex + 1)); // Update text with next character
+          charIndex++; // Increment character index for next callback
+        } else { // Line complete, remove event
+          this.typewriterEvent?.remove(); // Clean up timer event
+          this.typewriterEvent = undefined; // Clear reference to indicate no active typing
         }
       },
-      callbackScope: this,
-      loop: true,
+      callbackScope: this, // Ensure 'this' context is correct in callback
+      loop: true, // Loop until we manually remove it when the line is complete
     });
   }
 
@@ -196,13 +217,13 @@ export class EndScene extends Phaser.Scene {
     if (this.typewriterEvent) {
       this.typewriterEvent.remove();
       this.typewriterEvent = undefined;
-      this.dialogText.setText(DIALOGUE_LINES[this.currentLineIndex]);
+      this.dialogText.setText(this.DIALOGUE_LINES[this.currentLineIndex]);
       return;
     }
 
     // Otherwise advance to next line
     const nextIndex = this.currentLineIndex + 1;
-    if (nextIndex < DIALOGUE_LINES.length) {
+    if (nextIndex < this.DIALOGUE_LINES.length) {
       this.startLine(nextIndex);
     } else {
       this.showMenuButton();

@@ -11,6 +11,7 @@
 */ 
 
 import Phaser from 'phaser';
+import { translations } from '../utils/translations.ts';
 
 export class PauseScene extends Phaser.Scene {
     private returnScene = ''; // the scene to return to when resuming
@@ -29,13 +30,16 @@ export class PauseScene extends Phaser.Scene {
         const centerX = width / 2;
         const centerY = height / 2;
 
+        const langKey = this.registry.get('language') || 'en';
+        const t = translations[langKey];
+
         //for sounds in different scenes, we want to resume any paused music when resuming the game, so we don't have to worry about which scene we came from
         const globalMusic = this.registry.get('music') as Phaser.Sound.BaseSound;
         if (globalMusic) globalMusic.pause();
 
         this.add.rectangle(0, 0, width, height, 0x000000, 0.65).setOrigin(0); // semi-transparent background
 
-        this.add.text(centerX, centerY - 120, 'PAUSED', {
+        this.add.text(centerX, centerY - 120, t.paused, {
             fontFamily: 'Impact, sans-serif',
             fontSize: '52px',
             color: '#feec00',
@@ -43,17 +47,17 @@ export class PauseScene extends Phaser.Scene {
             strokeThickness: 4,
         }).setOrigin(0.5); // title text
 
-        const resume = this.add.text(centerX, centerY - 20, 'Resume', {
+        const resume = this.add.text(centerX, centerY - 20, t.resume, {
             fontSize: '30px',
             color: '#ffffff',
         }).setOrigin(0.5).setInteractive({ useHandCursor: true }); // resume button
         
-        const settings = this.add.text(centerX, centerY + 40, 'Settings', {
+        const settings = this.add.text(centerX, centerY + 40, t.settings, {
             fontSize: '30px',
             color: '#ffffff',
         }).setOrigin(0.5).setInteractive({ useHandCursor: true }); // settings button
 
-        const menu = this.add.text(centerX, centerY + 100, ' Back to Menu', {
+        const menu = this.add.text(centerX, centerY + 100, t.back_to_menu, {
             fontSize: '26px',
             color: '#ffffff',
         }).setOrigin(0.5).setInteractive({ useHandCursor: true }); // back to menu button

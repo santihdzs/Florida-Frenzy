@@ -9,6 +9,7 @@
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifySocketIO from 'fastify-socket.io';
 import prismaPlugin from './plugins/prisma.js';
 import authPlugin from './plugins/auth.js';
 import firebasePlugin from './plugins/firebase.js';
@@ -21,11 +22,15 @@ import friendsRoutes from './routes/friends.routes.js';
 import cardRoutes from './routes/cards.routes.js';
 import enemyRoutes from './routes/enemy.routes.js';
 import deckRoutes from './routes/deck.routes.js';
+import { registerSocketHandlers } from './socket/socketHandler.js';
 
 
 const fastify = Fastify({ logger: true });
 
 await fastify.register(cors, { origin: true });
+await fastify.register(fastifySocketIO, {
+  cors: { origin: true, methods: ['GET', 'POST'] },
+});
 await fastify.register(prismaPlugin);
 await fastify.register(firebasePlugin);
 await fastify.register(authPlugin);
@@ -42,6 +47,8 @@ await fastify.register(deckRoutes, { prefix: '/api/decks' });
 fastify.get('/health', async () => { // Health check endpoint to verify that the server is running
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
+
+registerSocketHandlers(fastify);
 
 const start = async () => { // Function to start the server and listen on the specified port
   try {

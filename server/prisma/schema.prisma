@@ -123,6 +123,7 @@ model Player {
   staminaRegen       Int          @default(1)
   equippedCharacter  String       @default("christian")
   unlockedCharacters String[]     @default(["christian"])
+  hasBeatenPythra    Boolean      @default(false)
 
   playerCharacters PlayerCharacter[]
   playerCards      PlayerCard[]

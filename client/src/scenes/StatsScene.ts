@@ -472,10 +472,12 @@ export class StatsScene extends Phaser.Scene {
       totalRuns: number;
       avgLevel: number;
       activeSessions: number;
+      onlinePlayers?: number;
       levelDistribution: { level: number; count: number }[];
     }) => {
       const adminStats = [
-        { label: 'Registered Players', value: String(data.totalPlayers) },
+        { label: 'Registered Players',  value: String(data.totalPlayers) },
+        { label: 'Online Players',      value: String(data.onlinePlayers ?? 0) },
         { label: 'Total Completed Runs', value: String(data.totalRuns) },
         { label: 'Avg Level Reached',   value: String(data.avgLevel) },
         { label: 'Active Sessions',     value: String(data.activeSessions) },
