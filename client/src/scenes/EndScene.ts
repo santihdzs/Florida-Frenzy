@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { RunData } from './RunScene';
 import { transitionTo } from '../utils/sceneTransition.js';
 import pythraUrl from '../assets/characters/pythra/Pythra_damage-2.webp';
 import music from '../assets/music/Blackwater_Shuffle.mp3';

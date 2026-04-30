@@ -1,4 +1,3 @@
-import Phaser from 'phaser';
 export const translations: Record<string, any> = {
   en: {
     // SettingsScene

@@ -216,7 +216,6 @@ export class FriendsScene extends Phaser.Scene {
     reqBg.fillStyle(0x000000, 0.5);
     reqBg.fillRoundedRect(sectionX, reqSectionY, SECTION_W, REQ_H, 12);
 
-    const badge = reqCount > 0 ? ` (${reqCount})` : '';
     this.add.text(cx, reqSectionY + PAD + 10, this.tf('friends_requests_title', reqCount), {
       ...baseStyle, fontSize: '28px', color: '#ffffff',
     }).setOrigin(0.5);
