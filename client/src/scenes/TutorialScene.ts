@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import evTilesUrl from '../assets/maps/everglades.png';
+import { transitionTo } from '../utils/sceneTransition.js';
+import evTilesUrl from '../assets/maps/everglades.webp';
 // Import cropped Clancy image
-import clanUrl from '../assets/sprites/Klan.png';
+import clanUrl from '../assets/sprites/Klan.webp';
 import music from '../assets/music/Lowland_Hymn.mp3'
 
 const TILE = 48;
@@ -28,7 +29,14 @@ export class TutorialScene extends Phaser.Scene {
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private instructionText!: Phaser.GameObjects.Text;
     private step = 0;
-    private keys!: any;
+    private keys!: {
+        W: Phaser.Input.Keyboard.Key;
+        A: Phaser.Input.Keyboard.Key;
+        S: Phaser.Input.Keyboard.Key;
+        D: Phaser.Input.Keyboard.Key;
+        SHIFT: Phaser.Input.Keyboard.Key;
+        SPACE: Phaser.Input.Keyboard.Key;
+    };
     private projectiles: any[] = [];
     private dialogContainer!: Phaser.GameObjects.Container; //HUB container
 
@@ -44,6 +52,7 @@ export class TutorialScene extends Phaser.Scene {
     }
 
     create() {
+        this.cameras.main.fadeIn(300, 0, 0, 0);
         if (this.input.keyboard) this.input.keyboard.enabled = true;
         this.generateTextures();
 
@@ -138,7 +147,14 @@ export class TutorialScene extends Phaser.Scene {
             D: Phaser.Input.Keyboard.KeyCodes.D,
             SHIFT: Phaser.Input.Keyboard.KeyCodes.SHIFT,
             SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE
-        }) as any;
+        }) as {
+            W: Phaser.Input.Keyboard.Key;
+            A: Phaser.Input.Keyboard.Key;
+            S: Phaser.Input.Keyboard.Key;
+            D: Phaser.Input.Keyboard.Key;
+            SHIFT: Phaser.Input.Keyboard.Key;
+            SPACE: Phaser.Input.Keyboard.Key;
+        };
 
         // click shooting tutorial
         this.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
@@ -154,7 +170,7 @@ export class TutorialScene extends Phaser.Scene {
         // Continue to next tutorial scene
         this.keys.SPACE.on('down', () => {
             if (this.step >= 3) {
-                this.scene.start('TutorialScene2');
+                transitionTo(this, 'TutorialScene2');
             }
         });
     }

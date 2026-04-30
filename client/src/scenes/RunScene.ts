@@ -12,15 +12,30 @@
 */
 
 import Phaser from 'phaser';
-import evTilesUrl from '../assets/maps/everglades.png';
-import chrisAvatarUrl from '../assets/sprites/Chris.png';
+import evTilesUrl from '../assets/maps/everglades.webp';
+import chrisAvatarUrl from '../assets/sprites/Chris.webp';
 import { completeRun, createRun, getPlayer } from '../utils/auth.js';
 import type { DuelBossData } from '../utils/bossTypes.js';
 import { fetchRandomDuelBoss } from '../api/enemyApi.js';
+import { showLoadingScreen } from '../utils/loadingScreen.js';
+import { transitionTo } from '../utils/sceneTransition.js';
 
-import skawlSheet from '../assets/characters/skawl/Skawl_SpriteSheet.png';
-import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.png';
-import boldearSheet from '../assets/characters/boldear/Boldear_SpriteSheet.png';
+import skawlSheet from '../assets/characters/skawl/Skawl_SpriteSheet.webp';
+import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.webp';
+import boldearSheet from '../assets/characters/boldear/Boldear_SpriteSheet.webp';
+
+import christianSheet from '../assets/characters/christian/Christian_SpriteSheet.webp';
+import rackoSheet from '../assets/characters/top-down_enemies/shooter/Racko_SpriteSheet.webp';
+import rhondaSheet from '../assets/characters/top-down_enemies/shooter/Rhonda_SpriteSheet.webp';
+import riccSheet from '../assets/characters/top-down_enemies/shooter/Ricc_SpriteSheet.webp';
+import rittaSheet from '../assets/characters/top-down_enemies/shooter/Ritta_SpriteSheet.webp';
+import blurdSheet from '../assets/characters/top-down_enemies/tank/Blurd_SpriteSheet.webp';
+import brandonSheet from '../assets/characters/top-down_enemies/tank/Brandon_SpriteSheet.webp';
+import brimSheet from '../assets/characters/top-down_enemies/tank/Brim_SpriteSheet.webp';
+import brookSheet from '../assets/characters/top-down_enemies/tank/Brook_SpriteSheet.webp';
+import schremySheet from '../assets/characters/top-down_enemies/warrior/Schremy_SpriteSheet.webp';
+import skullySheet from '../assets/characters/top-down_enemies/warrior/Skully_SpriteSheet.webp';
+import stirrSheet from '../assets/characters/top-down_enemies/warrior/Stirr_SpriteSheet.webp';
 
 const TILE    = 48;
 const COLS    = 105;
@@ -28,11 +43,12 @@ const ROWS    = 18;
 const WORLD_W = COLS * TILE;
 const WORLD_H = ROWS * TILE;
 
-const KEY_SPR_PLAYER     = 'spr-player';
 const KEY_SPR_ENEMY      = 'spr-enemy';
-const KEY_SPR_TANK       = 'spr-tank';
-const KEY_SPR_SWIFT      = 'spr-swift';
 const KEY_SPR_COIN       = 'spr-coin';
+
+const SHOOTER_SKINS = ['racko', 'rhonda', 'ricc', 'ritta'] as const;
+const TANK_SKINS    = ['blurd', 'brandon', 'brim', 'brook'] as const;
+const SWIFT_SKINS   = ['schremy', 'skully', 'stirr'] as const;
 const KEY_SPR_PROJECTILE = 'spr-projectile';
 const KEY_SPR_ENEMY_PROJ = 'spr-enemy-proj';
 
@@ -44,7 +60,7 @@ const FRAME_HOLE         = 8;
 
 const PLAYER_SIZE   = 48;
 const PLAYER_SPEED  = 220;
-const PLAYER_SPRINT = 340;
+const PLAYER_SPRINT = Math.round(PLAYER_SPEED * 1.55); // 341; ~1.55× base
 const MAX_HP        = 100;
 
 const STAMINA_MAX         = 100;
@@ -53,7 +69,7 @@ const STAMINA_REGEN       = 25;
 const STAMINA_REGEN_DELAY = 10000;
 
 const ENEMY_SIZE      = 48;
-const ENEMY_SPEED     = 75;
+const ENEMY_SPEED     = 113; // was 75; increased 50%
 const ENEMY_DPS       = 20;
 const ENEMY_HP        = 100;
 const ENEMY_COUNT_MIN = 3;
@@ -79,7 +95,7 @@ const PROJ_SPEED = 420;
 
 const HEAL_PER_SEC = 12;
 
-const CAMERA_SCROLL_BASE = 150;
+const CAMERA_SCROLL_BASE = 100; // was 90; cap raised to match PLAYER_SPEED (220)
 
 const RUNS_PER_CYCLE = 3;
 const END_COL         = COLS - 1;
@@ -201,6 +217,22 @@ const EnemyType = {
 } as const;
 type EnemyType = typeof EnemyType[keyof typeof EnemyType];
 
+const CHAR_SHEETS = {
+  christian: { xCuts: [0, 293, 587, 880],  yCuts: [0, 300, 600, 900, 1200] },
+  racko:     { xCuts: [0, 355, 711, 1066], yCuts: [0, 369, 738, 1106, 1475] },
+  rhonda:    { xCuts: [0, 356, 713, 1069], yCuts: [0, 368, 736, 1104, 1472] },
+  ricc:      { xCuts: [0, 355, 710, 1065], yCuts: [0, 369, 738, 1108, 1477] },
+  ritta:     { xCuts: [0, 355, 710, 1065], yCuts: [0, 369, 738, 1108, 1477] },
+  blurd:     { xCuts: [0, 358, 716, 1074], yCuts: [0, 366, 732, 1099, 1465] },
+  brandon:   { xCuts: [0, 358, 716, 1074], yCuts: [0, 366, 732, 1098, 1464] },
+  brim:      { xCuts: [0, 359, 717, 1076], yCuts: [0, 366, 731, 1096, 1462] },
+  brook:     { xCuts: [0, 358, 715, 1073], yCuts: [0, 366, 732, 1099, 1465] },
+  schremy:   { xCuts: [0, 362, 724, 1086], yCuts: [0, 362, 724, 1086, 1448] },
+  skully:    { xCuts: [0, 362, 724, 1086], yCuts: [0, 362, 724, 1086, 1448] },
+  stirr:     { xCuts: [0, 362, 724, 1086], yCuts: [0, 362, 724, 1086, 1448] },
+} as const;
+type CharSheetKey = keyof typeof CHAR_SHEETS;
+
 const RUN_BOSS_SHEETS = {
   Skawl: {
     textureKey: 'boss-skawl-run-sheet',
@@ -230,7 +262,9 @@ interface Enemy {
   contactDmgRate: number; // damage/sec on contact; 0 for SHOOTER
   enemyType: EnemyType;
   shootTimer: number;     // ms until next shot (SHOOTER only)
-  img: Phaser.GameObjects.Image;
+  img: Phaser.GameObjects.Sprite;
+  skinKey: string;
+  lastDir: string;
   hpBar: Phaser.GameObjects.Graphics;
   pathTimer: number;
   path: GridCell[];
@@ -276,7 +310,7 @@ function getEnemyStats(type: EnemyType, level: number): {
   // SWIFT
   const la = Math.max(0, level - 3);
   const speed = ENEMY_SPEED * Math.min(2, 1.5 * Math.pow(1.05, la));
-  const contactDmgRate = ENEMY_DPS * Math.min(4.5, 3 * Math.pow(1.03, la));
+  const contactDmgRate = ENEMY_DPS * Math.min(4, 3 * Math.pow(1.03, la));
   return { hp: 1, maxHp: 1, speed, contactDmgRate };
 }
 
@@ -302,7 +336,8 @@ export class RunScene extends Phaser.Scene {
   private py = 0;
   private maxHp = MAX_HP;
   private hp = MAX_HP;
-  private playerImg!: Phaser.GameObjects.Image;
+  private playerImg!: Phaser.GameObjects.Sprite;
+  private lastPlayerDir = 'down';
   private sprinting = false;
   private stamina = STAMINA_MAX; // replaced by this.maxStamina at runtime via init()
   private lastSprintTime = -STAMINA_REGEN_DELAY;
@@ -310,6 +345,7 @@ export class RunScene extends Phaser.Scene {
   private level = 0;
   private step = 0;
   private runId = 0;
+  private runCreationPromise: Promise<void> = Promise.resolve();
   private totalCoins = 0;
   private totalXp = 0;
   private leftStart = false;
@@ -317,6 +353,11 @@ export class RunScene extends Phaser.Scene {
   private runEnded = false;
   private isShowingQuitDialog = false;
   private sidebarNavHandler: EventListener | null = null;
+  private beforeUnloadHandler = (e: BeforeUnloadEvent) => {
+    if (this.done) return;
+    e.preventDefault();
+    e.returnValue = '';
+  };
   private timer = 0;
   private coinsCollected = 0;
   private deathReason: DeathReason = 'hp';
@@ -380,6 +421,7 @@ export class RunScene extends Phaser.Scene {
     this.totalXp        = data.totalXp ?? 0;
     this.done           = false;
     this.runEnded       = false;
+    this.lastPlayerDir  = 'down';
     this.maxHp          = (getPlayer()?.maxHp as number | undefined) ?? 50;
     this.hp             = this.maxHp;
     this.lastSprintTime = -STAMINA_REGEN_DELAY;
@@ -409,21 +451,58 @@ export class RunScene extends Phaser.Scene {
     this.projectiles      = [];
     this.enemyProjectiles = [];
 
-    // Create a server-side run record at the start of each new run
+    // Create a server-side run record at the start of each new run.
+    // We store the promise so endRun() can chain off it — avoids the race condition
+    // where the player dies before the async response arrives and runId is still 0.
     if (this.level === 1 && this.step === 0) {
-      void createRun().then(id => { this.runId = id ?? 0; });
+      this.runCreationPromise = createRun().then(id => { this.runId = id ?? 0; });
+    } else {
+      this.runCreationPromise = Promise.resolve();
     }
   }
 
   preload() {
-    this.load.spritesheet(KEY_EV_TILES, evTilesUrl, { frameWidth: 16, frameHeight: 16 });
-    this.load.image('chris-avatar', chrisAvatarUrl);
-    this.load.image('boss-skawl-run-sheet', skawlSheet);
-    this.load.image('boss-rabyz-run-sheet', rabyzSheet);
-    this.load.image('boss-boldear-run-sheet', boldearSheet);
+    showLoadingScreen(this);
+
+    if (!this.textures.exists(KEY_EV_TILES))
+      this.load.spritesheet(KEY_EV_TILES, evTilesUrl, { frameWidth: 16, frameHeight: 16 });
+    if (!this.textures.exists('chris-avatar'))
+      this.load.image('chris-avatar', chrisAvatarUrl);
+    if (!this.textures.exists('boss-skawl-run-sheet'))
+      this.load.image('boss-skawl-run-sheet', skawlSheet);
+    if (!this.textures.exists('boss-rabyz-run-sheet'))
+      this.load.image('boss-rabyz-run-sheet', rabyzSheet);
+    if (!this.textures.exists('boss-boldear-run-sheet'))
+      this.load.image('boss-boldear-run-sheet', boldearSheet);
+
+    if (!this.textures.exists('christian'))
+      this.load.image('christian', christianSheet);
+    if (!this.textures.exists('racko'))
+      this.load.image('racko',    rackoSheet);
+    if (!this.textures.exists('rhonda'))
+      this.load.image('rhonda',   rhondaSheet);
+    if (!this.textures.exists('ricc'))
+      this.load.image('ricc',     riccSheet);
+    if (!this.textures.exists('ritta'))
+      this.load.image('ritta',    rittaSheet);
+    if (!this.textures.exists('blurd'))
+      this.load.image('blurd',    blurdSheet);
+    if (!this.textures.exists('brandon'))
+      this.load.image('brandon',  brandonSheet);
+    if (!this.textures.exists('brim'))
+      this.load.image('brim',     brimSheet);
+    if (!this.textures.exists('brook'))
+      this.load.image('brook',    brookSheet);
+    if (!this.textures.exists('schremy'))
+      this.load.image('schremy',  schremySheet);
+    if (!this.textures.exists('skully'))
+      this.load.image('skully',   skullySheet);
+    if (!this.textures.exists('stirr'))
+      this.load.image('stirr',    stirrSheet);
   }
 
   create() {
+    this.cameras.main.fadeIn(300, 0, 0, 0);
     if (this.input.keyboard) this.input.keyboard.enabled = true;
 
     // Reset all flags — these persist across scene restarts since Phaser reuses the instance
@@ -434,6 +513,7 @@ export class RunScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor(0x1a1a2e);
     this.generateTextures();
+    this.createPlayerAnimations();
     this.createBossRunFrames(); // dynamically slice boss run spritesheets into frames for animation
     this.createBossRunAnimations(); // create Phaser animations for boss running using the frames we just sliced
 
@@ -444,8 +524,10 @@ export class RunScene extends Phaser.Scene {
 
     this.px = TILE * 2;
     this.py = Math.floor(ROWS / 2) * TILE;
-    this.playerImg = this.add.image(this.px, this.py, KEY_SPR_PLAYER)
-      .setOrigin(0, 0).setDepth(5);
+    const playerScale = PLAYER_SIZE / (CHAR_SHEETS.christian.xCuts[1] - CHAR_SHEETS.christian.xCuts[0]);
+    this.playerImg = this.add.sprite(this.px, this.py, 'christian', 'christian-walk-down-1')
+      .setOrigin(0, 0).setDepth(5).setScale(playerScale);
+    this.playerImg.play('christian-walk-down');
 
     if (this.step === RUNS_PER_CYCLE - 1) {
       void this.spawnDuelBossAtGoal();
@@ -556,6 +638,7 @@ export class RunScene extends Phaser.Scene {
 
     this.sidebarNavHandler = onSidebarNavRequest;
     window.addEventListener('sidebar-nav-request', this.sidebarNavHandler);
+    window.addEventListener('beforeunload', this.beforeUnloadHandler);
 
     this.events.on('shutdown', () => {
       this.time.removeAllEvents();
@@ -566,6 +649,7 @@ export class RunScene extends Phaser.Scene {
         window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
         this.sidebarNavHandler = null;
       }
+      window.removeEventListener('beforeunload', this.beforeUnloadHandler);
     });
   }
 
@@ -598,7 +682,7 @@ export class RunScene extends Phaser.Scene {
     this.checkPuddle(delta);
     this.checkCoins();
     this.updateCamera(delta);
-    // this.checkEndZone();
+    this.checkEndZone();
     this.checkHoleDeath();
     this.refreshHud();
   }
@@ -614,12 +698,24 @@ export class RunScene extends Phaser.Scene {
       g.generateTexture(key, w, h);
       g.destroy();
     };
-    make(KEY_SPR_PLAYER,     PLAYER_SIZE, PLAYER_SIZE, 0x3366ff);
-    make(KEY_SPR_ENEMY,      ENEMY_SIZE,  ENEMY_SIZE,  0xcc2222);
-    make(KEY_SPR_TANK,       ENEMY_SIZE,  ENEMY_SIZE,  0x9933cc);
-    make(KEY_SPR_SWIFT,      ENEMY_SIZE,  ENEMY_SIZE,  0xff8800);
-    make(KEY_SPR_COIN,       COIN_SIZE,   COIN_SIZE,   0xffd700);
-    make(KEY_SPR_PROJECTILE, PROJ_SIZE,   PROJ_SIZE,   0x44aaff);
+    make(KEY_SPR_ENEMY, ENEMY_SIZE, ENEMY_SIZE, 0xcc2222);
+
+    if (!this.textures.exists(KEY_SPR_COIN)) {
+      const g = this.make.graphics();
+      g.fillStyle(0xffd700);
+      g.fillCircle(COIN_SIZE / 2, COIN_SIZE / 2, COIN_SIZE / 2);
+      g.lineStyle(1.5, 0x997700);
+      g.strokeCircle(COIN_SIZE / 2, COIN_SIZE / 2, COIN_SIZE / 2 - 1);
+      g.generateTexture(KEY_SPR_COIN, COIN_SIZE, COIN_SIZE);
+      g.destroy();
+    }
+    if (!this.textures.exists(KEY_SPR_PROJECTILE)) {
+      const g = this.make.graphics();
+      g.fillStyle(0x44aaff);
+      g.fillCircle(PROJ_SIZE / 2, PROJ_SIZE / 2, PROJ_SIZE / 2);
+      g.generateTexture(KEY_SPR_PROJECTILE, PROJ_SIZE, PROJ_SIZE);
+      g.destroy();
+    }
     if (!this.textures.exists(KEY_SPR_ENEMY_PROJ)) {
       const g = this.make.graphics();
       g.fillStyle(0xff3333);
@@ -674,6 +770,54 @@ export class RunScene extends Phaser.Scene {
     }
 
     return grid;
+  }
+
+  private sliceCharSheetFrames(skinKey: CharSheetKey) {
+    const sheet = CHAR_SHEETS[skinKey];
+    const texture = this.textures.get(skinKey);
+    const dirs = ['down', 'left', 'right', 'up'];
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 3; col++) {
+        const frameName = `${skinKey}-walk-${dirs[row]}-${col}`;
+        if (!texture.has(frameName)) {
+          texture.add(
+            frameName, 0,
+            sheet.xCuts[col], sheet.yCuts[row],
+            sheet.xCuts[col + 1] - sheet.xCuts[col],
+            sheet.yCuts[row + 1] - sheet.yCuts[row],
+          );
+        }
+      }
+    }
+  }
+
+  private createWalkAnimations(skinKey: CharSheetKey) {
+    const dirs = ['down', 'left', 'right', 'up'];
+    for (const dir of dirs) {
+      const animKey = `${skinKey}-walk-${dir}`;
+      if (!this.anims.exists(animKey)) {
+        this.anims.create({
+          key: animKey,
+          frames: [
+            { key: skinKey, frame: `${skinKey}-walk-${dir}-0` },
+            { key: skinKey, frame: `${skinKey}-walk-${dir}-1` },
+            { key: skinKey, frame: `${skinKey}-walk-${dir}-2` },
+          ],
+          frameRate: 8,
+          repeat: -1,
+        });
+      }
+    }
+  }
+
+  private createPlayerAnimations() {
+    this.sliceCharSheetFrames('christian');
+    this.createWalkAnimations('christian');
+  }
+
+  private createEnemyAnimations(skinKey: CharSheetKey) {
+    this.sliceCharSheetFrames(skinKey);
+    this.createWalkAnimations(skinKey);
   }
 
   private sliceBossSheetFrames(
@@ -837,7 +981,7 @@ export class RunScene extends Phaser.Scene {
 
     this.done = true;
 
-    this.scene.start('DuelScene', {
+    transitionTo(this, 'DuelScene', {
       level: this.level,
       step: this.step,
       totalCoins: this.totalCoins + this.coinsCollected,
@@ -946,8 +1090,16 @@ export class RunScene extends Phaser.Scene {
       const ey   = row * TILE;
       const type = pool[Math.floor(Math.random() * pool.length)];
       const s    = getEnemyStats(type, this.level);
-      const imgKey = type === EnemyType.TANK  ? KEY_SPR_TANK :
-                     type === EnemyType.SWIFT ? KEY_SPR_SWIFT : KEY_SPR_ENEMY;
+      const skins = type === EnemyType.TANK  ? TANK_SKINS :
+                    type === EnemyType.SWIFT ? SWIFT_SKINS : SHOOTER_SKINS;
+      const skinKey = skins[Math.floor(Math.random() * skins.length)] as CharSheetKey;
+      this.createEnemyAnimations(skinKey);
+
+      const eSheet = CHAR_SHEETS[skinKey];
+      const eScale = ENEMY_SIZE / (eSheet.xCuts[1] - eSheet.xCuts[0]);
+      const sprite = this.add.sprite(ex, ey, skinKey, `${skinKey}-walk-down-1`)
+        .setOrigin(0, 0).setDepth(4).setScale(eScale);
+      sprite.play(`${skinKey}-walk-down`);
 
       this.enemies.push({
         x: ex, y: ey,
@@ -956,7 +1108,9 @@ export class RunScene extends Phaser.Scene {
         contactDmgRate: s.contactDmgRate,
         enemyType: type,
         shootTimer: Math.random() * SHOOTER_FIRE_INTERVAL, // stagger initial shots
-        img: this.add.image(ex, ey, imgKey).setOrigin(0, 0).setDepth(4),
+        img: sprite,
+        skinKey,
+        lastDir: 'down',
         hpBar: this.add.graphics().setDepth(5),
         pathTimer: 0,
         path: [],
@@ -1129,10 +1283,25 @@ export class RunScene extends Phaser.Scene {
     this.py = clamp(this.py, 0, WORLD_H - PLAYER_SIZE);
     if (dy !== 0) this.resolveBarriers(0, dy);
 
-    const rightLimit = this.cameras.main.scrollX + this.cameras.main.width - PLAYER_SIZE;
+    const cam = this.cameras.main;
+    const rightLimit = cam.scrollX + cam.width - PLAYER_SIZE;
     if (this.px > rightLimit) this.px = rightLimit;
 
     this.playerImg.setPosition(this.px, this.py);
+
+    if (dx !== 0 || dy !== 0) {
+      const dir = Math.abs(dx) >= Math.abs(dy)
+        ? (dx > 0 ? 'right' : 'left')
+        : (dy > 0 ? 'down' : 'up');
+      if (dir !== this.lastPlayerDir || !this.playerImg.anims.isPlaying) {
+        this.lastPlayerDir = dir;
+        this.playerImg.play(`christian-walk-${dir}`, true);
+      }
+      this.playerImg.anims.timeScale = this.sprinting ? 1.8 : 1;
+    } else {
+      this.playerImg.anims.stop();
+      this.playerImg.setFrame(`christian-walk-${this.lastPlayerDir}-1`);
+    }
 
     if (!this.leftStart && this.px > START_COLS * TILE) {
       this.leftStart = true;
@@ -1167,20 +1336,22 @@ export class RunScene extends Phaser.Scene {
   }
 
   private fireProjectile(ptr: Phaser.Input.Pointer) {
-    const wx = ptr.x + this.cameras.main.scrollX;
-    const wy = ptr.y + this.cameras.main.scrollY;
+    const cam = this.cameras.main;
+    const wx = ptr.x / cam.zoom + cam.scrollX;
+    const wy = ptr.y / cam.zoom + cam.scrollY;
     const cx = this.px + PLAYER_SIZE / 2;
     const cy = this.py + PLAYER_SIZE / 2;
 
     const raw = Math.atan2(wy - cy, wx - cx);
     const ang = Math.round(raw / (Math.PI / 4)) * (Math.PI / 4);
 
+    const img = this.add.image(cx, cy, KEY_SPR_PROJECTILE).setOrigin(0.5).setDepth(6);
     this.projectiles.push({
       x: cx - PROJ_SIZE / 2,
       y: cy - PROJ_SIZE / 2,
       vx: Math.cos(ang) * PROJ_SPEED,
       vy: Math.sin(ang) * PROJ_SPEED,
-      img: this.add.image(cx, cy, KEY_SPR_PROJECTILE).setOrigin(0.5).setDepth(6),
+      img,
     });
   }
 
@@ -1246,14 +1417,15 @@ export class RunScene extends Phaser.Scene {
     const dy = py - ey;
     const d  = Math.sqrt(dx * dx + dy * dy);
     if (d === 0) return;
-    const scaledDmg = ENEMY_PROJ_DMG * Math.min(2, Math.pow(1.05, Math.floor((this.level - 1) / 3)));
+    const scaledDmg = ENEMY_PROJ_DMG * Math.min(2.5, Math.pow(1.08, Math.floor((this.level - 1) / 2)));
+    const eImg = this.add.image(ex, ey, KEY_SPR_ENEMY_PROJ).setOrigin(0.5).setDepth(6);
     this.enemyProjectiles.push({
       x: ex - ENEMY_PROJ_SIZE / 2,
       y: ey - ENEMY_PROJ_SIZE / 2,
       vx: (dx / d) * ENEMY_PROJ_SPEED,
       vy: (dy / d) * ENEMY_PROJ_SPEED,
       dmg: scaledDmg,
-      img: this.add.image(ex, ey, KEY_SPR_ENEMY_PROJ).setOrigin(0.5).setDepth(6),
+      img: eImg,
     });
   }
 
@@ -1344,7 +1516,18 @@ export class RunScene extends Phaser.Scene {
           const step = e.speed * dt;
           e.x += (dx / d) * step;
           e.y += (dy / d) * step;
+
+          const dir = Math.abs(dx) >= Math.abs(dy)
+            ? (dx > 0 ? 'right' : 'left')
+            : (dy > 0 ? 'down' : 'up');
+          if (dir !== e.lastDir || !e.img.anims.isPlaying) {
+            e.lastDir = dir;
+            e.img.play(`${e.skinKey}-walk-${dir}`, true);
+          }
         }
+      } else if (e.img.anims.isPlaying) {
+        e.img.anims.stop();
+        e.img.setFrame(`${e.skinKey}-walk-${e.lastDir}-1`);
       }
 
       e.x = clamp(e.x, startWall, WORLD_W - ENEMY_SIZE);
@@ -1428,7 +1611,7 @@ export class RunScene extends Phaser.Scene {
       if (dist(cx, cy, c.x + COIN_SIZE / 2, c.y + COIN_SIZE / 2) < COIN_COLLECT_R) {
         c.collected = true;
         c.img.destroy();
-        this.coinsCollected += COIN_VALUE;
+        this.coinsCollected += this.level >= 15 ? 40 : this.level >= 5 ? 20 : 10;
       }
     }
   }
@@ -1439,7 +1622,7 @@ export class RunScene extends Phaser.Scene {
     const cam  = this.cameras.main;
     const camW = cam.width;
     const camH = cam.height;
-    const spd  = CAMERA_SCROLL_BASE * Math.min(2, 1 + 0.05 * (this.level - 1));
+    const spd  = CAMERA_SCROLL_BASE * Math.min(2.2, 1 + 0.05 * (this.level - 1));
     const maxX = Math.max(0, WORLD_W - camW);
     const maxY = Math.max(0, WORLD_H - camH);
 
@@ -1458,12 +1641,13 @@ export class RunScene extends Phaser.Scene {
 
   // ── Win / Lose ──
 
-  // private checkEndZone() {
-  //   const ez = this.endZone;
-  //   if (rectsOverlap(this.px, this.py, PLAYER_SIZE, PLAYER_SIZE, ez.x, ez.y, ez.w, ez.h)) {
-  //     this.showLevelComplete();
-  //   }
-  // }
+  private checkEndZone() {
+    if (this.waitingForBossTouch) return;
+    const ez = this.endZone;
+    if (rectsOverlap(this.px, this.py, PLAYER_SIZE, PLAYER_SIZE, ez.x, ez.y, ez.w, ez.h)) {
+      this.showLevelComplete();
+    }
+  }
 
   private checkHoleDeath() {
     const cx = this.px + PLAYER_SIZE / 2;
@@ -1491,11 +1675,11 @@ export class RunScene extends Phaser.Scene {
     };
 
     if (nextStep >= RUNS_PER_CYCLE) {
-      this.scene.start('DuelScene', runData);
-    } 
-    
+      transitionTo(this, 'DuelScene', runData);
+    }
+
     else {
-      this.scene.start('RunScene', runData);
+      transitionTo(this, 'RunScene', runData);
     }
   }
 
@@ -1507,8 +1691,10 @@ export class RunScene extends Phaser.Scene {
 
     // Commit stage completion rewards to RunData
     const collectedThisStage = this.coinsCollected;
-    this.totalCoins += collectedThisStage + 100;
-    this.totalXp    += 250;
+    const bonusCoins = this.level >= 15 ? 300 : this.level >= 10 ? 250 : this.level >= 5 ? 150 : 100;
+    const bonusXp    = this.level >= 15 ? 500 : this.level >= 10 ? 400 : this.level >= 5 ? 300 : 250;
+    this.totalCoins += collectedThisStage + bonusCoins;
+    this.totalXp    += bonusXp;
     this.coinsCollected = 0;
 
     const w  = this.cameras.main.width;
@@ -1524,8 +1710,8 @@ export class RunScene extends Phaser.Scene {
 
     this.add.text(cx, cy - 110, 'Stage Complete!', { fontSize: '28px', color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
     this.add.text(cx, cy - 55,  `Time: ${timeStr}`, { fontSize: '28px', color: '#aaffcc', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
-    this.add.text(cx, cy - 10,  `+250 XP`, { fontSize: '28px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
-    this.add.text(cx, cy + 34,  `+${collectedThisStage + 100} Coins`, { fontSize: '28px', color: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
+    this.add.text(cx, cy - 10,  `+${bonusXp} XP`, { fontSize: '28px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
+    this.add.text(cx, cy + 34,  `+${collectedThisStage + bonusCoins} Coins`, { fontSize: '28px', color: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
 
     const btn = this.add.text(cx, cy + 100, 'Continue', { fontSize: '28px', color: '#ffffff' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21)
@@ -1542,8 +1728,16 @@ export class RunScene extends Phaser.Scene {
     // Commit any coins physically collected during the current incomplete stage
     this.totalCoins += this.coinsCollected;
     this.coinsCollected = 0;
-    completeRun(this.runId, this.totalCoins, this.totalXp, this.level, this.enemiesKilledThisRun)
-      .catch((err: unknown) => console.error('completeRun failed:', err));
+    // Chain off runCreationPromise so we never call completeRun before the run ID
+    // is assigned from the server (guards the race condition on very fast deaths in step 0).
+    const coins = this.totalCoins;
+    const xp    = this.totalXp;
+    const level = this.level;
+    const kills = this.enemiesKilledThisRun;
+    this.runCreationPromise.then(() => {
+      completeRun(this.runId, coins, xp, level, kills)
+        .catch((err: unknown) => console.error('completeRun failed:', err));
+    });
     if (this.sidebarNavHandler) {
       window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
       this.sidebarNavHandler = null;
@@ -1581,13 +1775,13 @@ export class RunScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => retry.setColor('#00ff88'))
       .on('pointerout',  () => retry.setColor('#ffffff'))
-      .on('pointerdown', () => this.scene.start('RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 }));
+      .on('pointerdown', () => transitionTo(this, 'RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 }));
 
     const menu = this.add.text(cx, cy + 120, 'Menu', { fontSize: '24px', color: '#888888' })
       .setOrigin(0.5).setScrollFactor(0).setDepth(21)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => menu.setColor('#ffffff'))
       .on('pointerout',  () => menu.setColor('#888888'))
-      .on('pointerdown', () => { this.time.delayedCall(100, () => { this.scene.start('MenuScene'); }); });
+      .on('pointerdown', () => { this.time.delayedCall(100, () => { transitionTo(this, 'MenuScene'); }); });
   }
 }

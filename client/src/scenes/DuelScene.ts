@@ -63,77 +63,79 @@ import { CombatState, createEmptyCombatState } from '../utils/combatState'; // c
 
 import type { RunData } from './RunScene'; // run-progress data passed into this scene
 import { completeRun, getPlayer } from '../utils/auth.js'; // API call to save run result
+import { showLoadingScreen } from '../utils/loadingScreen.js';
+import { transitionTo } from '../utils/sceneTransition.js';
 
 import backgroundImg from '../assets/backgrounds/everglades.jpg'; // duel background image
 
-import cardFrame from '../assets/sprites/FFCardFront.png'; // card frame image
+import cardFrame from '../assets/sprites/FFCardFront.webp'; // card frame image
 
 // element-specific card art used for the table card and the card backs in the deck and discard pile
-import cardFireSpecial from '../assets/sprites/CardFire.png'; 
-import cardWaterSpecial from '../assets/sprites/CardWater.png';
-import cardSandSpecial from '../assets/sprites/CardSand.png';
-import cardSwampSpecial from '../assets/sprites/CardSwamp.png';
+import cardFireSpecial from '../assets/sprites/CardFire.webp'; 
+import cardWaterSpecial from '../assets/sprites/CardWater.webp';
+import cardSandSpecial from '../assets/sprites/CardSand.webp';
+import cardSwampSpecial from '../assets/sprites/CardSwamp.webp';
 
-import cardIceWildcard from '../assets/sprites/CardIceFront.png'; // sprite for the Ice wildcard
+import cardIceWildcard from '../assets/sprites/CardIceFront.webp'; // sprite for the Ice wildcard
 
-import christianIdle from '../assets/characters/christian/Christian_v4_resized.png'; // Christian idle sprite
-import christianAttack1 from '../assets/characters/christian/Christian_attack-1.png'; // Christian attack animation frame 1
-import christianAttack2 from '../assets/characters/christian/Christian_attack-2.png'; // Christian attack animation frame 2
-import christianDamage1 from '../assets/characters/christian/Christian_damage-1.png'; // Christian hurt sprite 1
-import christianDamage2 from '../assets/characters/christian/Christian_damage-2.png'; // Christian hurt sprite 2
-import christinDefeated from '../assets/characters/christian/Christian_defeated.png'; // Christian defeated sprite
+import christianIdle from '../assets/characters/christian/Christian_v4_resized.webp'; // Christian idle sprite
+import christianAttack1 from '../assets/characters/christian/Christian_attack-1.webp'; // Christian attack animation frame 1
+import christianAttack2 from '../assets/characters/christian/Christian_attack-2.webp'; // Christian attack animation frame 2
+import christianDamage1 from '../assets/characters/christian/Christian_damage-1.webp'; // Christian hurt sprite 1
+import christianDamage2 from '../assets/characters/christian/Christian_damage-2.webp'; // Christian hurt sprite 2
+import christinDefeated from '../assets/characters/christian/Christian_defeated.webp'; // Christian defeated sprite
 
 import { BOSS_VISUALS } from '../utils/bossConfig.js';
 
-import skawlIdle from '../assets/characters/skawl/Skawl_resized.png'; // Skawl idle sprite
-import skawlAttack1 from '../assets/characters/skawl/Skawl_attack-1.png'; // Skawl attack animation frame 1
-import skawlAttack2 from '../assets/characters/skawl/Skawl_attack-2.png'; // Skawl attack animation frame 2
-import skawlUlti1 from '../assets/characters/skawl/Skawl_ulti-1.png'; // Skawl ultimate animation frame 1
-import skawlUlti2 from '../assets/characters/skawl/Skawl_ulti-2.png'; // Skawl ultimate animation frame 2
-import skawlDamage1 from '../assets/characters/skawl/Skawl_damage-1.png'; // Skawl hurt sprite 1
-import skawlDamage2 from '../assets/characters/skawl/Skawl_damage-2.png'; // Skawl hurt sprite 2
-import skawlDefeated from '../assets/characters/skawl/Skawl_defeated.png'; // Skawl defeated sprite
+import skawlIdle from '../assets/characters/skawl/Skawl_resized.webp'; // Skawl idle sprite
+import skawlAttack1 from '../assets/characters/skawl/Skawl_attack-1.webp'; // Skawl attack animation frame 1
+import skawlAttack2 from '../assets/characters/skawl/Skawl_attack-2.webp'; // Skawl attack animation frame 2
+import skawlUlti1 from '../assets/characters/skawl/Skawl_ulti-1.webp'; // Skawl ultimate animation frame 1
+import skawlUlti2 from '../assets/characters/skawl/Skawl_ulti-2.webp'; // Skawl ultimate animation frame 2
+import skawlDamage1 from '../assets/characters/skawl/Skawl_damage-1.webp'; // Skawl hurt sprite 1
+import skawlDamage2 from '../assets/characters/skawl/Skawl_damage-2.webp'; // Skawl hurt sprite 2
+import skawlDefeated from '../assets/characters/skawl/Skawl_defeated.webp'; // Skawl defeated sprite
 
-import rabyzIdle from '../assets/characters/rabyz/Rabyz_resized.png'; // Rabyz idle sprite
-import rabyzAttack1 from '../assets/characters/rabyz/Rabyz_attack-1.png'; // Rabyz attack animation frame 1
-import rabyzAttack2 from '../assets/characters/rabyz/Rabyz_attack-2.png'; // Rabyz attack animation frame 2
-import rabyzUlti1 from '../assets/characters/rabyz/Rabyz_ulti-1.png'; // Rabyz ultimate animation frame 1
-import rabyzUlti2 from '../assets/characters/rabyz/Rabyz_ulti-2.png'; // Rabyz ultimate animation frame 2
-import rabyzDamage1 from '../assets/characters/rabyz/Rabyz_damage-1.png'; // Rabyz hurt sprite 1
-import rabyzDamage2 from '../assets/characters/rabyz/Rabyz_damage-2.png'; // Rabyz hurt sprite 2
-import rabyzDefeated from '../assets/characters/rabyz/Rabyz_defeated.png'; // Rabyz defeated sprite
+import rabyzIdle from '../assets/characters/rabyz/Rabyz_resized.webp'; // Rabyz idle sprite
+import rabyzAttack1 from '../assets/characters/rabyz/Rabyz_attack-1.webp'; // Rabyz attack animation frame 1
+import rabyzAttack2 from '../assets/characters/rabyz/Rabyz_attack-2.webp'; // Rabyz attack animation frame 2
+import rabyzUlti1 from '../assets/characters/rabyz/Rabyz_ulti-1.webp'; // Rabyz ultimate animation frame 1
+import rabyzUlti2 from '../assets/characters/rabyz/Rabyz_ulti-2.webp'; // Rabyz ultimate animation frame 2
+import rabyzDamage1 from '../assets/characters/rabyz/Rabyz_damage-1.webp'; // Rabyz hurt sprite 1
+import rabyzDamage2 from '../assets/characters/rabyz/Rabyz_damage-2.webp'; // Rabyz hurt sprite 2
+import rabyzDefeated from '../assets/characters/rabyz/Rabyz_defeated.webp'; // Rabyz defeated sprite
 
-import boldearIdle from '../assets/characters/boldear/Boldear_resized.png'; // Boldear idle sprite
-import boldearAttack1 from '../assets/characters/boldear/Boldear_attack-1.png'; // Boldear attack animation frame 1
-import boldearAttack2 from '../assets/characters/boldear/Boldear_attack-2.png'; // Boldear attack animation frame 2
-import boldearUlti1 from '../assets/characters/boldear/Boldear_ulti-1.png'; // Boldear ultimate animation frame 1
-import boldearUlti2 from '../assets/characters/boldear/Boldear_ulti-2.png'; // Boldear ultimate animation frame 2
-import boldearDamage1 from '../assets/characters/boldear/Boldear_damage-1.png'; // Boldear hurt sprite 1
-import boldearDamage2 from '../assets/characters/boldear/Boldear_damage-2.png'; // Boldear hurt sprite 2
-import boldearDefeated from '../assets/characters/boldear/Boldear_defeated.png'; // Boldear defeated sprite
+import boldearIdle from '../assets/characters/boldear/Boldear_resized.webp'; // Boldear idle sprite
+import boldearAttack1 from '../assets/characters/boldear/Boldear_attack-1.webp'; // Boldear attack animation frame 1
+import boldearAttack2 from '../assets/characters/boldear/Boldear_attack-2.webp'; // Boldear attack animation frame 2
+import boldearUlti1 from '../assets/characters/boldear/Boldear_ulti-1.webp'; // Boldear ultimate animation frame 1
+import boldearUlti2 from '../assets/characters/boldear/Boldear_ulti-2.webp'; // Boldear ultimate animation frame 2
+import boldearDamage1 from '../assets/characters/boldear/Boldear_damage-1.webp'; // Boldear hurt sprite 1
+import boldearDamage2 from '../assets/characters/boldear/Boldear_damage-2.webp'; // Boldear hurt sprite 2
+import boldearDefeated from '../assets/characters/boldear/Boldear_defeated.webp'; // Boldear defeated sprite
 
-import pythraEvolution1 from '../assets/characters/pythra/Pythra_evolution-1_resized.png'; // Pythra evolution phase 1 sprite
-import pythraAttack1 from '../assets/characters/pythra/Pythra_attack-1.png'; // Pythra attack animation frame 1
-import pythraAttack2 from '../assets/characters/pythra/Pythra_attack-2.png'; // Pythra attack animation frame 2
-import pythraUlti1 from '../assets/characters/pythra/Pythra_ulti-1.png'; // Pythra ultimate animation frame 1
-import pythraUlti2 from '../assets/characters/pythra/Pythra_ulti-2.png'; // Pythra ultimate animation frame 2
-import pythraPrepare1 from '../assets/characters/pythra/Pythra_prepare-1.png'; // Pythra evolution preparation sprite 1
-import pythraPrepare2 from '../assets/characters/pythra/Pythra_prepare-2.png'; // Pythra evolution preparation sprite 2
-import pythraEvolution2 from '../assets/characters/pythra/Pythra_evolution-2.png'; // Pythra evolution phase 2 sprite
-import pythraAttack3 from '../assets/characters/pythra/Pythra_attack-3.png'; // Pythra attack animation frame 3 used in phase 2
-import pythraAttack4 from '../assets/characters/pythra/Pythra_attack-4.png'; // Pythra attack animation frame 4 used in phase 2
-import pythraUlti3 from '../assets/characters/pythra/Pythra_ulti-3.png'; // Pythra ultimate animation frame 3 used in phase 2
-import pythraUlti4 from '../assets/characters/pythra/Pythra_ulti-4.png'; // Pythra ultimate animation frame 4 used in phase 2
-import pythraPrepare3 from '../assets/characters/pythra/Pythra_prepare-3.png'; // Pythra evolution preparation sprite 3 used in phase 2
-import pythraPrepare4 from '../assets/characters/pythra/Pythra_prepare-4.png'; // Pythra evolution preparation sprite 4 used in phase 2
-import pythraEvolution3 from '../assets/characters/pythra/Pythra_evolution-3.png'; // Pythra evolution phase 3 sprite used in phase 2
-import pythraAttack5 from '../assets/characters/pythra/Pythra_attack-5.png'; // Pythra attack animation frame 5 used in phase 3
-import pythraAttack6 from '../assets/characters/pythra/Pythra_attack-6.png'; // Pythra attack animation frame 6 used in phase 3
-import pythraUlti5 from '../assets/characters/pythra/Pythra_ulti-5.png'; // Pythra ultimate animation frame 5 used in phase 3
-import pythraUlti6 from '../assets/characters/pythra/Pythra_ulti-6.png'; // Pythra ultimate animation frame 6 used in phase 3
-import pythraDamage1 from '../assets/characters/pythra/Pythra_damage-1.png'; // Pythra hurt sprite 1
-import pythraDamage2 from '../assets/characters/pythra/Pythra_damage-2.png'; // Pythra hurt sprite 2
-import pythraDefeated from '../assets/characters/pythra/Pythra_defeated.png'; // Pythra defeated sprite
+import pythraEvolution1 from '../assets/characters/pythra/Pythra_evolution-1_resized.webp'; // Pythra evolution phase 1 sprite
+import pythraAttack1 from '../assets/characters/pythra/Pythra_attack-1.webp'; // Pythra attack animation frame 1
+import pythraAttack2 from '../assets/characters/pythra/Pythra_attack-2.webp'; // Pythra attack animation frame 2
+import pythraUlti1 from '../assets/characters/pythra/Pythra_ulti-1.webp'; // Pythra ultimate animation frame 1
+import pythraUlti2 from '../assets/characters/pythra/Pythra_ulti-2.webp'; // Pythra ultimate animation frame 2
+import pythraPrepare1 from '../assets/characters/pythra/Pythra_prepare-1.webp'; // Pythra evolution preparation sprite 1
+import pythraPrepare2 from '../assets/characters/pythra/Pythra_prepare-2.webp'; // Pythra evolution preparation sprite 2
+import pythraEvolution2 from '../assets/characters/pythra/Pythra_evolution-2.webp'; // Pythra evolution phase 2 sprite
+import pythraAttack3 from '../assets/characters/pythra/Pythra_attack-3.webp'; // Pythra attack animation frame 3 used in phase 2
+import pythraAttack4 from '../assets/characters/pythra/Pythra_attack-4.webp'; // Pythra attack animation frame 4 used in phase 2
+import pythraUlti3 from '../assets/characters/pythra/Pythra_ulti-3.webp'; // Pythra ultimate animation frame 3 used in phase 2
+import pythraUlti4 from '../assets/characters/pythra/Pythra_ulti-4.webp'; // Pythra ultimate animation frame 4 used in phase 2
+import pythraPrepare3 from '../assets/characters/pythra/Pythra_prepare-3.webp'; // Pythra evolution preparation sprite 3 used in phase 2
+import pythraPrepare4 from '../assets/characters/pythra/Pythra_prepare-4.webp'; // Pythra evolution preparation sprite 4 used in phase 2
+import pythraEvolution3 from '../assets/characters/pythra/Pythra_evolution-3.webp'; // Pythra evolution phase 3 sprite used in phase 2
+import pythraAttack5 from '../assets/characters/pythra/Pythra_attack-5.webp'; // Pythra attack animation frame 5 used in phase 3
+import pythraAttack6 from '../assets/characters/pythra/Pythra_attack-6.webp'; // Pythra attack animation frame 6 used in phase 3
+import pythraUlti5 from '../assets/characters/pythra/Pythra_ulti-5.webp'; // Pythra ultimate animation frame 5 used in phase 3
+import pythraUlti6 from '../assets/characters/pythra/Pythra_ulti-6.webp'; // Pythra ultimate animation frame 6 used in phase 3
+import pythraDamage1 from '../assets/characters/pythra/Pythra_damage-1.webp'; // Pythra hurt sprite 1
+import pythraDamage2 from '../assets/characters/pythra/Pythra_damage-2.webp'; // Pythra hurt sprite 2
+import pythraDefeated from '../assets/characters/pythra/Pythra_defeated.webp'; // Pythra defeated sprite
 
 import music from '../assets/music/Cane_Field_Siege.mp3'; // background music for the duel, imported directly for Vite compatibility
 import { DuelBossData } from '../utils/bossTypes.js';
@@ -235,72 +237,77 @@ export class DuelScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.audio('duel-music', music); // load background music for the duel
-    this.load.image('background', backgroundImg); // load duel background
+    showLoadingScreen(this);
 
-    this.load.image('card-frame', cardFrame); // load card frame image
-    this.load.image('card-fire-special', cardFireSpecial); // load fire element card art
-    this.load.image('card-water-special', cardWaterSpecial); // load water element card art
-    this.load.image('card-sand-special', cardSandSpecial); // load sand element card art
-    this.load.image('card-swamp-special', cardSwampSpecial); // load swamp element card art
-    this.load.image('card-ice-wildcard', cardIceWildcard); // load ice wildcard card art
+    if (!this.cache.audio.has('duel-music'))       this.load.audio('duel-music', music);
+    if (!this.textures.exists('background'))        this.load.image('background', backgroundImg);
+    if (!this.textures.exists('card-frame'))        this.load.image('card-frame', cardFrame);
+    if (!this.textures.exists('card-fire-special')) this.load.image('card-fire-special', cardFireSpecial);
+    if (!this.textures.exists('card-water-special'))this.load.image('card-water-special', cardWaterSpecial);
+    if (!this.textures.exists('card-sand-special')) this.load.image('card-sand-special', cardSandSpecial);
+    if (!this.textures.exists('card-swamp-special'))this.load.image('card-swamp-special', cardSwampSpecial);
+    if (!this.textures.exists('card-ice-wildcard')) this.load.image('card-ice-wildcard', cardIceWildcard);
 
-    this.load.image('christian-idle', christianIdle); // load Christian idle sprite
-    this.load.image('christian-attack-1', christianAttack1); // load Christian attack sprite 1
-    this.load.image('christian-attack-2', christianAttack2); // load Christian attack sprite 2
-    this.load.image('christian-damage-1', christianDamage1); // load Christian hurt sprite 1
-    this.load.image('christian-damage-2', christianDamage2); // load Christian hurt sprite 2
-    this.load.image('christian-defeated', christinDefeated); // load Christian defeated sprite
+    if (!this.textures.exists('christian-idle'))    this.load.image('christian-idle', christianIdle);
+    if (!this.textures.exists('christian-attack-1'))this.load.image('christian-attack-1', christianAttack1);
+    if (!this.textures.exists('christian-attack-2'))this.load.image('christian-attack-2', christianAttack2);
+    if (!this.textures.exists('christian-damage-1'))this.load.image('christian-damage-1', christianDamage1);
+    if (!this.textures.exists('christian-damage-2'))this.load.image('christian-damage-2', christianDamage2);
+    if (!this.textures.exists('christian-defeated'))this.load.image('christian-defeated', christinDefeated);
 
-    this.load.image('skawl-idle', skawlIdle); // load Skawl idle sprite
-    this.load.image('skawl-attack-1', skawlAttack1); // load Skawl attack sprite 1
-    this.load.image('skawl-attack-2', skawlAttack2); // load Skawl attack sprite 2
-    this.load.image('skawl-ulti-1', skawlUlti1); // load Skawl ultimate sprite 1
-    this.load.image('skawl-ulti-2', skawlUlti2); // load Skawl ultimate sprite 2
-    this.load.image('skawl-damage-1', skawlDamage1); // load Skawl hurt sprite 1
-    this.load.image('skawl-damage-2', skawlDamage2); // load Skawl hurt sprite 2
-    this.load.image('skawl-defeated', skawlDefeated); // load Skawl defeated sprite
+    const bossName = this.selectedBoss?.enemyName ?? 'Skawl';
 
-    this.load.image('rabyz-idle', rabyzIdle); // load Rabyz idle sprite
-    this.load.image('rabyz-attack-1', rabyzAttack1); // load Rabyz attack sprite 1
-    this.load.image('rabyz-attack-2', rabyzAttack2); // load Rabyz attack sprite 2
-    this.load.image('rabyz-ulti-1', rabyzUlti1); // load Rabyz ultimate sprite 1
-    this.load.image('rabyz-ulti-2', rabyzUlti2); // load Rabyz ultimate sprite 2
-    this.load.image('rabyz-damage-1', rabyzDamage1); // load Rabyz hurt sprite 1
-    this.load.image('rabyz-damage-2', rabyzDamage2); // load Rabyz hurt sprite 2
-    this.load.image('rabyz-defeated', rabyzDefeated); // load Rabyz defeated sprite
-
-    this.load.image('boldear-idle', boldearIdle); // load Boldear idle sprite
-    this.load.image('boldear-attack-1', boldearAttack1); // load Boldear attack sprite 1
-    this.load.image('boldear-attack-2', boldearAttack2); // load Boldear attack sprite 2
-    this.load.image('boldear-ulti-1', boldearUlti1); // load Boldear ultimate sprite 1
-    this.load.image('boldear-ulti-2', boldearUlti2); // load Boldear ultimate sprite 2
-    this.load.image('boldear-damage-1', boldearDamage1); // load Boldear hurt sprite 1
-    this.load.image('boldear-damage-2', boldearDamage2); // load Boldear hurt sprite 2
-    this.load.image('boldear-defeated', boldearDefeated); // load Boldear defeated sprite
-
-    this.load.image('pythra-evolution-1', pythraEvolution1); // load Pythra evolution phase 1 sprite
-    this.load.image('pythra-attack-1', pythraAttack1); // load Pythra attack sprite 1
-    this.load.image('pythra-attack-2', pythraAttack2); // load Pythra attack sprite 2
-    this.load.image('pythra-ulti-1', pythraUlti1); // load Pythra ultimate sprite 1
-    this.load.image('pythra-ulti-2', pythraUlti2); // load Pythra ultimate sprite 2
-    this.load.image('pythra-prepare-1', pythraPrepare1); // load Pythra evolution preparation sprite 1
-    this.load.image('pythra-prepare-2', pythraPrepare2); // load Pythra evolution preparation sprite 2
-    this.load.image('pythra-evolution-2', pythraEvolution2); // load Pythra evolution phase 2 sprite
-    this.load.image('pythra-attack-3', pythraAttack3); // load Pythra attack sprite 3 used in phase 2
-    this.load.image('pythra-attack-4', pythraAttack4); // load Pythra attack sprite 4 used in phase 2
-    this.load.image('pythra-ulti-3', pythraUlti3); // load Pythra ultimate sprite 3 used in phase 2
-    this.load.image('pythra-ulti-4', pythraUlti4); // load Pythra ultimate sprite 4 used in phase 2
-    this.load.image('pythra-prepare-3', pythraPrepare3); // load Pythra evolution preparation sprite 3 used in phase 2
-    this.load.image('pythra-prepare-4', pythraPrepare4); // load Pythra evolution preparation sprite 4 used in phase 2
-    this.load.image('pythra-evolution-3', pythraEvolution3); // load Pythra evolution phase 3 sprite used in phase 2
-    this.load.image('pythra-attack-5', pythraAttack5); // load Pythra attack sprite 5 used in phase 3
-    this.load.image('pythra-attack-6', pythraAttack6); // load Pythra attack sprite 6 used in phase 3
-    this.load.image('pythra-ulti-5', pythraUlti5); // load Pythra ultimate sprite 5 used in phase 3
-    this.load.image('pythra-ulti-6', pythraUlti6); // load Pythra ultimate sprite 6 used in phase 3
-    this.load.image('pythra-damage-1', pythraDamage1); // load Pythra hurt sprite 1
-    this.load.image('pythra-damage-2', pythraDamage2); // load Pythra hurt sprite 2
-    this.load.image('pythra-defeated', pythraDefeated); // load Pythra defeated sprite
+    if (bossName === 'Skawl') {
+      if (!this.textures.exists('skawl-idle'))     this.load.image('skawl-idle', skawlIdle);
+      if (!this.textures.exists('skawl-attack-1')) this.load.image('skawl-attack-1', skawlAttack1);
+      if (!this.textures.exists('skawl-attack-2')) this.load.image('skawl-attack-2', skawlAttack2);
+      if (!this.textures.exists('skawl-ulti-1'))   this.load.image('skawl-ulti-1', skawlUlti1);
+      if (!this.textures.exists('skawl-ulti-2'))   this.load.image('skawl-ulti-2', skawlUlti2);
+      if (!this.textures.exists('skawl-damage-1')) this.load.image('skawl-damage-1', skawlDamage1);
+      if (!this.textures.exists('skawl-damage-2')) this.load.image('skawl-damage-2', skawlDamage2);
+      if (!this.textures.exists('skawl-defeated')) this.load.image('skawl-defeated', skawlDefeated);
+    } else if (bossName === 'Rabyz') {
+      if (!this.textures.exists('rabyz-idle'))     this.load.image('rabyz-idle', rabyzIdle);
+      if (!this.textures.exists('rabyz-attack-1')) this.load.image('rabyz-attack-1', rabyzAttack1);
+      if (!this.textures.exists('rabyz-attack-2')) this.load.image('rabyz-attack-2', rabyzAttack2);
+      if (!this.textures.exists('rabyz-ulti-1'))   this.load.image('rabyz-ulti-1', rabyzUlti1);
+      if (!this.textures.exists('rabyz-ulti-2'))   this.load.image('rabyz-ulti-2', rabyzUlti2);
+      if (!this.textures.exists('rabyz-damage-1')) this.load.image('rabyz-damage-1', rabyzDamage1);
+      if (!this.textures.exists('rabyz-damage-2')) this.load.image('rabyz-damage-2', rabyzDamage2);
+      if (!this.textures.exists('rabyz-defeated')) this.load.image('rabyz-defeated', rabyzDefeated);
+    } else if (bossName === 'Boldear') {
+      if (!this.textures.exists('boldear-idle'))     this.load.image('boldear-idle', boldearIdle);
+      if (!this.textures.exists('boldear-attack-1')) this.load.image('boldear-attack-1', boldearAttack1);
+      if (!this.textures.exists('boldear-attack-2')) this.load.image('boldear-attack-2', boldearAttack2);
+      if (!this.textures.exists('boldear-ulti-1'))   this.load.image('boldear-ulti-1', boldearUlti1);
+      if (!this.textures.exists('boldear-ulti-2'))   this.load.image('boldear-ulti-2', boldearUlti2);
+      if (!this.textures.exists('boldear-damage-1')) this.load.image('boldear-damage-1', boldearDamage1);
+      if (!this.textures.exists('boldear-damage-2')) this.load.image('boldear-damage-2', boldearDamage2);
+      if (!this.textures.exists('boldear-defeated')) this.load.image('boldear-defeated', boldearDefeated);
+    } else if (bossName === 'Pythra') {
+      if (!this.textures.exists('pythra-evolution-1')) this.load.image('pythra-evolution-1', pythraEvolution1);
+      if (!this.textures.exists('pythra-attack-1'))    this.load.image('pythra-attack-1', pythraAttack1);
+      if (!this.textures.exists('pythra-attack-2'))    this.load.image('pythra-attack-2', pythraAttack2);
+      if (!this.textures.exists('pythra-ulti-1'))      this.load.image('pythra-ulti-1', pythraUlti1);
+      if (!this.textures.exists('pythra-ulti-2'))      this.load.image('pythra-ulti-2', pythraUlti2);
+      if (!this.textures.exists('pythra-prepare-1'))   this.load.image('pythra-prepare-1', pythraPrepare1);
+      if (!this.textures.exists('pythra-prepare-2'))   this.load.image('pythra-prepare-2', pythraPrepare2);
+      if (!this.textures.exists('pythra-evolution-2')) this.load.image('pythra-evolution-2', pythraEvolution2);
+      if (!this.textures.exists('pythra-attack-3'))    this.load.image('pythra-attack-3', pythraAttack3);
+      if (!this.textures.exists('pythra-attack-4'))    this.load.image('pythra-attack-4', pythraAttack4);
+      if (!this.textures.exists('pythra-ulti-3'))      this.load.image('pythra-ulti-3', pythraUlti3);
+      if (!this.textures.exists('pythra-ulti-4'))      this.load.image('pythra-ulti-4', pythraUlti4);
+      if (!this.textures.exists('pythra-prepare-3'))   this.load.image('pythra-prepare-3', pythraPrepare3);
+      if (!this.textures.exists('pythra-prepare-4'))   this.load.image('pythra-prepare-4', pythraPrepare4);
+      if (!this.textures.exists('pythra-evolution-3')) this.load.image('pythra-evolution-3', pythraEvolution3);
+      if (!this.textures.exists('pythra-attack-5'))    this.load.image('pythra-attack-5', pythraAttack5);
+      if (!this.textures.exists('pythra-attack-6'))    this.load.image('pythra-attack-6', pythraAttack6);
+      if (!this.textures.exists('pythra-ulti-5'))      this.load.image('pythra-ulti-5', pythraUlti5);
+      if (!this.textures.exists('pythra-ulti-6'))      this.load.image('pythra-ulti-6', pythraUlti6);
+      if (!this.textures.exists('pythra-damage-1'))    this.load.image('pythra-damage-1', pythraDamage1);
+      if (!this.textures.exists('pythra-damage-2'))    this.load.image('pythra-damage-2', pythraDamage2);
+      if (!this.textures.exists('pythra-defeated'))    this.load.image('pythra-defeated', pythraDefeated);
+    }
   }
 
   private async loadCardsFromBackend(): Promise<void> {
@@ -347,6 +354,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(300, 0, 0, 0);
     if (this.input.keyboard) this.input.keyboard.enabled = true;
 
     const { width, height } = this.cameras.main; // current scene dimensions
@@ -474,7 +482,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private advanceToNextCycle() {
-    this.scene.start('RunScene', { // transition back to the overworld progression scene
+    transitionTo(this, 'RunScene', { // transition back to the overworld progression scene
       level: this.level + 1, // advance to the next level
       step: 0, // reset step counter
       totalCoins: this.totalCoins,
@@ -485,6 +493,7 @@ export class DuelScene extends Phaser.Scene {
 
   private resetDuelState() {
     // Reset boolean flags — these persist across scene restarts since Phaser reuses the instance
+    (this as any).__transitioning = false; // guard against stale transitionTo flag blocking the P key skip
     this.runEnded = false;
     this.isShowingQuitDialog = false;
     this.sidebarNavHandler = null;
@@ -2266,13 +2275,13 @@ export class DuelScene extends Phaser.Scene {
       .setOrigin(0.5).setDepth(16).setInteractive({ useHandCursor: true })
       .on('pointerover', () => restartBtn.setColor('#00ff88')) // hover feedback
       .on('pointerout', () => restartBtn.setColor('#ffffff')) // restore default color
-      .on('pointerdown', () => this.scene.start('RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 })); // start a fresh run
+      .on('pointerdown', () => transitionTo(this, 'RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 })); // start a fresh run
 
     const menuBtn = this.add.text(centerX, centerY + 150, 'Menu', { fontSize: '24px', color: '#888888' })
       .setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerover', () => menuBtn.setColor('#ffffff')) // hover feedback
       .on('pointerout', () => menuBtn.setColor('#888888')) // restore default color
-      .on('pointerdown', () => { this.time.delayedCall(100, () => { this.scene.start('MenuScene'); }); }).setDepth(16); // return to the main menu
+      .on('pointerdown', () => { this.time.delayedCall(100, () => { transitionTo(this, 'MenuScene'); }); }).setDepth(16); // return to the main menu
   }
 
   private drawMetalPlate(graphics: Phaser.GameObjects.Graphics, width: number, height: number, pressed: boolean, x: number, y: number) {

@@ -390,7 +390,7 @@ export const SPECIAL_CARD_POOL: Card[] = [
     rarity: 'effect',
     power: null,
     effect: 'CLEANSE',
-    effectDescription: 'Limpia todos tus efectos negativos activos',
+    effectDescription: 'Cleanses all active negative effects',
     baseDamage: 0,
     shieldValue: 0,
     effectValue: 1,

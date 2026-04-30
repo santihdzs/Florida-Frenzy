@@ -22,7 +22,7 @@ export async function getRunsByPlayer(
   playerId: number
 ): Promise<RunWithCount[]> {
   return fastify.prisma.run.findMany({
-    where: { playerId },
+    where: { playerId, runStatus: { not: 'IN_PROGRESS' } },
     orderBy: { startTime: 'desc' },
     include: { _count: { select: { runZones: true } } },
   });

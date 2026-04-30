@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import pythraUrl from '../assets/characters/pythra/Pythra_damage-2.png';
+import { transitionTo } from '../utils/sceneTransition.js';
+import pythraUrl from '../assets/characters/pythra/Pythra_damage-2.webp';
 import music from '../assets/music/Blackwater_Shuffle.mp3';
-import backgroundImg from '../assets/backgrounds/sewers_topdown.png';
+import backgroundImg from '../assets/backgrounds/sewers_topdown.webp';
 
 // Constantes para las líneas de diálogo
 const DIALOGUE_LINES = [
@@ -33,6 +34,7 @@ export class EndScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(300, 0, 0, 0);
     const { width, height } = this.cameras.main;
     const centerX = width / 2;
     const centerY = height / 2;
@@ -112,7 +114,7 @@ export class EndScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10).setVisible(false).setInteractive({ useHandCursor: true });
 
     this.nextBtn.on('pointerdown', () => {
-      this.scene.start('MenuScene'); // Go to the next scene after clicking the button
+      transitionTo(this, 'MenuScene'); // Go to the next scene after clicking the button
     });
 
     // Start first line

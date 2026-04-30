@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { transitionTo } from '../utils/sceneTransition.js';
 
 export class InstructionScene extends Phaser.Scene {
     private scrollContainer!: Phaser.GameObjects.Container;
@@ -10,6 +11,7 @@ export class InstructionScene extends Phaser.Scene {
     }
 
     create() {
+        this.cameras.main.fadeIn(300, 0, 0, 0);
         const { width, height } = this.cameras.main;
         const centerX = width / 2;
         this.input.enabled = true;
@@ -112,7 +114,7 @@ export class InstructionScene extends Phaser.Scene {
 
         // back to menu button
         this.createMetalBtn(centerX, height - 50, 250, 50, 'BACK TO MENU', () => {
-            this.scene.start('MenuScene');
+            transitionTo(this, 'MenuScene');
         });
 
         this.events.on('shutdown', () => {

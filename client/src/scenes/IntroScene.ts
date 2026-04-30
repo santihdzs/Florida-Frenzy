@@ -1,16 +1,17 @@
 import Phaser from 'phaser';
-import titleBackground from '../assets/title-background.png';
+import titleBackground from '../assets/title-background.webp';
 import music from '../assets/music/Lowland_Hymn.mp3';
+import { transitionTo } from '../utils/sceneTransition.js';
 
 // Klancy full-body expressions
-import klancyNeutralUrl from '../assets/characters/klancy/Klancy_v1_resized.png';
-import klancyExplain1Url from '../assets/characters/klancy/Klancy_explain1_compressed.png';
-import klancyExplain2Url from '../assets/characters/klancy/Klancy_explain2_compressed.png';
-import klancyAngryUrl from '../assets/characters/klancy/Klancy_angry_compressed.png';
-import klancyFightUrl from '../assets/characters/klancy/Klancy_fight_compressed.png';
-import klancySadUrl from '../assets/characters/klancy/Klancy_sad_compressed.png';
-import klancyShockedUrl from '../assets/characters/klancy/Klancy_schocked_compressed.png';
-import klancyVictoryUrl from '../assets/characters/klancy/Klancy_victory_compressed.png';
+import klancyNeutralUrl from '../assets/characters/klancy/Klancy_v1_resized.webp';
+import klancyExplain1Url from '../assets/characters/klancy/Klancy_explain1_compressed.webp';
+import klancyExplain2Url from '../assets/characters/klancy/Klancy_explain2_compressed.webp';
+import klancyAngryUrl from '../assets/characters/klancy/Klancy_angry_compressed.webp';
+import klancyFightUrl from '../assets/characters/klancy/Klancy_fight_compressed.webp';
+import klancySadUrl from '../assets/characters/klancy/Klancy_sad_compressed.webp';
+import klancyShockedUrl from '../assets/characters/klancy/Klancy_schocked_compressed.webp';
+import klancyVictoryUrl from '../assets/characters/klancy/Klancy_victory_compressed.webp';
 
 interface DialogueLine {
   text: string;
@@ -97,6 +98,7 @@ export class IntroScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(300, 0, 0, 0);
     const W = this.cameras.main.width;
     const H = this.cameras.main.height;
     const cx = W / 2;

@@ -1,7 +1,7 @@
 // Santiago Hernandez - A01787550
 
 import Phaser from 'phaser';
-import titleBackground from '../assets/title-background.png';
+import titleBackground from '../assets/title-background.webp';
 import {
   getFriends,
   getFriendRequests,
@@ -12,6 +12,7 @@ import {
   removeFriend,
   isLoggedIn,
 } from '../utils/auth.js';
+import { transitionTo } from '../utils/sceneTransition.js';
 
 const SECTION_W = 640;
 const PAD = 16;
@@ -26,6 +27,7 @@ export class FriendsScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(300, 0, 0, 0);
     const W  = this.cameras.main.width;
     const H  = this.cameras.main.height;
     const cx = W / 2;
@@ -54,7 +56,7 @@ export class FriendsScene extends Phaser.Scene {
       .on('pointerover', function(this: Phaser.GameObjects.Text) { this.setColor('#226d1b'); })
       .on('pointerout',  function(this: Phaser.GameObjects.Text) { this.setColor('#c2baba'); })
       .on('pointerdown', () => {
-        this.time.delayedCall(100, () => { this.scene.start('MenuScene'); });
+        this.time.delayedCall(100, () => { transitionTo(this, 'MenuScene'); });
       });
 
     if (!isLoggedIn()) {

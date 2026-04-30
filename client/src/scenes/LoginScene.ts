@@ -1,7 +1,7 @@
 // Santiago Hernandez, Yael Ordaz
 
 import Phaser from 'phaser';
-import titleBackground from '../assets/title-background.png';
+import titleBackground from '../assets/title-background.webp';
 import { register, login } from '../utils/auth.js';
 
 type Mode = 'login' | 'register';

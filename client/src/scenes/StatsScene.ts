@@ -1,7 +1,7 @@
 // Santiago Hernandez - A01787550
 
 import Phaser from 'phaser';
-import titleBackground from '../assets/title-background.png';
+import titleBackground from '../assets/title-background.webp';
 import {
   isLoggedIn,
   getPlayer,
@@ -9,6 +9,7 @@ import {
   fetchGlobalLeaderboard,
   fetchFriendsLeaderboard,
 } from '../utils/auth.js';
+import { transitionTo } from '../utils/sceneTransition.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ export class StatsScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(300, 0, 0, 0);
     const W  = this.cameras.main.width;
     const H  = this.cameras.main.height;
     const cx = W / 2;
@@ -67,7 +69,7 @@ export class StatsScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerover', function(this: Phaser.GameObjects.Text) { this.setColor('#226d1b'); })
       .on('pointerout',  function(this: Phaser.GameObjects.Text) { this.setColor('#c2baba'); })
-      .on('pointerdown', () => { this.time.delayedCall(100, () => { this.scene.start('MenuScene'); }); });
+      .on('pointerdown', () => { this.time.delayedCall(100, () => { transitionTo(this, 'MenuScene'); }); });
 
     if (!isLoggedIn()) {
       this.add.text(cx, H / 2, 'Log in to view your stats', {

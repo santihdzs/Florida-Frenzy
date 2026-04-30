@@ -1,4 +1,6 @@
-export interface DbCard { // Define the structure of the card data as it is stored in the database 
+const API_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
+
+export interface DbCard { // Define the structure of the card data as it is stored in the database
   id: number;
   cardName: string;
   cardCategory: string;

@@ -5,15 +5,15 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
 
 const BCRYPT_ROUNDS = 12;
 
-export async function hashPassword(clientHash: string): Promise<string> {
-  return bcrypt.hash(clientHash, BCRYPT_ROUNDS);
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
 export async function verifyPassword(
-  clientHash: string,
+  password: string,
   storedHash: string
 ): Promise<boolean> {
-  return bcrypt.compare(clientHash, storedHash);
+  return bcrypt.compare(password, storedHash);
 }
 
 export function generateToken(

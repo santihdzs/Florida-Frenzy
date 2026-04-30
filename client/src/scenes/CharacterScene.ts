@@ -1,18 +1,19 @@
 import Phaser from 'phaser';
-import titleBackground from '../assets/title-background.png';
+import { transitionTo } from '../utils/sceneTransition.js';
+import titleBackground from '../assets/title-background.webp';
 
 // Hero imports (Crock Clan)
-import christianImg from '../assets/characters/christian/Christian_v4_resized.png';
-import gustavImg from '../assets/characters/gustav/Gustav_v3_resized.png';
-import gavinImg from '../assets/characters/gavin/Gavin_v3_resized.png';
-import eddyImg from '../assets/characters/eddy/Eddy_v2_resized.png';
-import klancyImg from '../assets/characters/klancy/Klancy_v1_resized.png';
+import christianImg from '../assets/characters/christian/Christian_v4_resized.webp';
+import gustavImg from '../assets/characters/gustav/Gustav_v3_resized.webp';
+import gavinImg from '../assets/characters/gavin/Gavin_v3_resized.webp';
+import eddyImg from '../assets/characters/eddy/Eddy_v2_resized.webp';
+import klancyImg from '../assets/characters/klancy/Klancy_v1_resized.webp';
 
 // Enemy imports (Swamp Threats)
-import skawlImg from '../assets/characters/skawl/Skawl_resized.png';
-import rabyzImg from '../assets/characters/rabyz/Rabyz_resized.png';
-import boldearImg from '../assets/characters/boldear/Boldear_resized.png';
-import pythraImg from '../assets/characters/pythra/Pythra_evolution-1_resized.png';
+import skawlImg from '../assets/characters/skawl/Skawl_resized.webp';
+import rabyzImg from '../assets/characters/rabyz/Rabyz_resized.webp';
+import boldearImg from '../assets/characters/boldear/Boldear_resized.webp';
+import pythraImg from '../assets/characters/pythra/Pythra_evolution-1_resized.webp';
 
 // Character definition interface to structure character data for both heroes and enemies
 interface CharacterDef {
@@ -113,6 +114,7 @@ export class CharacterScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(300, 0, 0, 0);
     const { width, height } = this.cameras.main;
     const cx = width / 2;
     this.input.enabled = true;
@@ -265,7 +267,7 @@ export class CharacterScene extends Phaser.Scene {
 
     // Back button
     this.createMetalBtn(cx, height - 45, 280, 55, 'BACK TO MENU', () => {
-      this.scene.start('MenuScene');
+      transitionTo(this, 'MenuScene');
     });
 
     this.events.on('shutdown', () => {

@@ -1,5 +1,6 @@
 import Phaser from "phaser";
-import titleBackground from '../assets/title-background.png'; 
+import { transitionTo } from '../utils/sceneTransition.js';
+import titleBackground from '../assets/title-background.webp';
 
 export class HistoryScene extends Phaser.Scene {
     private scrollContainer!: Phaser.GameObjects.Container;
@@ -15,6 +16,7 @@ export class HistoryScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(300, 0, 0, 0);
     const { width, height } = this.cameras.main;
     const cx = width / 2;
     this.input.enabled = true;
@@ -86,7 +88,7 @@ export class HistoryScene extends Phaser.Scene {
 
     // Back button
     this.createMetalBtn(cx, height - 45, 280, 55, 'BACK TO MENU', () => {
-      this.scene.start('MenuScene');
+      transitionTo(this, 'MenuScene');
     });
 
     this.events.on('shutdown', () => {
