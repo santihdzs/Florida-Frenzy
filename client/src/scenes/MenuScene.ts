@@ -90,7 +90,7 @@ export class MenuScene extends Phaser.Scene {
     // ── Main area buttons: MULTIPLAYER, SHOP, FRIENDS, LOG IN/OUT ──
     const logoutLabel  = isLoggedIn() ? 'LOG OUT' : 'LOG IN';
     const logoutAction = isLoggedIn()
-      ? () => logout()
+      ? () => { logout(); this.scene.restart(); }
       : () => this.scene.launch('LoginScene', { mode: 'login' });
 
     const mainW = 320;

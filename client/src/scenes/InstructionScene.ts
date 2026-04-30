@@ -80,7 +80,7 @@ export class InstructionScene extends Phaser.Scene {
         `Florida Frenzy is a 2D roguelite where TCG strategy meets fast-paced platforming. \nAs a member of the Crock Clan, you must explore the swamps, build your deck, and defeat powerful bosses.`);
 
         createSection("GENERAL CONTROLS",
-        `- [A] [D]: Move Left and Right \n- [W] [SPACE]: Jump (Double Jump) \n- [E]: Interact \n- [I]: Open Inventory and Close Inventory \n- [ESC]: Pause \n- [MOUSE MOVEMENT]: Aim \n- [LEFT CLICK]: Shoot and and select/play cards\n (Double click for confirmation and select card) \n- [RIGHT CLICK]: Discard Card`);
+        `- [W] [A] [S] [D] or Arrow Keys: Move (4 directions)\n- [SHIFT]: Sprint (drains stamina)\n- [MOUSE]: Aim\n- [LEFT CLICK]: Shoot\n- [ESC] / [P]: Pause`);
 
         createSection("GAME FLOW",
         `Explore the map, avoid enemies and reach bosses. When you encounter a boss, a card duel begins. \nWin duels to earn rewards and improve your deck. Repeat this cycle to progress through the run.`);

@@ -9,11 +9,14 @@
 * level progression, and the duel boss encounter. 
 * The scene also communicates with the server to create run records 
 * and update player stats.
+* 
+* - AI was used to help us with sprite handling, and all everglades sprites came from https://opengameart.org/
+* - AI was used to handle login check before displaying popups
 */
 
 import Phaser from 'phaser';
-import evTilesUrl from '../assets/maps/everglades.webp';
 import chrisAvatarUrl from '../assets/sprites/Chris.webp';
+import { MAP_CONFIGS, selectMap, type MapConfig } from '../utils/mapConfig.js';
 import { completeRun, createRun, getPlayer } from '../utils/auth.js';
 import type { DuelBossData } from '../utils/bossTypes.js';
 import { fetchRandomDuelBoss } from '../api/enemyApi.js';
@@ -52,11 +55,6 @@ const SWIFT_SKINS   = ['schremy', 'skully', 'stirr'] as const;
 const KEY_SPR_PROJECTILE = 'spr-projectile';
 const KEY_SPR_ENEMY_PROJ = 'spr-enemy-proj';
 
-const KEY_EV_TILES       = 'ev-tiles';
-const FRAME_GRASS        = 75;
-const FRAME_BARRIER      = 32;
-const FRAME_WATER_LIGHT  = 290;
-const FRAME_HOLE         = 8;
 
 const PLAYER_SIZE   = 48;
 const PLAYER_SPEED  = 220;
@@ -328,6 +326,7 @@ export interface RunData {
   totalXp: number;
   runId: number;
   selectedBoss?: DuelBossData;
+  currentMap?: string;
 }
 
 export class RunScene extends Phaser.Scene {
@@ -341,6 +340,8 @@ export class RunScene extends Phaser.Scene {
   private sprinting = false;
   private stamina = STAMINA_MAX; // replaced by this.maxStamina at runtime via init()
   private lastSprintTime = -STAMINA_REGEN_DELAY;
+
+  private activeMap!: MapConfig;
 
   private level = 0;
   private step = 0;
@@ -417,6 +418,15 @@ export class RunScene extends Phaser.Scene {
     this.level          = data.level ?? 1;
     this.step           = data.step ?? 0;
     this.runId          = data.runId ?? 0;
+
+    // Select a new map only at the start of a level (step 0); restore it for subsequent steps
+    if (this.step === 0) {
+      this.activeMap = selectMap(data.currentMap);
+    } else {
+      this.activeMap =
+        Object.values(MAP_CONFIGS).find(m => m.key === data.currentMap) ??
+        MAP_CONFIGS['everglades'];
+    }
     this.totalCoins     = data.totalCoins ?? 0;
     this.totalXp        = data.totalXp ?? 0;
     this.done           = false;
@@ -464,8 +474,10 @@ export class RunScene extends Phaser.Scene {
   preload() {
     showLoadingScreen(this);
 
-    if (!this.textures.exists(KEY_EV_TILES))
-      this.load.spritesheet(KEY_EV_TILES, evTilesUrl, { frameWidth: 16, frameHeight: 16 });
+    if (!this.textures.exists(this.activeMap.key))
+      this.load.spritesheet(this.activeMap.key, this.activeMap.url, {
+        frameWidth: this.activeMap.tileWidth, frameHeight: this.activeMap.tileHeight,
+      });
     if (!this.textures.exists('chris-avatar'))
       this.load.image('chris-avatar', chrisAvatarUrl);
     if (!this.textures.exists('boss-skawl-run-sheet'))
@@ -988,6 +1000,7 @@ export class RunScene extends Phaser.Scene {
       totalXp: this.totalXp,
       runId: this.runId,
       selectedBoss: this.selectedBoss,
+      currentMap: this.activeMap.key,
     }); // transition to the DuelScene and pass along the current run stats and selected boss data
   }
 
@@ -1020,8 +1033,11 @@ export class RunScene extends Phaser.Scene {
   // ── World building ──
 
   private buildWorld(grid: number[][]) {
-    this.add.tileSprite(0, 0, WORLD_W, WORLD_H, KEY_EV_TILES, FRAME_GRASS)
-      .setOrigin(0, 0).setDepth(0).setTileScale(TILE / 16, TILE / 16);
+    // TODO: pair activeMap.key with the corresponding TCG background texture when ready
+    const { key: mapKey, frames: mapFrames, tileWidth } = this.activeMap;
+    const tileScale = TILE / tileWidth;
+    this.add.tileSprite(0, 0, WORLD_W, WORLD_H, mapKey, mapFrames.grass)
+      .setOrigin(0, 0).setDepth(0).setTileScale(tileScale, tileScale);
 
     const gfx = this.add.graphics().setDepth(1);
     gfx.fillStyle(0x336677, 0.3);
@@ -1039,13 +1055,13 @@ export class RunScene extends Phaser.Scene {
         const py   = row * TILE;
 
         if (tile === BARRIER) {
-          this.add.image(px, py, KEY_EV_TILES, FRAME_BARRIER)
+          this.add.image(px, py, mapKey, mapFrames.barrier)
             .setOrigin(0, 0).setDisplaySize(TILE, TILE).setDepth(2);
           this.barrierRects.push({ x: px, y: py, w: TILE, h: TILE });
 
         } else if (tile === HOLE) {
           const nb = this.tileNeighbors(grid, row, col, HOLE);
-          this.add.image(px, py, KEY_EV_TILES, FRAME_HOLE)
+          this.add.image(px, py, mapKey, mapFrames.hole)
             .setOrigin(0, 0).setDisplaySize(TILE, TILE).setDepth(2);
           this.holeRects.push({
             x: nb.w ? px       : px + 8,
@@ -1055,7 +1071,7 @@ export class RunScene extends Phaser.Scene {
           });
 
         } else if (tile === PUDDLE) {
-          this.add.image(px, py, KEY_EV_TILES, FRAME_WATER_LIGHT)
+          this.add.image(px, py, mapKey, mapFrames.puddle)
             .setOrigin(0, 0).setDisplaySize(TILE, TILE).setDepth(2);
           this.puddleRects.push({ x: px, y: py, w: TILE, h: TILE });
         }
@@ -1665,13 +1681,14 @@ export class RunScene extends Phaser.Scene {
 
   private advanceStage() {
     const nextStep = this.step + 1;
-    const runData: RunData = { 
-      level: this.level, 
-      step: nextStep, 
-      totalCoins: this.totalCoins, 
-      totalXp: this.totalXp, 
+    const runData: RunData = {
+      level: this.level,
+      step: nextStep,
+      totalCoins: this.totalCoins,
+      totalXp: this.totalXp,
       runId: this.runId,
       selectedBoss: this.selectedBoss,
+      currentMap: this.activeMap.key,
     };
 
     if (nextStep >= RUNS_PER_CYCLE) {

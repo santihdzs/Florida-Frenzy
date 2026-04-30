@@ -222,14 +222,12 @@
     <div class="main-layout">
         <div id="stats">
             <h3>MENU</h3>
-            <button class="sidebar-btn" onclick="sidebarNav('MenuScene')">PLAY</button>
-            <button class="sidebar-btn" onclick="sidebarNav('DeckScene')">DECK</button>
-            <button class="sidebar-btn" onclick="sidebarNav('StatsScene')">STATS</button>
-            <button class="sidebar-btn" onclick="sidebarNav('InstructionScene')">INFO</button>
-            <button class="sidebar-btn" onclick="sidebarNav('CharacterScene')">CHARACTER</button>
-            <button class="sidebar-btn" onclick="sidebarNav('HistoryScene')">HISTORY</button>
-            <button class="sidebar-btn" onclick="sidebarNav('TutorialScene')">TUTORIAL</button>
-            <button class="sidebar-btn" onclick="sidebarNav('SettingsScene')">SETTINGS</button>
+            <button class="sidebar-btn" onclick="sidebarNav('MenuScene', event)">PLAY</button>
+            <button class="sidebar-btn" onclick="sidebarNav('StatsScene', event)">STATS</button>
+            <button class="sidebar-btn" onclick="sidebarNav('InstructionScene', event)">INFO</button>
+            <button class="sidebar-btn" onclick="sidebarNav('StoryScene', event)">STORY</button>
+            <button class="sidebar-btn" onclick="sidebarNav('TutorialScene', event)">TUTORIAL</button>
+            <button class="sidebar-btn" onclick="sidebarNav('SettingsScene', event)">SETTINGS</button>
         </div>
         <div class="canvas-column">
             <div id="banner"><img src="./src/assets/backgrounds/banner.png"></div>
@@ -266,7 +264,9 @@
     }
 
     /* Navigate the Phaser canvas to a target scene from the HTML sidebar. */
-    function sidebarNav(key) {
+    function sidebarNav(key, e) {
+      /* Ignore keyboard-triggered button activations (Enter/Space) — detail is 0 for those */
+      if (e && e.detail === 0) return;
       var g = window.__phaserGame;
       if (!g) return;
       var activeScenes = g.scene.getScenes(true);

@@ -1,4 +1,5 @@
 // Santiago Hernandez - A01787550
+// AI was used for to populate vals for tiered upgrades 
 
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.webp';
