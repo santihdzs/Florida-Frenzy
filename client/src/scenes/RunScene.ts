@@ -16,6 +16,16 @@
 
 import Phaser from 'phaser';
 import chrisAvatarUrl from '../assets/sprites/Chris.webp';
+import gavinAvatarUrl  from '../assets/sprites/Gav.webp';
+import gustavAvatarUrl from '../assets/sprites/Gus.webp';
+import eddyAvatarUrl   from '../assets/sprites/Ed.webp';
+
+const AVATAR_URLS: Record<string, string> = {
+  christian: chrisAvatarUrl,
+  gavin:     gavinAvatarUrl,
+  gustav:    gustavAvatarUrl,
+  eddy:      eddyAvatarUrl,
+};
 import { MAP_CONFIGS, selectMap, type MapConfig, type TileRect } from '../utils/mapConfig.js';
 import { completeRun, createRun, getPlayer } from '../utils/auth.js';
 import type { DuelBossData } from '../utils/bossTypes.js';
@@ -494,8 +504,9 @@ export class RunScene extends Phaser.Scene {
       this.load.spritesheet(this.activeMap.key, this.activeMap.url, {
         frameWidth: this.activeMap.tileWidth, frameHeight: this.activeMap.tileHeight,
       });
-    if (!this.textures.exists('chris-avatar'))
-      this.load.image('chris-avatar', chrisAvatarUrl);
+    const avatarUrl = AVATAR_URLS[this.playerSkin] ?? chrisAvatarUrl;
+    if (!this.textures.exists(`${this.playerSkin}-avatar`))
+      this.load.image(`${this.playerSkin}-avatar`, avatarUrl);
     if (!this.textures.exists('boss-skawl-run-sheet'))
       this.load.image('boss-skawl-run-sheet', skawlSheet);
     if (!this.textures.exists('boss-rabyz-run-sheet'))
@@ -1197,7 +1208,7 @@ export class RunScene extends Phaser.Scene {
     avatarOutline.lineStyle(2, 0x8899cc);
     avatarOutline.strokeCircle(35, 55, 30);
 
-    const avatarSprite = this.add.image(35, 55, 'chris-avatar');
+    const avatarSprite = this.add.image(35, 55, `${this.playerSkin}-avatar`);
     avatarSprite.setDisplaySize(56, 56);
 
     this.avatarMask = this.add.graphics();

@@ -16,12 +16,17 @@ export function registerSocketHandlers(fastify: FastifyInstance): void {
   // JWT auth middleware — runs before any event handler
   io.use((socket, next) => {
     const token = (socket.handshake.auth as { token?: string }).token;
-    if (!token) return next(new Error('No token'));
+    if (!token) {
+      console.warn(`[socket] auth rejected — no token (socketId=${socket.id})`);
+      return next(new Error('No token'));
+    }
     try {
       const payload = fastify.jwt.verify<{ playerId: number }>(token);
       (socket as typeof socket & { playerId: number }).playerId = payload.playerId;
+      console.log(`[socket] auth ok — playerId=${payload.playerId} socketId=${socket.id}`);
       next();
-    } catch {
+    } catch (err) {
+      console.warn(`[socket] auth rejected — invalid token (socketId=${socket.id}) err=${(err as Error).message}`);
       next(new Error('Invalid token'));
     }
   });

@@ -11,10 +11,17 @@ export function getSocket(): Socket {
   if (_socket) return _socket;
 
   _socket = io(API_URL, {
-    auth: { token: getToken() ?? '' },
+    // Function form re-evaluates the token on every connection/reconnect attempt,
+    // preventing stale-empty-token sockets when getSocket() is called before login.
+    auth: (cb: (data: object) => void) => { cb({ token: getToken() ?? '' }); },
     transports: ['websocket'],
     autoConnect: true,
   });
+
+  _socket.on('connect_error', (err) => {
+    console.warn('[socket] connection error:', err.message);
+  });
+
   return _socket;
 }
 

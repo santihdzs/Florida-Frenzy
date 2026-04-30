@@ -6,6 +6,16 @@ import { MAP_CONFIGS, type TileRect } from '../utils/mapConfig.js';
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 
 import chrisAvatarUrl   from '../assets/sprites/Chris.webp';
+import gavinAvatarUrl   from '../assets/sprites/Gav.webp';
+import gustavAvatarUrl  from '../assets/sprites/Gus.webp';
+import eddyAvatarUrl    from '../assets/sprites/Ed.webp';
+
+const MP_AVATAR_URLS: Record<string, string> = {
+  christian: chrisAvatarUrl,
+  gavin:     gavinAvatarUrl,
+  gustav:    gustavAvatarUrl,
+  eddy:      eddyAvatarUrl,
+};
 
 import christianSheet from '../assets/characters/christian/Christian_SpriteSheet.webp';
 import gavinSheet     from '../assets/characters/gavin/Gavin_SpriteSheet.webp';
@@ -201,7 +211,8 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private lastDir     = 'down';
   private spectating  = false;
   private endReached  = false;
-  private done        = false;
+  private done            = false;
+  private playerAvatarKey = 'christian-avatar';
   private sidebarNavHandler: EventListener | null = null;
   private isShowingQuitDialog = false;
 
@@ -268,6 +279,9 @@ export class MultiplayerRunScene extends Phaser.Scene {
     this.level         = data.level   ?? 1;
     this.mapKey        = data.mapKey  ?? Object.keys(MAP_CONFIGS)[0]!;
     this.myPlayerId    = Number(getPlayer()?.id ?? 0);
+    const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
+    const skin = equipped in MP_AVATAR_URLS ? equipped : 'christian';
+    this.playerAvatarKey = `${skin}-avatar`;
 
     this.localAlive           = true;
     this.spectating           = false;
@@ -311,8 +325,9 @@ export class MultiplayerRunScene extends Phaser.Scene {
     for (const [key, url] of Object.entries(CHAR_SHEET_URLS)) {
       if (url && !this.textures.exists(key)) this.load.image(key, url);
     }
-    if (!this.textures.exists('chris-avatar'))
-      this.load.image('chris-avatar', chrisAvatarUrl);
+    const avatarUrl = MP_AVATAR_URLS[this.playerAvatarKey.replace('-avatar', '')] ?? chrisAvatarUrl;
+    if (!this.textures.exists(this.playerAvatarKey))
+      this.load.image(this.playerAvatarKey, avatarUrl);
 
     const mapCfg = MAP_CONFIGS[this.mapKey] ?? Object.values(MAP_CONFIGS)[0]!;
     if (!this.textures.exists(mapCfg.key))
@@ -622,7 +637,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
     avatarOutline.lineStyle(2, 0x8899cc);
     avatarOutline.strokeCircle(35, 55, 30);
 
-    const avatarSprite = this.add.image(35, 55, 'chris-avatar');
+    const avatarSprite = this.add.image(35, 55, this.playerAvatarKey);
     avatarSprite.setDisplaySize(56, 56);
 
     this.avatarMask = this.add.graphics();
