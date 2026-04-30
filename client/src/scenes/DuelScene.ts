@@ -79,12 +79,33 @@ import cardSwampSpecial from '../assets/sprites/CardSwamp.webp';
 
 import cardIceWildcard from '../assets/sprites/CardIceFront.webp'; // sprite for the Ice wildcard
 
-import christianIdle from '../assets/characters/christian/Christian_v4_resized.webp'; // Christian idle sprite
-import christianAttack1 from '../assets/characters/christian/Christian_attack-1.webp'; // Christian attack animation frame 1
-import christianAttack2 from '../assets/characters/christian/Christian_attack-2.webp'; // Christian attack animation frame 2
-import christianDamage1 from '../assets/characters/christian/Christian_damage-1.webp'; // Christian hurt sprite 1
-import christianDamage2 from '../assets/characters/christian/Christian_damage-2.webp'; // Christian hurt sprite 2
-import christinDefeated from '../assets/characters/christian/Christian_defeated.webp'; // Christian defeated sprite
+import christianIdle from '../assets/characters/christian/Christian_v4_resized.webp';
+import christianAttack1 from '../assets/characters/christian/Christian_attack-1.webp';
+import christianAttack2 from '../assets/characters/christian/Christian_attack-2.webp';
+import christianDamage1 from '../assets/characters/christian/Christian_damage-1.webp';
+import christianDamage2 from '../assets/characters/christian/Christian_damage-2.webp';
+import christinDefeated from '../assets/characters/christian/Christian_defeated.webp';
+
+import gavinIdle    from '../assets/characters/gavin/Gavin_v3_resized.webp';
+import gavinAttack1 from '../assets/characters/gavin/Gavin_attack-1.webp';
+import gavinAttack2 from '../assets/characters/gavin/Gavin_attack-2.webp';
+import gavinDamage1 from '../assets/characters/gavin/Gavin_damage-1.webp';
+import gavinDamage2 from '../assets/characters/gavin/Gavin_damage-2.webp';
+import gavinDefeated from '../assets/characters/gavin/Gavin_defeated.webp';
+
+import gustavIdle    from '../assets/characters/gustav/Gustav_v3_resized.webp';
+import gustavAttack1 from '../assets/characters/gustav/Gustav_attack-1.webp';
+import gustavAttack2 from '../assets/characters/gustav/Gustav_attack-2.webp';
+import gustavDamage1 from '../assets/characters/gustav/Gustav_damage-1.webp';
+import gustavDamage2 from '../assets/characters/gustav/Gustav_damage-2.webp';
+import gustavDefeated from '../assets/characters/gustav/Gustav_defeated.webp';
+
+import eddyIdle    from '../assets/characters/eddy/Eddy_v2_resized.webp';
+import eddyAttack1 from '../assets/characters/eddy/Eddy_attack-1.webp';
+import eddyAttack2 from '../assets/characters/eddy/Eddy_attack-2.webp';
+import eddyDamage1 from '../assets/characters/eddy/Eddy_damage-1.webp';
+import eddyDamage2 from '../assets/characters/eddy/Eddy_damage-2.webp';
+import eddyDefeated from '../assets/characters/eddy/Eddy_defeated.webp';
 
 import { BOSS_VISUALS } from '../utils/bossConfig.js';
 
@@ -238,6 +259,30 @@ export class DuelScene extends Phaser.Scene {
     return val ?? key;
   }
 
+  private playerSkinKey = 'christian';
+
+  private static readonly PLAYER_SKINS: Record<string, {
+    idle: string; attack1: string; attack2: string;
+    damage1: string; damage2: string; defeated: string;
+  }> = {
+    christian: {
+      idle: christianIdle, attack1: christianAttack1, attack2: christianAttack2,
+      damage1: christianDamage1, damage2: christianDamage2, defeated: christinDefeated,
+    },
+    gavin: {
+      idle: gavinIdle, attack1: gavinAttack1, attack2: gavinAttack2,
+      damage1: gavinDamage1, damage2: gavinDamage2, defeated: gavinDefeated,
+    },
+    gustav: {
+      idle: gustavIdle, attack1: gustavAttack1, attack2: gustavAttack2,
+      damage1: gustavDamage1, damage2: gustavDamage2, defeated: gustavDefeated,
+    },
+    eddy: {
+      idle: eddyIdle, attack1: eddyAttack1, attack2: eddyAttack2,
+      damage1: eddyDamage1, damage2: eddyDamage2, defeated: eddyDefeated,
+    },
+  };
+
   init(data: Partial<RunData>) {
     this.level = data.level ?? 1; // restore level if passed in, otherwise start at level 1
     this.totalCoins = data.totalCoins ?? 0; // restore accumulated coins
@@ -247,6 +292,8 @@ export class DuelScene extends Phaser.Scene {
     this.bossLivesRemaining = this.selectedBoss?.enemyName === 'Pythra' ? 3 : 1; // if the selected boss is Pythra, set lives to 2 to account for her evolution phase
     this.pythraPhase = 1; // reset Pythra phase to 1 at the start of each duel, will evolve when her HP reaches 0 until she has no lives remaining
     this.currentMap = data.currentMap;
+    const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
+    this.playerSkinKey = equipped in DuelScene.PLAYER_SKINS ? equipped : 'christian';
   }
 
   preload() {
@@ -262,12 +309,14 @@ export class DuelScene extends Phaser.Scene {
     if (!this.textures.exists('card-swamp-special'))this.load.image('card-swamp-special', cardSwampSpecial);
     if (!this.textures.exists('card-ice-wildcard')) this.load.image('card-ice-wildcard', cardIceWildcard);
 
-    if (!this.textures.exists('christian-idle'))    this.load.image('christian-idle', christianIdle);
-    if (!this.textures.exists('christian-attack-1'))this.load.image('christian-attack-1', christianAttack1);
-    if (!this.textures.exists('christian-attack-2'))this.load.image('christian-attack-2', christianAttack2);
-    if (!this.textures.exists('christian-damage-1'))this.load.image('christian-damage-1', christianDamage1);
-    if (!this.textures.exists('christian-damage-2'))this.load.image('christian-damage-2', christianDamage2);
-    if (!this.textures.exists('christian-defeated'))this.load.image('christian-defeated', christinDefeated);
+    const skin = this.playerSkinKey;
+    const skinAssets = DuelScene.PLAYER_SKINS[skin] ?? DuelScene.PLAYER_SKINS['christian'];
+    if (!this.textures.exists(`${skin}-idle`))     this.load.image(`${skin}-idle`,     skinAssets.idle);
+    if (!this.textures.exists(`${skin}-attack-1`)) this.load.image(`${skin}-attack-1`, skinAssets.attack1);
+    if (!this.textures.exists(`${skin}-attack-2`)) this.load.image(`${skin}-attack-2`, skinAssets.attack2);
+    if (!this.textures.exists(`${skin}-damage-1`)) this.load.image(`${skin}-damage-1`, skinAssets.damage1);
+    if (!this.textures.exists(`${skin}-damage-2`)) this.load.image(`${skin}-damage-2`, skinAssets.damage2);
+    if (!this.textures.exists(`${skin}-defeated`)) this.load.image(`${skin}-defeated`, skinAssets.defeated);
 
     const bossName = this.selectedBoss?.enemyName ?? 'Skawl';
 
@@ -810,7 +859,7 @@ export class DuelScene extends Phaser.Scene {
     this.enemyShadow.fillStyle(0x000000, 0.22);
     this.enemyShadow.fillEllipse(bossConfig.x + 90, bossConfig.y + 95, 170, 34);
 
-    this.playerCharacter = this.add.image(210, 430, 'christian-idle')
+    this.playerCharacter = this.add.image(210, 430, `${this.playerSkinKey}-idle`)
       .setScale(PLAYER_IDLE_SCALE)
       .setDepth(0);
 
@@ -2122,8 +2171,8 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private animatePlayerAttack() {
-    const attackImage = Math.random() < 0.5 ? 'christian-attack-1' : 'christian-attack-2'; // randomize attack pose
-    this.playerCharacter.setTexture(attackImage).setScale(PLAYER_ATTACK_SCALE).setY(335); // switch to attack pose
+    const attackImage = Math.random() < 0.5 ? `${this.playerSkinKey}-attack-1` : `${this.playerSkinKey}-attack-2`;
+    this.playerCharacter.setTexture(attackImage).setScale(PLAYER_ATTACK_SCALE).setY(335);
   }
 
   private animateEnemyAttack() {
@@ -2140,22 +2189,20 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private updatePlayerPose() {
-    if (this.playerHp <= 0) { 
-      this.playerCharacter.setTexture('christian-defeated').setScale(PLAYER_HURT_SCALE).setY(335);
+    const s = this.playerSkinKey;
+    if (this.playerHp <= 0) {
+      this.playerCharacter.setTexture(`${s}-defeated`).setScale(PLAYER_HURT_SCALE).setY(335);
       return;
-    } // defeated pose
-
-    if (this.playerHp <= 25) { 
-      this.playerCharacter.setTexture('christian-damage-2').setScale(PLAYER_HURT_SCALE).setY(335); // critical HP pose
-      return; 
     }
-
-    if (this.playerHp <= 50) { 
-      this.playerCharacter.setTexture('christian-damage-1').setScale(PLAYER_HURT_SCALE).setY(335); // wounded pose
-      return; 
+    if (this.playerHp <= 25) {
+      this.playerCharacter.setTexture(`${s}-damage-2`).setScale(PLAYER_HURT_SCALE).setY(335);
+      return;
     }
-
-    this.playerCharacter.setTexture('christian-idle').setScale(PLAYER_IDLE_SCALE).setY(335); // healthy idle pose
+    if (this.playerHp <= 50) {
+      this.playerCharacter.setTexture(`${s}-damage-1`).setScale(PLAYER_HURT_SCALE).setY(335);
+      return;
+    }
+    this.playerCharacter.setTexture(`${s}-idle`).setScale(PLAYER_IDLE_SCALE).setY(335);
   }
 
   private updateEnemyPose() {

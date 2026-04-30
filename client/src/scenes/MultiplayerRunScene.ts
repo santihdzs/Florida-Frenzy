@@ -202,6 +202,8 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private spectating  = false;
   private endReached  = false;
   private done        = false;
+  private sidebarNavHandler: EventListener | null = null;
+  private isShowingQuitDialog = false;
 
   // Stamina
   private stamina          = STAMINA_MAX;
@@ -267,10 +269,11 @@ export class MultiplayerRunScene extends Phaser.Scene {
     this.mapKey        = data.mapKey  ?? Object.keys(MAP_CONFIGS)[0]!;
     this.myPlayerId    = Number(getPlayer()?.id ?? 0);
 
-    this.localAlive       = true;
-    this.spectating       = false;
-    this.endReached       = false;
-    this.done             = false;
+    this.localAlive           = true;
+    this.spectating           = false;
+    this.endReached           = false;
+    this.done                 = false;
+    this.isShowingQuitDialog  = false;
     this.scrollX          = 0;
     this.leftStart        = false;
     this.lastDir          = 'down';
@@ -371,11 +374,63 @@ export class MultiplayerRunScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(15);
 
+    // Sidebar navigation guard — show quit confirmation before leaving multiplayer run
+    const onSidebarNavRequest = ((e: Event) => {
+      if (this.isShowingQuitDialog) return;
+      this.isShowingQuitDialog = true;
+      const target = (e as CustomEvent<{ target: string }>).detail.target;
+      const cx = this.cameras.main.centerX;
+      const cy = this.cameras.main.centerY;
+      const W  = this.cameras.main.width;
+      const H  = this.cameras.main.height;
+
+      const overlay = this.add.rectangle(cx, cy, W, H, 0x000000, 0.7)
+        .setDepth(9999).setScrollFactor(0);
+      const boxBg = this.add.graphics().setDepth(10000).setScrollFactor(0);
+      boxBg.fillStyle(0x1a1a1a, 0.9);
+      boxBg.fillRoundedRect(cx - 200, cy - 100, 400, 200, 12);
+      const promptText = this.add.text(cx, cy - 48, 'Leave multiplayer match?', {
+        fontSize: '26px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+      const subText = this.add.text(cx, cy - 10, 'You will be returned to the lobby', {
+        fontSize: '18px', color: '#aaaaaa', fontFamily: 'Arial',
+      }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+      const yesBtn = this.add.text(cx - 75, cy + 58, 'YES', {
+        fontSize: '22px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+        backgroundColor: '#8b0000', padding: { x: 30, y: 10 },
+      }).setOrigin(0.5).setDepth(10001).setScrollFactor(0).setInteractive({ useHandCursor: true });
+      const noBtn = this.add.text(cx + 75, cy + 58, 'NO', {
+        fontSize: '22px', color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+        backgroundColor: '#006400', padding: { x: 30, y: 10 },
+      }).setOrigin(0.5).setDepth(10001).setScrollFactor(0).setInteractive({ useHandCursor: true });
+      const destroyDialog = () => {
+        overlay.destroy(); boxBg.destroy();
+        promptText.destroy(); subText.destroy();
+        yesBtn.destroy(); noBtn.destroy();
+      };
+      yesBtn.on('pointerup', () => {
+        destroyDialog();
+        this.scene.stop();
+        this.game.scene.start(target);
+      });
+      noBtn.on('pointerup', () => {
+        destroyDialog();
+        this.isShowingQuitDialog = false;
+      });
+    }) as EventListener;
+
+    this.sidebarNavHandler = onSidebarNavRequest;
+    window.addEventListener('sidebar-nav-request', this.sidebarNavHandler);
+
     this.events.on('shutdown', () => {
       this.time.removeAllEvents();
       this.tweens.killAll();
       this.input.keyboard?.removeAllKeys(true);
       this.input.removeAllListeners();
+      if (this.sidebarNavHandler) {
+        window.removeEventListener('sidebar-nav-request', this.sidebarNavHandler);
+        this.sidebarNavHandler = null;
+      }
     });
   }
 

@@ -4,7 +4,7 @@ import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.webp';
 import titleLogo from '../assets/logos/logo.webp';
 import music from '../assets/music/Tailgate_Troubles.mp3';
-import { isLoggedIn, getPlayer, logout, hasCompletedTutorial } from '../utils/auth.js';
+import { isLoggedIn, getPlayer, logout, hasCompletedTutorial, markTutorialComplete } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
 import { translations } from '../utils/translations.ts';
 import { fetchActiveDeck } from '../api/deckApi';
@@ -212,7 +212,9 @@ export class MenuScene extends Phaser.Scene {
     }
 
     this.sound.stopByKey('menu-music');
-    if (hasCompletedTutorial()) {
+    const skipTutorial = hasCompletedTutorial() || Number(player.totalGamesPlayed ?? 0) > 0;
+    if (skipTutorial) {
+      if (!hasCompletedTutorial()) markTutorialComplete();
       transitionTo(this, 'RunScene', { level: 1, step: 0, totalCoins: 0, totalXp: 0, runId: 0 });
     } else {
       transitionTo(this, 'TutorialScene');
