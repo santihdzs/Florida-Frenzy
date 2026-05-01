@@ -7,10 +7,7 @@ import clanUrl from '../assets/sprites/Klan.webp';
 import music from '../assets/music/Lowland_Hymn.mp3';
 import { getPlayer } from '../utils/auth.js';
 
-import christianSheet from '../assets/characters/christian/Christian_SpriteSheet.webp';
-import gavinSheet     from '../assets/characters/gavin/Gavin_SpriteSheet.webp';
-import gustavSheet    from '../assets/characters/gustav/Gustav_SpriteSheet.webp';
-import eddySheet      from '../assets/characters/eddy/Eddy_SpriteSheet.webp';
+import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } from '../utils/characterVisuals.js';
 
 const TILE = 48;
 const WORLD_W = 1200;
@@ -24,18 +21,11 @@ const PLAYER_SIZE = 48;
 const PLAYER_SPEED = 220;
 const PLAYER_SPRINT = 340;
 
-const CHAR_SHEET_URLS: Partial<Record<string, string>> = {
-    christian: christianSheet,
-    gavin:     gavinSheet,
-    gustav:    gustavSheet,
-    eddy:      eddySheet,
-};
-
 const CHAR_SHEETS = {
-    christian: { xCuts: [0, 293, 587, 880],   yCuts: [0, 300, 600, 900,  1200] },
-    gavin:     { xCuts: [0, 292, 584, 876],    yCuts: [0, 304, 608, 912,  1216] },
-    gustav:    { xCuts: [0, 292, 584, 875],    yCuts: [0, 304, 608, 912,  1216] },
-    eddy:      { xCuts: [0, 293, 587, 880],    yCuts: [0, 300, 599, 899,  1198] },
+    christian: CHARACTER_VISUALS.christian.run,
+    gavin:     CHARACTER_VISUALS.gavin.run,
+    gustav:    CHARACTER_VISUALS.gustav.run,
+    eddy:      CHARACTER_VISUALS.eddy.run,
 } as const;
 type CharSheetKey = keyof typeof CHAR_SHEETS;
 
@@ -47,7 +37,7 @@ export class TutorialScene extends Phaser.Scene {
     private px = 100;
     private py = 300;
     private playerImg!: Phaser.GameObjects.Sprite;
-    private playerSkin: CharSheetKey = 'christian';
+    private playerSkin: CharacterSkinKey = 'christian';
     private lastPlayerDir = 'down';
     private clanPortrait!: Phaser.GameObjects.Image; // cutted photo
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -70,7 +60,7 @@ export class TutorialScene extends Phaser.Scene {
 
     init() {
         const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
-        this.playerSkin = (equipped in CHAR_SHEETS) ? equipped as CharSheetKey : 'christian';
+        this.playerSkin = resolveCharacterSkinKey(equipped);
         this.lastPlayerDir = 'down';
     }
 
@@ -80,7 +70,7 @@ export class TutorialScene extends Phaser.Scene {
         this.load.image(KEY_CLAN, clanUrl);
         this.load.audio('tutorial-music', music);
 
-        const skinUrl = CHAR_SHEET_URLS[this.playerSkin] ?? christianSheet;
+        const skinUrl = CHARACTER_VISUALS[this.playerSkin].sheetUrl;
         if (!this.textures.exists(this.playerSkin))
             this.load.image(this.playerSkin, skinUrl);
     }
@@ -113,7 +103,7 @@ export class TutorialScene extends Phaser.Scene {
         // player
         this.sliceCharSheetFrames(this.playerSkin);
         this.createWalkAnimations(this.playerSkin);
-        const playerScale = PLAYER_SIZE / (CHAR_SHEETS[this.playerSkin].xCuts[1] - CHAR_SHEETS[this.playerSkin].xCuts[0]);
+        const playerScale = PLAYER_SIZE / (CHARACTER_VISUALS[this.playerSkin].run.xCuts[1] - CHARACTER_VISUALS[this.playerSkin].run.xCuts[0]);
         this.playerImg = this.add.sprite(this.px, this.py, this.playerSkin, `${this.playerSkin}-walk-down-1`)
             .setOrigin(0, 0).setDepth(5).setScale(playerScale);
         this.playerImg.play(`${this.playerSkin}-walk-down`);

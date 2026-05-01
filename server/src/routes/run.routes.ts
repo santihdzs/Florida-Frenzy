@@ -3,6 +3,7 @@ import { getRunsByPlayer, getRunById } from '../services/run.service.js';
 import { notFound, badRequest } from '../utils/errors.js';
 import { completeRunSchema } from '../schemas/run.schema.js';
 import { SAFE_PLAYER_SELECT } from '../utils/playerSelect.js';
+import { computeClanRank } from '../services/user.service.js';
 
 // CreateRunBody intentionally empty — deckId resolved server-side
 
@@ -16,6 +17,10 @@ interface CompleteRunBody {
   xpEarned: number;
   maxLevel: number;
   enemiesKilled?: number;
+}
+
+interface UnlockLegendaryCardBody {
+  cardName: string;
 }
 
 const runRoutes: FastifyPluginAsync = async (fastify) => {
@@ -112,8 +117,9 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/runs/beat-pythra
   fastify.post('/beat-pythra', async (request, reply) => {
     const playerId = request.user.playerId;
+    const prismaAny = fastify.prisma as any;
 
-    const player = await fastify.prisma.player.findUniqueOrThrow({
+    const player = await prismaAny.player.findUniqueOrThrow({
       where: { id: playerId },
       select: { hasBeatenPythra: true },
     });
@@ -122,7 +128,7 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.send({ firstTime: false });
     }
 
-    await fastify.prisma.player.update({
+    await prismaAny.player.update({
       where: { id: playerId },
       data: { hasBeatenPythra: true },
     });
@@ -139,6 +145,81 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
     });
     return reply.code(200).send({ ok: true });
   });
+
+  // POST /api/runs/unlock-legendary-card
+  fastify.post<{ Body: UnlockLegendaryCardBody }>(
+    '/unlock-legendary-card',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['cardName'],
+          additionalProperties: false,
+          properties: {
+            cardName: { type: 'string', minLength: 1 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const playerId = request.user.playerId;
+      const cardName = request.body.cardName.trim();
+
+      const player = await fastify.prisma.player.findUnique({
+        where: { id: playerId },
+        select: { id: true, maxXp: true },
+      });
+      if (!player) {
+        return reply.code(404).send(notFound('Player not found'));
+      }
+
+      const rank = computeClanRank(player.maxXp);
+      if (rank !== 'LEGEND') {
+        return reply.code(403).send(badRequest('Legend rank required'));
+      }
+
+      const card = await fastify.prisma.cardGame.findFirst({
+        where: {
+          cardName,
+          cardRarity: 'LEGENDARY',
+        },
+        select: { id: true },
+      });
+
+      if (!card) {
+        return reply.code(404).send(notFound('Legendary card not found'));
+      }
+
+      const existing = await fastify.prisma.playerCard.findFirst({
+        where: { playerId, cardGameId: card.id },
+      });
+
+      if (existing?.isUnlocked && existing.numCardsOwned > 0) {
+        return reply.send({ ok: true, cardGameId: card.id, alreadyUnlocked: true });
+      }
+
+      if (existing) {
+        await fastify.prisma.playerCard.update({
+          where: { id: existing.id },
+          data: {
+            isUnlocked: true,
+            numCardsOwned: Math.max(existing.numCardsOwned, 1),
+          },
+        });
+      } else {
+        await fastify.prisma.playerCard.create({
+          data: {
+            playerId,
+            cardGameId: card.id,
+            isUnlocked: true,
+            numCardsOwned: 1,
+          },
+        });
+      }
+
+      return reply.send({ ok: true, cardGameId: card.id });
+    }
+  );
 
   // GET /api/runs/:id
   fastify.get<{ Params: RunParams }>('/:id', async (request, reply) => {

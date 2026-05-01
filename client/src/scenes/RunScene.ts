@@ -15,32 +15,20 @@
 */
 
 import Phaser from 'phaser';
-import chrisAvatarUrl from '../assets/sprites/Chris.webp';
-import gavinAvatarUrl  from '../assets/sprites/Gav.webp';
-import gustavAvatarUrl from '../assets/sprites/Gus.webp';
-import eddyAvatarUrl   from '../assets/sprites/Ed.webp';
-
-const AVATAR_URLS: Record<string, string> = {
-  christian: chrisAvatarUrl,
-  gavin:     gavinAvatarUrl,
-  gustav:    gustavAvatarUrl,
-  eddy:      eddyAvatarUrl,
-};
 import { MAP_CONFIGS, selectMap, type MapConfig, type TileRect } from '../utils/mapConfig.js';
-import { completeRun, createRun, getPlayer } from '../utils/auth.js';
+import { completeRun, createRun, getPlayer, unlockLegendaryRunCard } from '../utils/auth.js';
+import { fetchCharacterByKey, type CharacterGameData } from '../api/characterApi.js';
+import { fetchDeckBootstrap } from '../api/deckApi.js';
 import type { DuelBossData } from '../utils/bossTypes.js';
 import { fetchRandomDuelBoss } from '../api/enemyApi.js';
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 import { transitionTo } from '../utils/sceneTransition.js';
+import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } from '../utils/characterVisuals.js';
 
 import skawlSheet from '../assets/characters/skawl/Skawl_SpriteSheet.webp';
 import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.webp';
 import boldearSheet from '../assets/characters/boldear/Boldear_SpriteSheet.webp';
 
-import christianSheet from '../assets/characters/christian/Christian_SpriteSheet.webp';
-import gavinSheet     from '../assets/characters/gavin/Gavin_SpriteSheet.webp';
-import gustavSheet    from '../assets/characters/gustav/Gustav_SpriteSheet.webp';
-import eddySheet      from '../assets/characters/eddy/Eddy_SpriteSheet.webp';
 import rackoSheet from '../assets/characters/top-down_enemies/shooter/Racko_SpriteSheet.webp';
 import rhondaSheet from '../assets/characters/top-down_enemies/shooter/Rhonda_SpriteSheet.webp';
 import riccSheet from '../assets/characters/top-down_enemies/shooter/Ricc_SpriteSheet.webp';
@@ -99,6 +87,7 @@ const COIN_SIZE      = 12;
 const COIN_COUNT_MIN = 8;
 const COIN_COUNT_MAX = 15;
 const COIN_COLLECT_R = 24;
+const LEGENDARY_DROP_SPAWN_CHANCE = 0.05;
 
 const PROJ_SIZE  = 8;
 const PROJ_SPEED = 420;
@@ -227,18 +216,11 @@ const EnemyType = {
 } as const;
 type EnemyType = typeof EnemyType[keyof typeof EnemyType];
 
-const CHAR_SHEET_URLS: Partial<Record<string, string>> = {
-  christian: christianSheet,
-  gavin:     gavinSheet,
-  gustav:    gustavSheet,
-  eddy:      eddySheet,
-};
-
 const CHAR_SHEETS = {
-  christian: { xCuts: [0, 293, 587, 880],   yCuts: [0, 300, 600, 900,  1200] },
-  gavin:     { xCuts: [0, 292, 584, 876],    yCuts: [0, 304, 608, 912,  1216] },
-  gustav:    { xCuts: [0, 292, 584, 875],    yCuts: [0, 304, 608, 912,  1216] },
-  eddy:      { xCuts: [0, 293, 587, 880],    yCuts: [0, 300, 599, 899,  1198] },
+  christian: CHARACTER_VISUALS.christian.run,
+  gavin:     CHARACTER_VISUALS.gavin.run,
+  gustav:    CHARACTER_VISUALS.gustav.run,
+  eddy:      CHARACTER_VISUALS.eddy.run,
   racko:     { xCuts: [0, 355, 711, 1066], yCuts: [0, 369, 738, 1106, 1475] },
   rhonda:    { xCuts: [0, 356, 713, 1069], yCuts: [0, 368, 736, 1104, 1472] },
   ricc:      { xCuts: [0, 355, 710, 1065], yCuts: [0, 369, 738, 1108, 1477] },
@@ -295,7 +277,18 @@ interface Coin {
   x: number; y: number;
   img: Phaser.GameObjects.Image;
   collected: boolean;
+  kind: 'coin' | 'legendary';
+  legendaryName?: LegendaryDropName;
 }
+
+const LEGENDARY_DROPS = [
+  { name: 'Crocodile', tint: 0x1f5d2f },
+  { name: 'Alligator', tint: 0xd9d9d9 },
+  { name: 'Gavial', tint: 0x8b5a2b },
+  { name: 'Caiman', tint: 0x7ed957 },
+  { name: 'Sarcosuchus', tint: 0xffdf00 },
+] as const;
+type LegendaryDropName = typeof LEGENDARY_DROPS[number]['name'];
 
 interface Projectile {
   x: number; y: number;
@@ -352,6 +345,7 @@ export interface RunData {
 }
 
 export class RunScene extends Phaser.Scene {
+  private availableLegendaryDrops: LegendaryDropName[] = LEGENDARY_DROPS.map(drop => drop.name);
 
   private px = 0;
   private py = 0;
@@ -426,7 +420,9 @@ export class RunScene extends Phaser.Scene {
   private levelText!:  Phaser.GameObjects.Text;
   private avatarMask!: Phaser.GameObjects.Graphics;
 
-  private playerSkin: CharSheetKey = 'christian';
+  private playerSkin: CharacterSkinKey = 'christian';
+  private selectedCharacter?: CharacterGameData;
+  private playerAttackBonus = 0;
 
   private cursors!:  Phaser.Types.Input.Keyboard.CursorKeys;
   private keyW!:     Phaser.Input.Keyboard.Key;
@@ -457,8 +453,8 @@ export class RunScene extends Phaser.Scene {
     this.runEnded       = false;
     this.lastPlayerDir  = 'down';
     const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
-    this.playerSkin = (equipped in CHAR_SHEETS) ? equipped as CharSheetKey : 'christian';
-    this.maxHp          = (getPlayer()?.maxHp as number | undefined) ?? 50;
+    this.playerSkin = resolveCharacterSkinKey(equipped);
+    this.maxHp          = MAX_HP;
     this.hp             = this.maxHp;
     this.lastSprintTime = -STAMINA_REGEN_DELAY;
     this.sprinting      = false;
@@ -486,6 +482,7 @@ export class RunScene extends Phaser.Scene {
     this.coins            = [];
     this.projectiles      = [];
     this.enemyProjectiles = [];
+    this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
 
     // Create a server-side run record at the start of each new run.
     // We store the promise so endRun() can chain off it — avoids the race condition
@@ -504,7 +501,7 @@ export class RunScene extends Phaser.Scene {
       this.load.spritesheet(this.activeMap.key, this.activeMap.url, {
         frameWidth: this.activeMap.tileWidth, frameHeight: this.activeMap.tileHeight,
       });
-    const avatarUrl = AVATAR_URLS[this.playerSkin] ?? chrisAvatarUrl;
+    const avatarUrl = CHARACTER_VISUALS[this.playerSkin].avatarUrl;
     if (!this.textures.exists(`${this.playerSkin}-avatar`))
       this.load.image(`${this.playerSkin}-avatar`, avatarUrl);
     if (!this.textures.exists('boss-skawl-run-sheet'))
@@ -514,7 +511,7 @@ export class RunScene extends Phaser.Scene {
     if (!this.textures.exists('boss-boldear-run-sheet'))
       this.load.image('boss-boldear-run-sheet', boldearSheet);
 
-    const skinUrl = CHAR_SHEET_URLS[this.playerSkin] ?? christianSheet;
+    const skinUrl = CHARACTER_VISUALS[this.playerSkin].sheetUrl;
     if (!this.textures.exists(this.playerSkin))
       this.load.image(this.playerSkin, skinUrl);
     if (!this.textures.exists('racko'))
@@ -541,7 +538,7 @@ export class RunScene extends Phaser.Scene {
       this.load.image('stirr',    stirrSheet);
   }
 
-  create() {
+  async create() {
     this.cameras.main.fadeIn(300, 0, 0, 0);
     if (this.input.keyboard) this.input.keyboard.enabled = true;
 
@@ -550,6 +547,12 @@ export class RunScene extends Phaser.Scene {
     this.runEnded = false;
     this.isShowingQuitDialog = false;
     this.sidebarNavHandler = null;
+
+    // Initialize input immediately to prevent null reference errors in update()
+    this.setupInput();
+
+    // Load character data in the background (don't await)
+    void this.loadPlayerCharacterData();
 
     this.cameras.main.setBackgroundColor(0x1a1a2e);
     this.generateTextures();
@@ -560,11 +563,12 @@ export class RunScene extends Phaser.Scene {
     this.grid = this.generateGrid();
     this.buildWorld(this.grid);
     this.spawnEnemies(this.grid);
+    await this.loadLegendaryDropPool();
     this.spawnCoins(this.grid);
 
     this.px = TILE * 2;
     this.py = Math.floor(ROWS / 2) * TILE;
-    const playerScale = PLAYER_SIZE / (CHAR_SHEETS[this.playerSkin].xCuts[1] - CHAR_SHEETS[this.playerSkin].xCuts[0]);
+    const playerScale = PLAYER_SIZE / (CHARACTER_VISUALS[this.playerSkin].run.xCuts[1] - CHARACTER_VISUALS[this.playerSkin].run.xCuts[0]);
     this.playerImg = this.add.sprite(this.px, this.py, this.playerSkin, `${this.playerSkin}-walk-down-1`)
       .setOrigin(0, 0).setDepth(5).setScale(playerScale);
     this.playerImg.play(`${this.playerSkin}-walk-down`);
@@ -591,8 +595,6 @@ export class RunScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 2,
     }).setOrigin(0.5, 1).setDepth(15).setVisible(false);
-
-    this.setupInput();
 
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
     escKey?.on('down', () => {
@@ -691,6 +693,77 @@ export class RunScene extends Phaser.Scene {
       }
       window.removeEventListener('beforeunload', this.beforeUnloadHandler);
     });
+  }
+
+  private async loadPlayerCharacterData(): Promise<void> {
+    const player = getPlayer();
+    const equipped = (player?.equippedCharacter as string | undefined) ?? 'christian';
+
+    try {
+      this.selectedCharacter = await fetchCharacterByKey(equipped);
+    } catch (error) {
+      console.error('Failed to load character data from backend, using profile fallback.', error);
+      this.selectedCharacter = {
+        id: 0,
+        characterKey: equipped,
+        chName: equipped.charAt(0).toUpperCase() + equipped.slice(1),
+        chDesc: null,
+        baseHp: (player?.maxHp as number | undefined) ?? 50,
+        baseAttack: (player?.bulletDamage as number | undefined) ?? 10,
+        baseDefense: 0,
+        chUltimate: '',
+        chUltimateDesc: null,
+        isDefaultUnlocked: true,
+      };
+    }
+
+    const hpUpgradeBonus = Math.max(0, ((player?.maxHp as number | undefined) ?? 50) - 50);
+    const attackUpgradeBonus = Math.max(0, ((player?.bulletDamage as number | undefined) ?? 10) - 10);
+
+    this.maxHp = Math.max(1, this.selectedCharacter.baseHp + hpUpgradeBonus);
+    this.hp = this.maxHp;
+    this.playerAttackBonus = this.selectedCharacter.baseAttack + attackUpgradeBonus;
+    this.bulletDamage = Math.max(1, this.playerAttackBonus);
+  }
+
+  private async loadLegendaryDropPool(): Promise<void> {
+    this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
+    if (!this.playerCanFindLegendaryDrops()) return;
+
+    const player = getPlayer();
+    const playerId = Number(player?.id ?? 0);
+    if (!Number.isFinite(playerId) || playerId <= 0) return;
+
+    try {
+      const bootstrap = await fetchDeckBootstrap(playerId);
+      const allCards = Array.isArray(bootstrap.allCards)
+        ? (bootstrap.allCards as Array<{ id?: number; cardName?: string; cardRarity?: string }> )
+        : [];
+
+      const legendaryById = new Map<number, LegendaryDropName>();
+      for (const card of allCards) {
+        if ((card.cardRarity ?? '').toUpperCase() !== 'LEGENDARY') continue;
+        const name = card.cardName as LegendaryDropName | undefined;
+        const id = Number(card.id ?? 0);
+        if (!name || !Number.isFinite(id) || id <= 0) continue;
+        if (!LEGENDARY_DROPS.some(drop => drop.name === name)) continue;
+        legendaryById.set(id, name);
+      }
+
+      const unlockedLegendaryNames = new Set<LegendaryDropName>();
+      for (const owned of bootstrap.ownedCards) {
+        if (!owned.isUnlocked || owned.numCardsOwned <= 0) continue;
+        const name = legendaryById.get(owned.cardGameId);
+        if (name) unlockedLegendaryNames.add(name);
+      }
+
+      this.availableLegendaryDrops = LEGENDARY_DROPS
+        .map(drop => drop.name)
+        .filter(name => !unlockedLegendaryNames.has(name));
+    } catch (error) {
+      console.error('Failed to load legendary drop pool; using fallback pool.', error);
+      this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
+    }
   }
 
   update(time: number, delta: number) {
@@ -1190,8 +1263,56 @@ export class RunScene extends Phaser.Scene {
         x: cx, y: cy,
         img: this.add.image(cx, cy, KEY_SPR_COIN).setOrigin(0, 0).setDepth(2),
         collected: false,
+        kind: 'coin',
       });
       placed++;
+    }
+
+    this.trySpawnLegendaryDrop(grid);
+  }
+
+  private playerCanFindLegendaryDrops(): boolean {
+    const player = getPlayer();
+    const clanRank = ((player?.clanRank as string | undefined) ?? '').toUpperCase();
+    if (clanRank === 'LEGEND') return true;
+
+    const maxXp = Number(player?.maxXp ?? 0);
+    return Number.isFinite(maxXp) && maxXp >= 13;
+  }
+
+  private trySpawnLegendaryDrop(grid: number[][]): void {
+    if (!this.playerCanFindLegendaryDrops()) return;
+    if (this.availableLegendaryDrops.length === 0) return;
+    if (Math.random() > LEGENDARY_DROP_SPAWN_CHANCE) return;
+
+    const dropName = this.availableLegendaryDrops[randInt(0, this.availableLegendaryDrops.length - 1)];
+    const drop = LEGENDARY_DROPS.find(candidate => candidate.name === dropName);
+    if (!drop) return;
+    let attempts = 0;
+
+    while (attempts < 500) {
+      attempts += 1;
+      const col = randInt(START_COLS + 1, END_COL - 2);
+      const row = randInt(0, ROWS - 1);
+      if (grid[row][col] !== FLOOR) continue;
+
+      const cx = col * TILE + (TILE - COIN_SIZE) / 2;
+      const cy = row * TILE + (TILE - COIN_SIZE) / 2;
+      const overlapsCoin = this.coins.some(c => !c.collected && dist(cx, cy, c.x, c.y) < COIN_SIZE);
+      if (overlapsCoin) continue;
+
+      const img = this.add.image(cx, cy, KEY_SPR_COIN).setOrigin(0, 0).setDepth(2);
+      img.setTint(drop.tint);
+
+      this.coins.push({
+        x: cx,
+        y: cy,
+        img,
+        collected: false,
+        kind: 'legendary',
+        legendaryName: drop.name,
+      });
+      return;
     }
   }
 
@@ -1660,12 +1781,22 @@ export class RunScene extends Phaser.Scene {
   private checkCoins() {
     const cx = this.px + PLAYER_SIZE / 2;
     const cy = this.py + PLAYER_SIZE / 2;
+    const coinReward = this.level >= 15 ? 40 : this.level >= 5 ? 20 : 10;
+
     for (const c of this.coins) {
       if (c.collected) continue;
       if (dist(cx, cy, c.x + COIN_SIZE / 2, c.y + COIN_SIZE / 2) < COIN_COLLECT_R) {
         c.collected = true;
         c.img.destroy();
-        this.coinsCollected += this.level >= 15 ? 40 : this.level >= 5 ? 20 : 10;
+
+        if (c.kind === 'legendary' && c.legendaryName) {
+          void unlockLegendaryRunCard(c.legendaryName).catch(() => {
+            // Silent by design: collectible unlocks are meant to be discovered indirectly in the deck browser.
+          });
+          continue;
+        }
+
+        this.coinsCollected += coinReward;
       }
     }
   }

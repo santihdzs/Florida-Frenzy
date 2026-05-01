@@ -904,6 +904,10 @@ export function isCounterBonusTrigger(selected: Card, tableCard: Card): boolean 
 
 // Validate if a card can be played
 export function canPlayCard(selected: Card, tableCard: Card): boolean {
+  if (selected.rarity === 'legendary' || tableCard.rarity === 'legendary') {
+    return true;
+  }
+
   if (selected.element === 'ice') {
     return true; // Ice card logic
   }

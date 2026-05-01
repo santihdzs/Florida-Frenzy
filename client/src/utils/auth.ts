@@ -487,6 +487,22 @@ export async function buyCard(cardGameId: number): Promise<Record<string, unknow
   return data as Record<string, unknown>;
 }
 
+export async function unlockLegendaryRunCard(cardName: string): Promise<void> {
+  const token = getToken();
+  if (!token) return;
+
+  const res = await fetch(`${API_URL}/api/runs/unlock-legendary-card`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ cardName }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({} as { message?: string }));
+    throw new Error(data.message ?? 'Legendary unlock failed');
+  }
+}
+
 export async function equipCharacter(characterKey: string): Promise<Record<string, unknown>> {
   const token = getToken();
   if (!token) throw new Error('Not logged in');

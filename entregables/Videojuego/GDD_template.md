@@ -52,88 +52,80 @@
 
 ![CharacterFrameBackground](../client/src/assets/sprites/CharacterShowcase.png)
 
-Florida Frenzy es un juego roguelite en 2D, que involucra mecánicas de un TCG y un 'platformer game'. Asumes el rol de alguno de los miembros del Crock Clan, y te enfrentas contra las amenazas del pantano de Florida. Colecciona cartas, gana experiencia, participa en duelos que incrementarán en dificultad conforme progreses en el juego. Este también resulta más entretenido, debido a cómo integra mecánicas 'familiares' al jugador, creando una experiencia dinámica. Combinando elementos del juego "UNO", atributos del juego clásico de cartas Pokémon, y el disfrute de una jugabilidad rápida por parte de su 'platformer'. Consistiendo en 'runs' cortas, pero intensas, que generan un juego dinámico y divertido. El elemento diferenciador del juego radica en la integración de dos sistemas paralelos. Por su parte el combate basado en coincidencia de cartas por elemento o número. Así como un sistema dual de energía (Energía Elemental e Instinto) que introduce decisiones tácticas adicionales más allá de simplemente “hacer match”.
+Florida Frenzy es un videojuego roguelite en 2D que combina dos sistemas de juego principales: una fase de exploración y combate en tiempo real con perspectiva top-down, y una fase de duelo de cartas por turnos tipo TCG. El jugador asume el rol de uno de los miembros del Croc Clan y se adentra en distintas zonas hostiles inspiradas en los pantanos y alrededores urbanos de Florida, enfrentándose a enemigos menores durante la exploración y a bosses especializados mediante combates de cartas.
+
+El ciclo principal del juego se basa en runs cortas pero rejugables, donde el jugador selecciona previamente un personaje y un deck, avanza por varias zonas consecutivas, recolecta recursos, sobrevive a la presión de los enemigos del mapa y finalmente entra en contacto con un boss que activa un duelo estratégico. Durante estos enfrentamientos, el sistema de cartas se construye alrededor de reglas inspiradas en juegos como UNO, donde las jugadas válidas dependen de coincidencias por elemento o valor, pero se expande con efectos especiales, cartas raras, construcción de mazo y un sistema dual de energía.
+
+El elemento diferenciador de Florida Frenzy es precisamente esa combinación entre acción inmediata y planeación táctica. En la fase de duelo, el jugador no solo debe administrar su mano, deck y pila de descarte, sino también dos recursos paralelos: Energía Elemental (EE) y Energía Instinto (EI). Estos recursos determinan el acceso a cartas con efecto, jugadas más poderosas y habilidades únicas del personaje, añadiendo una capa de profundidad que va más allá de simplemente “hacer match” con la carta en mesa.
+
+A nivel de progresión, Florida Frenzy incorpora un sistema persistente de Swamp XP, Clan Rank, personajes desbloqueables, cartas obtenidas y construcción de múltiples decks. Cada run puede terminar en victoria o derrota, pero el progreso global del jugador se conserva, permitiéndole ampliar sus opciones estratégicas en futuras partidas mediante nuevos personajes, cartas especiales, cartas de Hielo, mejoras y configuraciones de deck más avanzadas. De esta manera, el juego busca ofrecer una experiencia dinámica, con identidad visual punk-industrial y una mezcla constante entre improvisación, presión y estrategia.
 
 ### **Gameplay**
 
-El objetivo principal es sobrevivir a una serie de &quot;runs&quot; (partidas reiniciables) en las cuales avanzarás a través de niveles en un mapa 2D. Cada 'run' dependerá de tu agilidad para superar los obstáculos presentes durante el platformer, así como de el nivel de dificultad que implique el duelo de cartas que se te presente durante tu trayectoria.
+El objetivo principal es sobrevivir a una serie de runs rejugables en las cuales el jugador avanza a través de distintas zonas en un mapa 2D. Cada run combina una fase de exploración y combate en tiempo real con una fase de duelo de cartas por turnos, por lo que el éxito depende tanto de la movilidad, administración de recursos y supervivencia durante la exploración, como de la estrategia empleada en los enfrentamientos TCG contra bosses.
 
-Con un aproximado de 3 niveles/mapas dentro del pantano (mas un breve tutorial), el jugador podrá disfrutar del juego y su versatilidad. Encontrandose con la parte 'platformer' del juego, donde el jugador evade enemigos de menor dificultad. Debido a que los mapas serán diseñados para generar ciertos elementos de manera distinta, y por consecuencia, aleatoria. Cada run principal se estructura en zonas consecutivas que combinan exploración, combate, recompensa y enfrentamientos contra jefes
-- 3 enfrentamientos contra bosses de zona
-- 1 enfrentamiento final contra el boss principal
+Cada run se estructura en una secuencia de zonas o stages consecutivos que combinan exploración, combate en tiempo real, recolección de monedas y enfrentamientos obligatorios contra bosses. La cantidad exacta de encuentros principales está definida para ser infinita, a fin de darle un valor de re-jugabilidad.
 
-Las recompensas dentro del juego se dividen en dos tipos:
+Ademas, el jugador es cuenta con un recurso que al recolectarlo, progresivamente le permitirá adquirir mejoras y objetos de gran utilidad: las monedas - disponibles durante el top-down. Esto permite al jugador decidir entre avanzar rápidamente o explorar en busca de más y más monedas.
 
-- **Recompensas de combate (garantizadas)**:
-  Se obtienen al ganar un duelo. El jugador puede elegir entre varias opciones que afectan su estado o su deck.
+Durante la exploración, el jugador se enfrenta a distintas facciones enemigas (ratas, osos, mapaches) que generan presión constante antes del siguiente duelo. Al llegar al encuentro obligatorio del boss de la zona —ya sea por contacto directo o al alcanzar el objetivo del stage— se activa la fase de duelo de cartas, donde el resultado depende del personaje equipado, del deck activo del jugador y de su capacidad para adaptarse al estilo del rival.
 
-- **Recompensas de exploración (opcionales)**:
-  Se encuentran durante el platformer y pueden incluir cartas raras, mejoras temporales o curación.
+Conforme el jugador progresa, la dificultad del top-down escala. Los enemigos aplican patrones más exigentes, y el jugador obtiene acceso a nuevas opciones de progresión persistente, como personajes desbloqueables, cartas adicionales, mejoras de estadísticas y configuraciones de deck más avanzadas. Esta progresión no solo incrementa el poder del jugador, sino también la profundidad estratégica disponible entre runs.
 
-Esto permite al jugador decidir entre avanzar rápidamente o explorar en busca de ventajas adicionales.
+La primera vez que el jugador inicia el juego, accede a una run introductoria o tutorial guiado por Klancy. Esta sección sirve para enseñar el flujo básico de exploración, contacto con bosses y reglas del duelo de cartas. Una vez completada, el resto de las runs utilizan la configuración estándar de dificultad y progresión del juego.
 
-El jugador se enfrentará a diversas facciones enemigas (mapaches, ratas y osos), así como a los jefes de zona, los cuales deben de ser derrotados para validar el exito de la run en curso. Cada tipo de enemigo obliga a adaptar estrategia de cartas. Al entrar en contacto con un enemigo de duelo (o boss, para simplificar), iniciará el duelo de cartas. Dependerá de la destreza y la construcción del mazo (deck) del jugador, con tal de que este resulte ganador contra alguno de los rivales que se encontrará en su camino. 
+Cuando el jugador pierde una run o un enfrentamiento decisivo, debe reiniciar desde el inicio del ciclo de progresión, pero conserva su progreso global. Este progreso persistente incluye el avance de Clan Rank, personajes desbloqueados, cartas obtenidas y herramientas de construcción de deck. De este modo, cada derrota sigue aportando al crecimiento estratégico del jugador para runs futuras.
 
-Conforme el jugador progrese, la dificultad escalará, y sus oponentes aplicarán jugadas más complicadas. De igual manera, tendrá acceso a objetos desbloqueables, de acuerdo a su progreso mismo. Siendo que sus victorias le darán acceso a un pequeño catálogo de opciones para mejorar sus estadísticas, o su propio mazo. 
+El sistema de combate se basa en un modelo híbrido entre reglas tipo UNO y construcción de mazo (deckbuilding). Antes de cada run, el jugador selecciona un personaje y un deck activo; durante los duelos, utiliza una mano limitada de cartas que se renueva progresivamente mediante robo. Las jugadas se basan en coincidencias por elemento o valor numérico, mientras que la gestión de recursos como Energía Elemental e Instinto permite ejecutar estrategias más complejas.
 
-La primera vez que el jugador inicia el juego, accede a una run introductoria (tutorial), guiada por Klancy. Tras completarla, las runs siguientes utilizan el nivel de dificultad estándar/alto.
+El duelo utiliza dos recursos paralelos: **Energía Elemental (EE) y Energía Instinto (EI)**.
 
-Cuando pierde un combate, el jugador es regresado al primer nivel. Dada la naturaleza Roguelite del juego, conservará su progreso "global" mediante su experiencia adquirida (Swamp XP). Con la cual podrá mejorar su 'Clan Rank'; lo que le dará acceso a los desbloqueables. Como la carta estrella, "Hielo".
-
-El sistema de combate se basa en un modelo híbrido entre mecánicas tipo UNO y construcción de mazo (deckbuilding). El jugador construye un deck antes de cada run y, durante los duelos, utiliza una mano limitada de cartas que se renueva progresivamente mediante robo. Las jugadas se basan en la coincidencia de atributos (elemento o valor numérico), mientras que la gestión de recursos como Energía Elemental e Instinto permite ejecutar estrategias más complejas. El detalle completo del sistema de cartas, reglas de jugada y funcionamiento del deck se encuentra en la sección de **Mechanics**.
-
-También existen dos recursos:
-
-- **Energía Elemental**: se genera al jugar cartas del mismo elemento consecutivamente. Se utiliza para activar habilidades especiales.
-- **Energía Instinto**: se genera dependiendo del valor numérico de la carta jugada. Permite recargar habilidades únicas del personaje.
+- **Energía Elemental**: se genera al jugar cartas del mismo elemento consecutivamente.
+- **Energía Instinto**: se genera dependiendo del valor numérico de la carta jugada.
 
 Ambos recursos tienen un límite máximo y se reinician al finalizar un combate.
 
 ---
 
-Al finalizar una run, ya sea por victoria o derrota, el jugador obtiene la ya mencionada **Swamp XP**. Este recurso permite progresar dentro del sistema de rango del clan (**Clan Rank**), el cual define el acceso a nuevas mecánicas y contenido.
+Al finalizar una run, ya sea por victoria o por derrota, el jugador obtiene Swamp XP, recurso que alimenta el sistema de progresión global conocido como Clan Rank. Este sistema determina qué tan amplio es el acceso del jugador a nuevas cartas, configuraciones de deck y herramientas estratégicas entre runs.
 
 #### **Clan Rank System**
 
-El progreso del jugador se organiza en niveles de Clan Rank, representando su experiencia acumulada en el juego.
+El progreso del jugador se organiza en distintos niveles de Clan Rank, representando su experiencia acumulada y el acceso a nuevas opciones de construcción de deck:
 
-Cada nivel desbloquea nuevas opciones estratégicas y amplía la complejidad del sistema:
+- **Rookie (maxLevel < 4)**  
+  Acceso al set base de cartas y a los decks más pequeños.
+  Enfocado en aprendizaje del sistema central.
 
-- **Rookie (Nivel 1)**  
-  Acceso al set base de cartas.  
-  Sin cartas con efecto ni elementos avanzados.  
-  Enfocado en aprendizaje del sistema.
+- **Veteran (maxLevel >= 4)**  
+  Acceso a cartas con efecto y a nuevas herramientas de construcción de deck.
+  Introduce decisiones más complejas de control, gasto de energía y sinergia.
 
-- **Fighter (Nivel 2)**  
-  Desbloqueo de cartas con efecto.  
-  Acceso al elemento Hielo.  
-  Introducción a mecánicas avanzadas y control del combate.
+- **Elite (maxLevel >= 8)**  
+  Acceso a cartas de Hielo y a configuraciones de deck más amplias y avanzadas.
+  Aumenta la complejidad estratégica disponible.
 
-- **Veteran (Nivel 3)**  
-  Acceso al rango completo de cartas desbloqueables y a las recompensas más avanzadas del sistema.
-  Mejores recompensas al finalizar duelos.
-  Obtiene un bono pasivo de vida inicial en cada nueva run (por ejemplo, +10% a la vida base).  
-  Mayor optimización en la construcción de deck.
+- **Legend (maxLevel >= 13)**
+  Acceso al rango más alto de personalización y al conjunto completo de contenido desbloqueable del sistema principal.
+  Representa la optimización máxima del progreso global del jugador.
 
-Las cartas de Clan o Especie no se desbloquean mediante Clan Rank, sino que se obtienen como recompensas raras durante la exploración en el modo platformer.
-
-El avance entre niveles requiere cantidades crecientes de Swamp XP.
+Las cartas legendarias no se obtienen directamente mediante Clan Rank, sino que se plantean como recompensas raras ligadas a la fase de exploración de las runs. Esto las convierte en elementos excepcionales del progreso, separados del desbloqueo más estructurado del resto del sistema de cartas.
 
 Es importante distinguir entre progreso temporal y permanente:
 
 - **Se conserva entre runs**:
   - Swamp XP
   - Clan Rank
-  - Cartas desbloqueadas
+  - Cartas desbloqueadas o compradas
   - Personajes desbloqueados
+  - Progreso general de construcción de deck
 
 - **No se conserva entre runs**:
-  - Vida y escudo
-  - Mano actual
-  - Cartas obtenidas durante la run
+  - Mejoras de vida y escudo
   - Mejoras temporales
+  - Estado del duelo en curso
 
-Esto refuerza la naturaleza roguelite del juego, donde cada run representa un nuevo intento con ventajas acumuladas previamente.
+Esto refuerza la naturaleza roguelite del juego, donde cada nueva run representa un nuevo intento, pero con herramientas estratégicas acumuladas previamente.
 
 
 ### **Mindset**
@@ -149,105 +141,101 @@ El caos visual contrasta con la claridad de información de la interfaz, fomenta
 ### **Screens**
 1. Title Screen
 Contiene el logo del juego, una imagen del pantano en el fondo, y las siguientes opciones (en descendente):
-    - Start
-    - Multiplayer (Placeholder - puede no ser implementado)
-    - Store
-    - Settings
-    1. Options (dentro de Settings)
-        - Modular el volúmen (música, efectos, y general/ambos)
-        - Ajuste de pantalla (tickbox); se adapta al browser del jugador
+    - Play
+    - Multiplayer
+    - Shop
+    - Friends
+    - Log Out
+    1. Sidebar de opciones
+        - Play
+        - Deck (management y creation)
+        - Stats (globales y de admin)
+        - Info (How to Play)
+        - Story (Lore y descripciones de los personajes)
+        - Tutorial (escena)
+        - Settings (Volumen, idioma, resolución, display, cuenta)
 2. Level Select
-    - No habría en este caso, dado que las 'runs' son continuas.
+    - No existe una pantalla de selección manual de nivel. El progreso se organiza mediante runs continuas y stages encadenados, que avanzan internamente conforme el jugador completa la exploración y los duelos correspondientes.
 3. Game
-    - Modo Exploración
-        Movimiento lateral, con elementos clásicos de un 'platformer'; el jugador se desplaza por el mapa enfrentando enemigos con mecánicas de ataque sencillas, hasta entrar en contacto con un boss que inicia un duelo de cartas.
+    - Modo Exploración / Run Scene
+        Fase de exploración y combate en tiempo real con perspectiva top-down. El jugador se desplaza por el mapa, administra vida, stamina y munición, enfrenta enemigos menores, recolecta monedas y avanza hasta llegar al encuentro del boss del stage. El contacto con dicho boss activa la transición a la fase de duelo de cartas.
     - Duelo de Cartas
-        Muestra el tablero, el mazo con las cartas del jugador, así como las estadísticas de este mismo y las de su oponente.
-        1. Inventory:
-        Permite revisar el deck actual del jugador, incluyendo las cartas seleccionadas antes de la run, así como modificaciones temporales obtenidas durante la partida, estadísticas y mejoras activas.
-        2. Assesment / Next Level: 
-        El jugador es felicitado por su victoria y se le presentan varias opciones de recompensa. Entre ellas:
-
-            - Obtener una nueva carta con efecto
-            - Mejorar su estado actual (vida o defensa)
-            - Remover una carta no deseada del deck
+        Muestra el tablero principal del TCG, incluyendo la carta en mesa, mano del jugador, deck, pila de descarte, estadísticas del personaje activo y estadísticas del boss enemigo. También presenta los recursos de combate del sistema dual de energía y la retroalimentación visual del turno.
+        1. Deck / Collection Review:
+        El jugador puede revisar su deck activo, cartas disponibles, restricciones de construcción y progreso de colección desde las pantallas de administración del deck y de progreso fuera de la run. Esta función sustituye el concepto de un inventario tradicional.
+        2. Stage Complete / Progress Feedback:
+        Al completar un stage o un encuentro clave, el juego muestra una pantalla de progreso con recompensas obtenidas, como monedas y XP. A futuro, esta capa puede ampliarse hacia selecciones más complejas de recompensa o modificación del deck.
         3. Deck Builder:
-        Pantalla previa a la run donde el jugador selecciona las cartas que llevará en su deck. Aquí puede revisar cartas desbloqueadas, cartas especiales disponibles y cartas raras obtenidas anteriormente.
+        Pantalla dedicada a la creación y administración de decks. Aquí el jugador puede seleccionar cartas poseídas, revisar restricciones según Clan Rank, administrar varios decks, verificar el tamaño permitido del mazo y definir el personaje asociado al deck activo. 
+        
+        Esta pantalla forma parte del sistema de progresión persistente del juego y no solo de una preparación momentánea antes de la run.
 
-        El Deck Builder permite:
-            - Seleccionar cartas base y especiales desbloqueadas
-            - Revisar el tamaño actual del deck
-            - Confirmar el personaje con el que se iniciará la run
-            - Ver restricciones de construcción
-
-        El jugador deberá seleccionar una opción, afectando directamente su estrategia durante la run.
 4. End Credits
-    - Una vez el boss final es derrotado (Pythra), el jugador será felicitado por Klancy, quien le enseñó al jugador cómo jugar desde un inicio. Finalmente rompe la cuarta pared, y muestra los nombres de los creadores del juego.
+    Actualmente solo hay una escena de "desenlace" al vencer al main/final Boss, Pythra por primera vez; dada la lógica del juego, no hay un final como tal.
 
 
 ### **Controls**
 
-El juego requerirá del uso de teclado y mouse para ambos modos (principalmente para la exploración).
+Florida Frenzy utiliza teclado y mouse en ambas fases principales del juego, aunque los controles cambian según el modo activo.
 
-**Controles de Movimiento**
-1. W & Space Bar <-- Saltar
-2. D <-- Mover Derecha
-3. A <-- Mover Izquierda
-4. E <-- Interactuar
-5. I <-- Acceso al inventario (abrir y cerrar)
-6. ESC <-- Pausa
-7. Mouse Movement <-- Apuntar (Exploración) e interactuar con el tablero de cartas
-8. Click Izquierdo <-- Disparar (Exploración) y seleccionar/jugar una carta (doble click para confirmar una selección)
-9. Click Derecho <-- Descartar una carta
+**Exploration / Run Scene**
+1. W / A / S / D ← Movimiento del personaje
+2. Shift ← Sprint / aceleración temporal, consumiendo stamina
+3. Mouse Movement ← Apuntar durante la exploración
+4. Click Izquierdo ← Disparar
+5. ESC ← Pausa
+
+**Cards Duel / Duel Scene**
+1. Mouse Movement ← Navegar la interfaz del duelo
+2. Click Izquierdo ← Seleccionar y jugar una carta válida
+3. Click Derecho ← Descartar una carta
+4. ESC ← Pausa
+
+*Notas*
+- El juego desactiva la navegación de teclado cuando el usuario escribe en inputs o textareas del front-end.
+- El click derecho dentro del canvas está reservado para interacciones del juego y no para abrir el menú contextual del navegador.
+
+---
 
 ### **Mechanics**
 
 ---
 
-#### **Platformer System**
+#### **Top-Down Exploration System**
 
-Nuevamente, durante la fase de exploración, el jugador interactúa con un entorno 2D tipo platformer, el cual sirve como transición entre combates y como fuente de presión mecánica.
+Durante la fase de exploración, el jugador participa en una run top-down en tiempo real, donde se desplaza por el mapa, evita o combate enemigos menores (minions), recolecta monedas, mientras que se proteje de los ataques inminentes, y avanza hasta llegar al encuentro del boss que activará el duelo de cartas.
 
 ##### **Level Generation**
 
-Los niveles se generan de forma semi-aleatoria a partir de segmentos predefinidos. Cada zona mantiene su identidad visual y temática, pero la disposición de plataformas, obstáculos y enemigos puede variar entre runs.
+Los niveles se generan de forma semi-aleatoria a partir de segmentos predefinidos. Cada zona mantiene su identidad visual y temática, pero la disposición de zonas, obstáculos y enemigos puede variar entre runs.
 
 Esto permite:
 
 - Rejugabilidad
 - Variación en rutas
-- Diferentes niveles de riesgo y recompensa
+- Diferentes niveles de riesgo
 
 Cada mapa se construye a partir de segmentos predefinidos, de modo que:
 
 - La temática visual de la zona se conserva
-- La disposición de plataformas cambia entre runs
 - Cambian algunos obstáculos, rutas y enemigos menores
 - Hay una conexión evidente con el terreno explorado, y aquel que aparece de fondo en el duelo de cartas del nivel
 
 ##### **Player Movement & Combat**
 
-El jugador cuenta con las siguientes capacidades:
-
-- Movimiento lateral (izquierda / derecha)
-- Salto (Doble)
-- Interacción con objetos
-- Ataque básico cuerpo a cuerpo (melee)
-- Ataque a distancia (disparo)
-
-El combate dentro del platformer no es el foco principal, pero introduce presión constante. Su objetivo es desgastar al jugador antes de los duelos de cartas.
+El jugador puede desplazarse libremente en cuatro direcciones durante la exploración, usar sprint consumiendo stamina y atacar a distancia mediante disparo. El combate en esta fase no es el núcleo principal del juego, pero sí funciona como una fuente constante de presión y desgaste antes del siguiente duelo de cartas.
 
 
-##### **Minor Enemies**
+##### **Minor Enemies (Minions)**
 
-Durante la exploración, el jugador se enfrenta a enemigos menores que actúan como obstáculos activos y desgastan su estado antes de los duelos de cartas.
+Durante la exploración, el jugador enfrenta enemigos menores que funcionan como obstáculos activos. A nivel de diseño, estos se agrupan en arquetipos de comportamiento como unidades rápidas, unidades de presión a distancia y unidades resistentes de control espacial. Narrativamente, estos arquetipos corresponden a las distintas facciones del juego (ratas, mapaches y osos).
 
 - **Ratas**
   - Baja vida
   - Daño bajo
   - Movimiento rápido
   - Suelen aparecer en grupo
-  - Comportamiento: avanzan constantemente hacia el jugador, similar a enemigos básicos de platformers clásicos
+  - Comportamiento: avanzan constantemente hacia el jugador
   - Rol: obligan a reaccionar rápido y castigan distracciones
 
 - **Mapaches**
@@ -264,7 +252,7 @@ Durante la exploración, el jugador se enfrenta a enemigos menores que actúan c
   - Requieren varios impactos para ser derrotados
   - Rol: controlar espacio, cerrar rutas y forzar enfrentamientos
 
-##### **Approximate Platformer Combat Values**
+##### **Approximate Combat Values**
 
 Los valores exactos pueden ajustarse durante el balanceo, pero conceptualmente se contemplan así:
 
@@ -283,36 +271,15 @@ Los valores exactos pueden ajustarse durante el balanceo, pero conceptualmente s
   - Ataque: alto
   - Resistencias: altas
 
-Estos enemigos pueden derrotarse mediante ataques melee o a distancia, pero su propósito principal no es detener completamente la run, sino debilitar al jugador antes del siguiente boss.
+Estos enemigos pueden derrotarse mediante a distancia, pero su propósito principal no es detener completamente la run, sino debilitar al jugador antes del siguiente boss.
 
 ##### **Obstacles & Objects**
 
-El entorno incluye diferentes elementos que afectan la navegación:
-
-- Plataformas móviles
-- Superficies resbalosas o ralentizantes (pantano)
-- Basura acumulada que bloquea rutas
-- Vehículos destruidos como obstáculos
-- Tuberías y estructuras verticales
-
-Además, pueden aparecer:
-
-- Cofres o recompensas (tentativo)
-- Cartas de Clan ocultas
-
-##### **Exploration Rewards**
-
-Durante la exploración, el jugador puede encontrar recompensas adicionales:
-
-- Cartas de Clan o Especie (raras)
-- Mejoras temporales
-- Curación parcial
-
-Las cartas de Clan o Especie tienen una probabilidad de aparición baja, convirtiéndolas en recompensas raras que incentivan la exploración.
+Cada mapa cuenta con diferentes obstaculos y objetos con los cuales el jugador se puede topar. Pueden ser los charcos que le ofrecen restauración de vida, o los agujeros que lo mandan directamente para el lobby. U objetos neutrales que sirven como barreras entre el jugador y los minions. 
 
 ---
 
-El duelo de cartas consiste en diferentes reglas y atributos que definen el flujo del enfrentamiento. Ya que esta directamente inspirado en el juego 'UNO', las mecánicas se asemejan a las de este juego de mesa. Con algunos elementos innovadores y estratégicos, que hacen de una jugada algo más entretenido.
+El duelo de cartas consiste en diferentes reglas y atributos que definen el flujo del enfrentamiento. De nuevo, esta directamente inspirado en el juego 'UNO', las mecánicas se asemejan a las de este juego de mesa. Con algunos elementos innovadores y estratégicos, que hacen de una jugada algo más entretenido.
 
 El combate con cartas se desarrolla por turnos alternados entre el jugador y el enemigo en cuestión. Durante un turno, cada participante puede jugar una carta válida desde su mano, o realizar una acción alternativa (como descartar una carta).
 
@@ -364,27 +331,6 @@ En ese caso, el jugador debe:
 - continuar robando según las reglas del sistema
 - o descartar voluntariamente una carta desde su mano si decide gestionar recursos de esa forma
 
-##### **Double Match**
-
-Se considera una **coincidencia doble** cuando la carta jugada coincide con la carta en mesa tanto en:
-
-- elemento
-- valor numérico
-
-Ejemplo:
-
-Carta en mesa: Fuego 5  
-Carta jugada: Fuego 5  
-
-Resultado: coincidencia doble.
-
-Una coincidencia doble genera una bonificación superior de energía, ya que alimenta con mayor eficiencia el sistema dual:
-
-- aumenta la Energía Elemental
-- aumenta la Energía Instinto
-
-Esto recompensa las jugadas más precisas y permite acelerar el acceso a mejoras de carta o habilidades especiales.
-
 --- 
 
 #### **Card Structure**
@@ -394,9 +340,9 @@ Cada carta contiene:
 - Elemento
 - Valor numérico
 - Tipo
-- Efecto (si aplica)
+- Efecto(s) (si aplica)
 - Rareza
-- Costo de energía (si aplica)
+- Costo de energías
 
 --- 
 
@@ -420,7 +366,7 @@ Las cartas del juego se dividen en cuatro elementos principales:
 
 ![Water](../client/src/assets/sprites/CardWater.png)
 
-- **Hielo**: elemento especial y raro. Funciona como comodín y permite efectos avanzados como congelamiento, bloqueo de habilidades, manipulación de turnos y jugadas múltiples.
+- **Hielo**: el quinto elemento especial y raro. Funciona como comodín y permite efectos avanzados como congelamiento, bloqueo de habilidades, manipulación de turnos y jugadas múltiples.
 
 ![IceFront](../client/src/assets/sprites/CardIceFront.png)
 
@@ -439,7 +385,7 @@ Las **cartas básicas** dependen principalmente de su valor numérico y elemento
 
 Las **cartas con efecto** introducen mecánicas adicionales como estados, control del turno, modificación de daño o alteración de reglas, y generalmente requieren consumo de energía para ser utilizadas.
 
-Esto genera una progresión natural desde jugadas simples, hasta estrategias más complejas.
+Estas son las que traen más balance consigo al juego; puesto que pueden llegar a ser relativamente complejas, o simplemente cuentan con algún efecto instantáneo que cambia las probabilidades de un duelo.
 
 --- 
 
@@ -450,7 +396,7 @@ Adentrandonos más en la lógica del sistema de cartas, en cuántas hay y qué h
 1. Cartas Base  
 2. Cartas Especiales  
 3. Cartas de Hielo  
-4. Cartas de Clan (Extremadamente raras)  
+4. Cartas Legendarias (Extremadamente raras)  
 
 Cada tipo cumple un rol específico dentro del combate.
 
@@ -519,90 +465,90 @@ Como fueron descritos previamente, en términos de mecánicas y funcionamiento s
 
 ---
 
-## **2. Special Cards (20 cartas)**
+#### **2. Special Cards (20 cartas)**
 
 Cartas con efectos adicionales que expanden la estrategia.  
 Cada elemento cuenta con **5 variantes especiales**.
 
 ---
 
-### **Fire Special Cards (Ofensivas)**
+##### **Fire Special Cards (Ofensivas)**
 
 - **Burn Strike**
-  - 6 de daño + aplica quemadura (2 de daño extra por 2 turnos)
+  - 12 daño + 4 burn por 2 turnos
 
 - **Half Break**
-  - Inflige 5 de daño, pero bloquea Fire enemigo por 1 turno
+  - 10 daño. Bloquea cartas Fire por 1 turno
 
 - **Rage Boost**
-  - Duplica el daño si el jugador tiene menos del 50% de HP
+  - 20 daño si el rival está bajo 50% HP
 
 - **Explosion**
-  - Daño alto (12), pero también daña al jugador ligeramente
+  - 24 daño. Recibes 6 de recoil
 
 - **Chain Fire**
-  - Si el siguiente turno también es Fire, el daño se incrementa
+  - 12 daño. Tu próximo Fire gana +6 daño
 
 ---
 
-### **Water Special Cards (Defensivas)**
+##### **Water Special Cards (Defensivas)**
 
 - **Healing Wave**
-  - Convierte 25% del escudo en vida
+  - 10 escudo y cura 6 HP
 
 - **Shield Surge**
-  - Duplica el escudo disponible
+  - Duplica tu escudo. Si no tienes, ganas 24
 
 - **Cleanse**
-  - Elimina efectos negativos (veneno, quemadura)
+  - Cleanses all active negative effects
 
 - **Reflect**
-  - Devuelve 25% del daño recibido
+  - Refleja 35% del daño por 1 turno
 
 - **Flow State**
-  - Aumenta regeneración de energía un 20%
+  - +30% energía por 2 turnos
 
 ---
 
-### **Swamp Special Cards (Control / desgaste)**
+##### **Swamp Special Cards (Control / desgaste)**
 
 - **Toxic Spread**
-  - Aplica 5 de daño por veneno, por 3 turnos
+  - 10 poison por 3 turnos
 
 - **Decay**
-  - Reduce el escudo enemigo progresivamente, por un 5%
+  - Reduce el escudo rival en 10%
 
 - **Infection**
-  - Extiende efectos activos del enemigo por 1 turno
+  - Extiende 1 turno los efectos del rival
 
 - **Corrosion**
-  - Reduce el daño de las cartas enemigas 20%, por 2 turnos
+  - Reduce por 6 el daño rival por 2 turnos
 
 - **Leech**
-  - 15% del daño infligido regresa como vida
+  - 10 daño. Roba 25% del daño como vida
 
 ---
 
-### **Sand Special Cards (Mitigación / control)**
+##### **Sand Special Cards (Mitigación / control)**
 
 - **Quicksand**
-  - Bloquea un número específico (ej. no puede jugar 5)
+  - Reduce el próximo ataque rival a la mitad
 
 - **Dust Blind**
-  - Oculta los valores de las cartas base del enemigo por 1 turno
+  - Nega el próximo Sand rival. Si no aplica, ganas 20 escudo
 
 - **Barrier**
-  - Aplica 20% de escudo
+  - Gana 20 escudo. Si el rival juega Swamp Special, ganas 20 más
 
 - **Skywalker**
-  - Funciona como comodín exclusivo de arena
+  - Comodín Sand contra cualquier Special
 
 - **Sandstorm**
-  - Aumenta el daño de las cartas de arena del jugador un 7% por tres turnos
+  - Tus cartas Sand ganan +20% daño por 3 turnos
 
 ---
 
-## **3. Ice Cards (5 cartas especiales)**
+#### **3. Ice Cards (5 cartas especiales)**
 
 Cartas raras con efectos únicos.  
 No siguen reglas estándar de elemento.
@@ -610,52 +556,52 @@ No siguen reglas estándar de elemento.
 ---
 
 - **Ice Stun**
-  - Congela al enemigo (pierde 1–2 turnos)
+  - Congela al rival por 1 turno
 
 - **Ice Jam**
-  - Desactiva cartas con efecto por 1–2 turnos
+  - Bloquea las especiales rivales por 2 turnos
 
 - **Ice Overdrive**
-  - Permite jugar 2 cartas en un turno
+  - Puedes jugar 2 cartas este turno
 
 - **Ice Shift**
-  - Funciona como comodín general (elemento o número)
+  - La mano rival va a discard. Roba una nueva desde la discard pile
 
 - **Ice Flood**
-  - Obliga al enemigo a robar de la pila de descarte, hasta encontrar un elemento designado por el jugador
+  - Si la carta en mesa es base, copia su número y fuerza respuesta solo por ese número. Si la carta en mesa es especial, gana 25 HP y 25 escudo y el rival puede responder con cualquier carta
 
 ---
 
-## **4. Clan Cards (Extremely Rare)**
+#### **4. Legendary Cards (Extremely Rare)**
 
-Cartas únicas, obtenidas únicamente en el modo platformer.  
+Cartas únicas, obtenidas únicamente en el top-down.  
 Tienen efectos extremadamente poderosos.
 
 ---
 
 - **Crocodile**
-  - Imita la carta en juego, e incrementa su efecto/daño un 5%
+  - Remueve el 35% de la vida del oponente
 
 - **Alligator**
-  - Convierte todo el daño recibido en escudo durante 1 turno
+  - Recupera el 100% de su vida
 
 - **Gavial**
-  - Permite reorganizar la mano completamente
+  - Carga la Ulti del jugador instantaneamente
 
 - **Caiman**
   - Aplica un estado aleatorio al enemigo
 
 - **Sarcosuchus**
-  - Reduce al enemigo a 1 HP y 1 escudo (uso limitado o condición especial)
+  - Reduce al enemigo a 25 HP y 25 escudo
 
 ---
 
-## **Notas de Balance**
+#### **Balance Notes**
 
 - Las cartas base garantizan consistencia  
 - Las cartas especiales introducen decisiones estratégicas  
 - Las cartas de hielo rompen reglas del sistema  
-- Las cartas de clan funcionan como "game changers"  
+- Las cartas legendarias funcionan como "game changers"  
 
 --- 
 
@@ -663,23 +609,19 @@ Tienen efectos extremadamente poderosos.
 
 ##### **Deck Construction Rules**
 
-Antes de cada run, el jugador debe construir su deck respetando las siguientes reglas:
+Antes de cada run el jugador debe construir su deck, respetando las siguientes reglas:
 
-- El tamaño del deck depende del Clan Rank:
+- El tamaño del deck, y cuantas slots tiene disponibles, depende de su Clan Rank:
   - **Rookie** → 12 cartas
-  - **Fighter** → 15 cartas
-  - **Veteran** → 18 cartas
+  - **Veteran** → 15 cartas
+  - **Elite** → 19 cartas
+  - **Legend** → 21 cartas
 
-- El deck puede incluir:
-  - Cartas base
-  - Cartas especiales desbloqueadas
-  - Cartas de Hielo (si el rango lo permite)
-  - Cartas de Clan o Especie (si fueron encontradas previamente)
+- El deck puede incluir lógicamente, todas las cartas, siempre y cuando las tenga desbloqueadas o compradas.
 
 - Restricciones:
-  - Máximo **1 carta de Clan** por deck
-  - Las cartas de Hielo tienen cantidad limitada dentro del deck
-  - El jugador solo puede construir el deck con cartas previamente desbloqueadas
+  - El jugador solo puede construir el deck con cartas previamente desbloqueadas o compradas (previamente mencionado)
+  - Para salvar y activar un deck, tiene que si o si llenarlo
 
 Esto permite que la construcción del mazo sea una decisión estratégica real y no solo una selección estética.
 
@@ -700,12 +642,6 @@ El sistema de cartas se compone de tres estructuras principales durante el comba
 ##### **Deck (Mazo)**
 
 El deck representa el conjunto de cartas activas del jugador durante una run.
-
-El tamaño del deck depende del nivel de Clan Rank del jugador:
-
-- **Rookie** → 12 cartas  
-- **Fighter** → 15 cartas  
-- **Veteran** → 18 cartas  
 
 De nuevo, estas cartas son seleccionadas antes de iniciar la run y representan la base estratégica del jugador.
 
@@ -732,7 +668,7 @@ Al inicio del combate, existe una pila de descarte con cartas base (**72 cartas 
 Si un jugador no tiene una carta válida:
 
 1. Roba cartas desde su deck.
-2. Si el deck no contiene una carta útil (o se agota), comienza a robar desde la pila de descarte.
+2. Si el deck no contiene una carta útil y se agota, comienza a robar desde la pila de descarte.
 
 Sin embargo, las cartas robadas desde la pila de descarte:
 
@@ -748,9 +684,9 @@ Robar repetidamente desde la pila de descarte genera penalizaciones.
 
 Cada cierto número de cartas robadas, el jugador recibe daño:
 
-- 10 cartas robadas → 5 de daño  
-- 20 cartas robadas → 7 de daño  
-- 30 cartas robadas → 9 de daño  
+- 10 cartas robadas → 10 de daño  
+- 20 cartas robadas → 10 de daño  
+- 30 cartas robadas → 10 de daño  
 
 Este sistema introduce presión constante y evita que el jugador dependa indefinidamente del robo.
 
@@ -808,7 +744,7 @@ Como fue mencionado, el juego utiliza un sistema dual de energía compuesto por 
 - **Energía Elemental (EE)**
 - **Energía Instinto (EI)**
 
-Ambas energías llenan una barra compartida dividida en dos mitades (50/50). La habilidad especial solo puede activarse cuando ambas mitades de la barra (EE y EI) están completamente llenas.
+Ambas energías llenan una barra compartida dividida en dos mitades (50/50). 
 
 ##### **Energy Generation**
 
@@ -820,32 +756,9 @@ Ambas energías llenan una barra compartida dividida en dos mitades (50/50). La 
   - Se genera en función del valor numérico de la carta jugada.
   - Se utiliza para potenciar cartas numéricas.
 
-Cada energía se llena con 20 puntos. Es decir, 20 aciertos; dependiendo cada una de sus condiciones, por supuesto.
-A su vez, dependiendo la dificultad establecida, se requiere de más puntos para llenar cada mitad. Aunque esto se mantiene balanceado de igual forma:
-
-- EASY: Cada barra se llena con 20 puntos - 1 punto por acierto
-- MEDIUM: Cada barra se llena con 40 puntos - 2 puntos por acierto
-- HARD: Cada barra se llena con 60 puntos - 3 puntos por acierto
-
-##### **Card Enhancement**
-
-El jugador puede utilizar Energía Instinto para incrementar el valor de una carta:
-
-- 10 → costo moderado de energía
-- 11 → costo alto
-- 12 → costo máximo
-
-Esto permite transformar cartas básicas en jugadas más poderosas, a cambio de consumir recursos.
-
-Ambos recursos se reinician al finalizar cada combate.
-
 ##### **Energy Cost**
 
-El uso de Energía Instinto para potenciar cartas sigue una escala proporcional basada en la barra total disponible:
-
-- Aumentar el valor de una carta de 9 a 10 consume aproximadamente 33% de la barra de Energía Instinto.
-- Aumentar de 10 a 11 consume aproximadamente 66% acumulado.
-- Aumentar de 11 a 12 consume el 100% de la barra.
+Hay ciertas cartas, sobre todo las raras, que exigen una cierta cantidad de energía para ser utilizadas
 
 Esto permite al jugador decidir entre múltiples mejoras moderadas o una sola jugada de alto impacto.
 
@@ -886,25 +799,25 @@ Cada personaje comparte la base del sistema de cartas, pero cuenta con una habil
 Estas habilidades permiten modificar el flujo del combate y refuerzan el estilo de juego de cada personaje.
 
 - **Christian**:  
-Recupera 50% de su vida actual y 30% de su escudo.  
+Recupera 55% de su vida actual y 30% de su escudo. 
 Obtiene en su mano una carta válida basada en la carta en mesa.
 
 ![Christian](../client/src/assets/characters/christian/Christian_v4_resized.png)
 
 - **Gustav**:  
-Recupera 25% de su vida y 60% de su escudo.  
-Se vuelve inmune a efectos durante el siguiente turno.
+Recupera 25% de su vida y 60% de su escudo. 
+Se vuelve inmune a efectos durante 3 turnos.
 
 ![Gustav](../client/src/assets/characters/gustav/Gustav_v3_resized.png)
 
 - **Gavin**:  
-Recupera 30% de su vida y 30% de su escudo.  
-Durante los siguientes 2 turnos, el daño recibido de cartas enemigas se reduce en un 50%.
+Recupera 30% de su vida y 30% de su escudo. 
+Durante los siguientes 2 turnos, el daño recibido de cartas enemigas se reduce en 50%.
 
 ![Gavin](../client/src/assets/characters/gavin/Gavin_v3_resized.png)
 
 - **Eddy**:  
-Recupera 75% de su vida actual, pero pierde 35% de su escudo.  
+Recupera 75% de su vida actual, pero pierde 35% de su escudo. 
 Durante los siguientes 2 turnos, el daño de sus cartas se duplica.
 
 ![Christian](../client/src/assets/characters/eddy/Eddy_v2_resized.png)
@@ -925,36 +838,17 @@ Es importante diferenciar entre dos tipos de enemigos:
 
 #### **Card Difficulty Scaling**
 
-La dificultad del sistema de cartas no solo cambia la agresividad de la IA, sino también la forma en que esta prioriza jugadas y administra recursos.
+Cada boss de cartas cuenta con diferentes tipos de cartas
 
 - **Easy**
-  - La IA selecciona jugadas válidas de forma mayormente aleatoria.
-  - Tiene menor prioridad por coincidencias dobles.
-  - Usa cartas especiales con baja frecuencia.
-  - Rara vez optimiza energía o turnos futuros.
+  - Base + Especiales
 
 - **Medium**
-  - La IA prioriza coincidencias dobles (elemento + número, así que cargan ambas barras de su ultimate a la par) cuando están disponibles.
-  - Busca mantener presión ofensiva moderada.
-  - Utiliza cartas especiales de forma situacional.
-  - Intenta evitar jugadas débiles si existe una alternativa mejor.
+  - Base + Especiales + Hielo
 
 - **Hard**
-  - La IA evalúa sus opciones y prioriza:
-    - coincidencias dobles,
-    - cartas especiales con mayor impacto,
-    - generación eficiente de energía,
-    - mantenimiento de control sobre el jugador.
-  - Usa con mayor frecuencia, cartas que interrumpen o limitan la estrategia rival.
-  - Toma decisiones con orientación a ventaja futura, no solo al turno actual.
+  - Base + Especiales + Hielo + Legendarias
 
-La progresión global de dificultad se estructura de la siguiente forma:
-
-- **Run introductoria** → Easy
-- **Runs iniciales posteriores (3)** → Medium
-- **Runs restantes / dificultad estándar del juego** → Hard
-
-De este modo, el jugador aprende primero las reglas básicas, después se adapta a decisiones intermedias de la IA, y finalmente enfrenta el comportamiento completo del sistema.
 
 #### **Bosses**
 
@@ -968,8 +862,6 @@ Tras la run introductoria, todos los bosses operan bajo una dificultad alta, var
 Recupera 35% de su vida y gana 30% de escudo.  
 Durante los siguientes 2 turnos, el daño de las cartas del jugador se reduce en un 50%.
 
-Diseñado para introducir la mecánica de bosses, castiga jugadas agresivas sin planificación.
-
 ![Skawl](../client/src/assets/characters/skawl/Skawl_resized.png)
 
 ---
@@ -977,8 +869,6 @@ Diseñado para introducir la mecánica de bosses, castiga jugadas agresivas sin 
 - **Rabyz** — Boss de control (Mapache) 
 Recupera 50% de su vida y gana 20% de escudo.  
 Elimina todos los efectos activos sobre sí mismo y reduce la Energía Elemental del jugador en un porcentaje moderado.
-
-Enfocado en romper la estrategia del jugador, obligándolo a reconstruir momentum.
 
 ![Rabyz](../client/src/assets/characters/rabyz/Rabyz_resized.png)
 
@@ -988,8 +878,6 @@ Enfocado en romper la estrategia del jugador, obligándolo a reconstruir momentu
 Recupera 45% de su vida y gana 60% de escudo.  
 Durante el siguiente turno del jugador, su mano se limita a jugar solo 1 carta y no puede potenciar cartas con energía.
 
-Limita la capacidad ofensiva del jugador, manteniendo presión sin eliminar completamente la interacción.
-
 ![Boldear](../client/src/assets/characters/boldear/Boldear_resized.png)
 
 ---
@@ -998,45 +886,9 @@ Limita la capacidad ofensiva del jugador, manteniendo presión sin eliminar comp
 Recupera 75% de su vida y gana 80% de escudo.  
 Durante 3 turnos, utiliza únicamente cartas de Hielo y, adicionalmente, puede activar una versión reducida de las habilidades de los bosses anteriores.
 
-Funciona como la prueba final, combinando control, presión y manipulación del flujo del combate.
-
 ![Pythra](../client/src/assets/characters/pythra/Pythra_resized.png)
 
 ---
-
-##### **Enemy Deck Access & Decision Rules**
-
-Los bosses utilizan decks propios, construidos a partir de cartas base y cartas especiales coherentes con su facción y estilo de combate.
-
-- **Skawl**
-  - Prioriza cartas rápidas y jugadas simples
-  - Mayor presencia de cartas base y control moderado
-
-- **Rabyz**
-  - Utiliza más cartas de control y cartas especiales
-  - Busca interrumpir la estrategia del jugador
-
-- **Boldear**
-  - Prioriza cartas de presión, defensa y castigo
-  - Tiende a favorecer jugadas de valor alto
-
-- **Pythra**
-  - Accede a cartas de Hielo y a patrones más complejos de control
-  - Funciona como examen final del sistema
-
-La IA de los enemigos toma decisiones considerando:
-
-- Si puede realizar una coincidencia válida
-- Si existe coincidencia doble
-- Si tiene acceso a una carta especial más conveniente
-- Si conviene conservar una carta fuerte para el siguiente turno
-- Si debe responder a una jugada ofensiva o defensiva del jugador
-
-En términos simples, la IA no solo “juega una carta disponible”, sino que evalúa si debe:
-- presionar
-- defender
-- controlar
-- preparar una mejor jugada posterior
 
 ---
 
@@ -1101,14 +953,8 @@ En términos simples, la IA no solo “juega una carta disponible”, sino que e
 4. Explora una zona del mapa (platformer).
 5. Entra en contacto con un boss (activa un duelo de cartas).
 6. El jugador debe derrotar a su oponente con las reglas del duelo.
-7. Si gana, recibe una recompensa o mejora para el mazo.
-8. Avanza a la siguiente zona.
-9. El ciclo se repite otras 2 veces, hasta llegar al jefe final.
-10. Al derrotar al jefe final, se activa el cierre de la run y la secuencia final.
-
-O en su defecto:
-Platformer → Boss 1 → Platformer → Boss 2 → Platformer → Boss 3 → Platformer → Boss Final
-
+7. Avanza a la siguiente zona si gana.
+8. El ciclo se repite continuamente.
 
 ---
 ## _Development_
@@ -1267,7 +1113,7 @@ El audio debe permitir al jugador identificar acciones clave sin interferir con 
 
 ---
 
-### **Sounds Needed**
+### **Sounds Needed (Scrapped)**
 
 1. Movement & Environment
     1. Footsteps (swamp / mud)
