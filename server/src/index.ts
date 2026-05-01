@@ -20,6 +20,7 @@ import leaderboardRoutes from './routes/leaderboard.routes.js';
 import shopRoutes from './routes/shop.routes.js';
 import friendsRoutes from './routes/friends.routes.js';
 import cardRoutes from './routes/cards.routes.js';
+import characterRoutes from './routes/character.routes.js';
 import enemyRoutes from './routes/enemy.routes.js';
 import deckRoutes from './routes/deck.routes.js';
 import { registerSocketHandlers } from './socket/socketHandler.js';
@@ -42,6 +43,7 @@ await fastify.register(leaderboardRoutes, { prefix: '/api/leaderboard' });
 await fastify.register(shopRoutes, { prefix: '/api/shop' });
 await fastify.register(friendsRoutes, { prefix: '/api/friends' });
 await fastify.register(cardRoutes, { prefix: '/api/cards' });
+await fastify.register(characterRoutes, { prefix: '/api/characters' });
 await fastify.register(enemyRoutes, { prefix: '/api/enemies' });
 await fastify.register(deckRoutes, { prefix: '/api/decks' });
 fastify.get('/health', async () => { // Health check endpoint to verify that the server is running

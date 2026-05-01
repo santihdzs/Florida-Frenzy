@@ -5,22 +5,9 @@ import { transitionTo } from '../utils/sceneTransition.js';
 import { MAP_CONFIGS, type TileRect } from '../utils/mapConfig.js';
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 
-import chrisAvatarUrl   from '../assets/sprites/Chris.webp';
-import gavinAvatarUrl   from '../assets/sprites/Gav.webp';
-import gustavAvatarUrl  from '../assets/sprites/Gus.webp';
-import eddyAvatarUrl    from '../assets/sprites/Ed.webp';
+import type { CharacterSkinKey } from '../utils/characterVisuals.js';
+import { CHARACTER_VISUALS, resolveCharacterSkinKey } from '../utils/characterVisuals.js';
 
-const MP_AVATAR_URLS: Record<string, string> = {
-  christian: chrisAvatarUrl,
-  gavin:     gavinAvatarUrl,
-  gustav:    gustavAvatarUrl,
-  eddy:      eddyAvatarUrl,
-};
-
-import christianSheet from '../assets/characters/christian/Christian_SpriteSheet.webp';
-import gavinSheet     from '../assets/characters/gavin/Gavin_SpriteSheet.webp';
-import gustavSheet    from '../assets/characters/gustav/Gustav_SpriteSheet.webp';
-import eddySheet      from '../assets/characters/eddy/Eddy_SpriteSheet.webp';
 import rackoSheet   from '../assets/characters/top-down_enemies/shooter/Racko_SpriteSheet.webp';
 import rhondaSheet  from '../assets/characters/top-down_enemies/shooter/Rhonda_SpriteSheet.webp';
 import riccSheet    from '../assets/characters/top-down_enemies/shooter/Ricc_SpriteSheet.webp';
@@ -81,10 +68,10 @@ const SWIFT_SKINS   = ['schremy', 'skully', 'stirr'] as const;
 // ── Sprite sheets ──────────────────────────────────────────────────────────
 
 const CHAR_SHEET_URLS: Partial<Record<string, string>> = {
-  christian: christianSheet,
-  gavin:     gavinSheet,
-  gustav:    gustavSheet,
-  eddy:      eddySheet,
+  christian: CHARACTER_VISUALS.christian.sheetUrl,
+  gavin:     CHARACTER_VISUALS.gavin.sheetUrl,
+  gustav:    CHARACTER_VISUALS.gustav.sheetUrl,
+  eddy:      CHARACTER_VISUALS.eddy.sheetUrl,
   racko:   rackoSheet,
   rhonda:  rhondaSheet,
   ricc:    riccSheet,
@@ -99,10 +86,10 @@ const CHAR_SHEET_URLS: Partial<Record<string, string>> = {
 };
 
 const CHAR_SHEETS = {
-  christian: { xCuts: [0, 293, 587, 880],   yCuts: [0, 300, 600, 900,  1200] },
-  gavin:     { xCuts: [0, 292, 584, 876],    yCuts: [0, 304, 608, 912,  1216] },
-  gustav:    { xCuts: [0, 292, 584, 875],    yCuts: [0, 304, 608, 912,  1216] },
-  eddy:      { xCuts: [0, 293, 587, 880],    yCuts: [0, 300, 599, 899,  1198] },
+  christian: CHARACTER_VISUALS.christian.run,
+  gavin:     CHARACTER_VISUALS.gavin.run,
+  gustav:    CHARACTER_VISUALS.gustav.run,
+  eddy:      CHARACTER_VISUALS.eddy.run,
   racko:     { xCuts: [0, 355, 711, 1066],   yCuts: [0, 369, 738, 1106, 1475] },
   rhonda:    { xCuts: [0, 356, 713, 1069],   yCuts: [0, 368, 736, 1104, 1472] },
   ricc:      { xCuts: [0, 355, 710, 1065],   yCuts: [0, 369, 738, 1108, 1477] },
@@ -214,6 +201,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private done            = false;
   private levelReady      = false;
   private playerAvatarKey = 'christian-avatar';
+  private playerSkin: CharacterSkinKey = 'christian';
   private sidebarNavHandler: EventListener | null = null;
   private isShowingQuitDialog = false;
 
@@ -281,8 +269,8 @@ export class MultiplayerRunScene extends Phaser.Scene {
     this.mapKey        = data.mapKey  ?? Object.keys(MAP_CONFIGS)[0]!;
     this.myPlayerId    = Number(getPlayer()?.id ?? 0);
     const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
-    const skin = equipped in MP_AVATAR_URLS ? equipped : 'christian';
-    this.playerAvatarKey = `${skin}-avatar`;
+    this.playerSkin = resolveCharacterSkinKey(equipped);
+    this.playerAvatarKey = `${this.playerSkin}-avatar`;
 
     this.localAlive           = true;
     this.spectating           = false;
@@ -327,7 +315,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
     for (const [key, url] of Object.entries(CHAR_SHEET_URLS)) {
       if (url && !this.textures.exists(key)) this.load.image(key, url);
     }
-    const avatarUrl = MP_AVATAR_URLS[this.playerAvatarKey.replace('-avatar', '')] ?? chrisAvatarUrl;
+    const avatarUrl = CHARACTER_VISUALS[this.playerSkin].avatarUrl;
     if (!this.textures.exists(this.playerAvatarKey))
       this.load.image(this.playerAvatarKey, avatarUrl);
 
