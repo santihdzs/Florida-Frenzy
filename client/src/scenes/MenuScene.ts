@@ -6,11 +6,11 @@ import titleLogo from '../assets/logos/logo.webp';
 import music from '../assets/music/Tailgate_Troubles.mp3';
 import { isLoggedIn, getPlayer, logout, hasCompletedTutorial, markTutorialComplete } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
-import { translations } from '../utils/translations.ts';
+import { translations } from '../utils/translations.ts'; // util for fetching translations based on current language
 import { fetchActiveDeck } from '../api/deckApi';
 
 export class MenuScene extends Phaser.Scene {
-  private t: Record<string, string> = {};
+  private t: Record<string, string> = {}; // Translations for current language
   constructor() {
     super({ key: 'MenuScene' });
   }
@@ -18,7 +18,7 @@ export class MenuScene extends Phaser.Scene {
   preload() {
     this.load.image('title-background', titleBackground);
     this.load.image('title-logo', titleLogo);
-    this.load.audio('menu-music', music);
+    this.load.audio('menu-music', music); // Placeholder music, replace with actual track for final game
   }
 
   create() {
@@ -29,17 +29,17 @@ export class MenuScene extends Phaser.Scene {
     const cy = H / 2;
 
     // Get current language for translations
-    const langKey = this.registry.get('language') || 'en';
-    this.t = translations[langKey];
+    const langKey = this.registry.get('language') || 'en'; // Default to English if not set
+    this.t = translations[langKey]; // Load translations for this scene
 
-    const savedVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
-    this.sound.volume = savedVolume;
+    const savedVolume = parseFloat(localStorage.getItem('gameVolume') || '1'); // Default to full volume if not set
+    this.sound.volume = savedVolume; // Apply saved volume level
 
-    let bgMusic = this.registry.get('music');
-    if (!bgMusic) {
-      bgMusic = this.sound.add('menu-music', { loop: true, volume: 0.5 });
-      this.registry.set('music', bgMusic);
-      bgMusic.play();
+    let bgMusic = this.registry.get('music'); // Check if music is already playing (from another scene)
+    if (!bgMusic) { // If not, create and play it
+      bgMusic = this.sound.add('menu-music', { loop: true, volume: 0.5 }); // Start at half volume, user can adjust in settings
+      this.registry.set('music', bgMusic); // Store in registry so it can be accessed across scenes without restarting
+      bgMusic.play(); // Play music when menu is created
     }
 
     // Disable input briefly to prevent click bleed from scene transitions
@@ -80,6 +80,7 @@ export class MenuScene extends Phaser.Scene {
       }
     }
 
+    // text style for main buttons
     const textStyle: Phaser.Types.GameObjects.Text.TextStyle = {
       fontFamily: 'Impact, Arial black, sans-serif',
       fontSize: '40px',
@@ -110,35 +111,36 @@ export class MenuScene extends Phaser.Scene {
     this.createButton(cx, 650, mainW, mainH, logoutLabel,   logoutAction,                            textStyle);
   }
 
+  // Utility to create a button with consistent style and behavior
   createButton(
     x: number, y: number, width: number, height: number,
     label: string, callback: () => void,
     style: Phaser.Types.GameObjects.Text.TextStyle,
   ) {
-    const container = this.add.container(x, y);
-    const graphics  = this.add.graphics();
-    this.drawMetalPlate(graphics, width, height, false);
-    const text = this.add.text(0, 0, label, style).setOrigin(0.5);
-    container.add([graphics, text]);
-    container.setSize(width, height);
-    container.setInteractive({ useHandCursor: true });
+    const container = this.add.container(x, y); // Button container to hold background and text, and handle interactions
+    const graphics  = this.add.graphics(); // Background graphics for the button, drawn with a custom "metal plate" style in drawMetalPlate()
+    this.drawMetalPlate(graphics, width, height, false); // Initial draw of the button background in unpressed state
+    const text = this.add.text(0, 0, label, style).setOrigin(0.5); // Button label text, centered in the button
+    container.add([graphics, text]); // Add background and text to the container so they move together
+    container.setSize(width, height); // Set the size of the container for input hit testing
+    container.setInteractive({ useHandCursor: true }); // Make the container interactive so it can respond to pointer events, and show hand cursor on hover
 
-    container.on('pointerover', () => {
+    container.on('pointerover', () => { 
       text.setColor('#226d1b');
-      this.tweens.add({ targets: container, scale: 1.03, duration: 100 });
+      this.tweens.add({ targets: container, scale: 1.03, duration: 100 }); // Slightly enlarge the button on hover for a nice interactive feel
     });
     container.on('pointerout', () => {
       text.setColor('#c2baba');
       this.drawMetalPlate(graphics, width, height, false);
-      this.tweens.add({ targets: container, scale: 1, duration: 100 });
+      this.tweens.add({ targets: container, scale: 1, duration: 100 }); // Return to normal size when not hovering
       text.y = 0;
     });
     container.on('pointerdown', () => {
-      this.drawMetalPlate(graphics, width, height, true);
+      this.drawMetalPlate(graphics, width, height, true); // Redraw the button background in "pressed" state when clicked
       text.y = 4;
     });
     container.on('pointerup', () => {
-      this.drawMetalPlate(graphics, width, height, false);
+      this.drawMetalPlate(graphics, width, height, false); // Redraw the button background back to unpressed state when released
       text.y = 0;
       callback();
     });
@@ -146,6 +148,8 @@ export class MenuScene extends Phaser.Scene {
     return container;
   }
 
+  // Custom method to draw a stylized "metal plate" background for buttons, with different appearance based on whether it's pressed or not
+  // IA was used to creat the style, but the implementation was hand-coded by us based on the generated design
   drawMetalPlate(graphics: Phaser.GameObjects.Graphics, width: number, height: number, pressed: boolean) {
     graphics.clear();
     const w = width; const h = height;
