@@ -1274,10 +1274,7 @@ export class RunScene extends Phaser.Scene {
   private playerCanFindLegendaryDrops(): boolean {
     const player = getPlayer();
     const clanRank = ((player?.clanRank as string | undefined) ?? '').toUpperCase();
-    if (clanRank === 'LEGEND') return true;
-
-    const maxXp = Number(player?.maxXp ?? 0);
-    return Number.isFinite(maxXp) && maxXp >= 13;
+    return clanRank === 'LEGEND';
   }
 
   private trySpawnLegendaryDrop(grid: number[][]): void {

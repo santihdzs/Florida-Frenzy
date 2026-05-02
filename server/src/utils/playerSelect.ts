@@ -21,4 +21,5 @@ export const SAFE_PLAYER_SELECT = {
   staminaRegen:       true,
   equippedCharacter:  true,
   unlockedCharacters: true,
+  hasBeatenPythra:    true,
 } as const;
