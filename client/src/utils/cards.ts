@@ -905,7 +905,7 @@ export function isCounterBonusTrigger(selected: Card, tableCard: Card): boolean 
 // Validate if a card can be played
 export function canPlayCard(selected: Card, tableCard: Card): boolean {
   if (selected.rarity === 'legendary' || tableCard.rarity === 'legendary') {
-    return true;
+    return true; // Legendary cards can be played against any card, and any card can be played against legendary cards
   }
 
   if (selected.element === 'ice') {

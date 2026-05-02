@@ -75,12 +75,24 @@ export async function login(
 export async function beatPythra(): Promise<boolean> {
   const token = getToken();
   if (!token) return false;
-  const res = await fetch(`${API_URL}/api/runs/beat-pythra`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
-  });
-  const data = await res.json() as { firstTime: boolean };
-  return data.firstTime ?? false;
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const res = await fetch(`${API_URL}/api/runs/beat-pythra`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    const data = await res.json() as { firstTime: boolean };
+    return data.firstTime ?? false;
+  } catch (error) {
+    console.error('beatPythra() failed:', error);
+    return false; // Default to false on error/timeout
+  }
 }
 
 // API: Abandon any in-progress runs left open from a previous session (e.g. page refresh mid-run)

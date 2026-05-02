@@ -469,7 +469,12 @@ export class DuelScene extends Phaser.Scene {
 
     if (getPlayer()?.isAdmin) {
       const keyP = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P); // shortcut for advancing the run
-      keyP.on('down', () => this.advanceToNextCycle()); // move to the next run scene on P press
+      keyP.on('down', () => {
+        this.advanceToNextCycle().catch((error) => {
+          console.error('Error advancing to next cycle:', error);
+          (this as any).__transitioning = false; // reset flag if transition fails
+        });
+      }); // move to the next run scene on P press
     }
 
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
@@ -570,17 +575,25 @@ export class DuelScene extends Phaser.Scene {
       totalXp: this.totalXp,
       runId: this.runId,
       currentMap: this.currentMap,
-    };
+    }; // pass all relevant run data to the next scene, incrementing the level for progression
 
-    if (this.selectedBoss?.enemyName === 'Pythra') {
-      const firstTime = await beatPythra();
-      if (firstTime) {
-        transitionTo(this, 'EndScene', runData);
-        return;
-      }
+    try {
+      if (this.selectedBoss?.enemyName === 'Pythra') {
+        const firstTime = await beatPythra();
+        if (firstTime) {
+          transitionTo(this, 'EndScene', runData);
+          return;
+        }
+      } // if the player defeated Pythra, check if it's their first time doing so and if yes, send them to the special end scene instead of the next duel scene
+
+      transitionTo(this, 'RunScene', runData);
+    } 
+    
+    catch (error) {
+      console.error('Failed to advance cycle:', error);
+      (this as any).__transitioning = false; // unlock on error
+      throw error;
     }
-
-    transitionTo(this, 'RunScene', runData);
   }
 
   private resetDuelState() {
@@ -1953,7 +1966,9 @@ export class DuelScene extends Phaser.Scene {
           if (attacker === 'player') {
             this.playerElementalEnergy = MAX_ENERGY;
             this.playerInstinctEnergy = MAX_ENERGY;
-          } else {
+          } // if the player is the attacker, fully restore the player's energy to maximum
+          
+          else {
             this.enemyElementalEnergy = MAX_ENERGY;
             this.enemyInstinctEnergy = MAX_ENERGY;
           }
@@ -1979,32 +1994,18 @@ export class DuelScene extends Phaser.Scene {
         break;
       }
 
-      // case 'AMPLIFY': {
-      //   if (previousTableCard?.rarity === 'base') {
-      //     defenderState.forcedResponseNumber = previousTableCard.power;
-      //     defenderState.iceFloodLockTurnCounter = 1;
-      //     damage = 0;
-      //   } 
-        
-      //   else {
-      //     attackerState.shield += 15;
-      //     this.healSide(attacker, 15);
-      //     damage = 0;
-      //   }
-
-      //   break;
-      // }
-
       case 'AMPLIFY': {
         if (card.name === 'Crocodile') {
-          const currentHp = attacker === 'player' ? this.enemyHp : this.playerHp;
-          const hpLoss = Math.max(0, Math.floor(currentHp * (card.effectValue / 100)));
+          const currentHp = attacker === 'player' ? this.enemyHp : this.playerHp; // target the opponent's HP for the amplification effect
+          const hpLoss = Math.max(0, Math.floor(currentHp * (card.effectValue / 100))); // calculate HP loss based on the opponent's current HP and the card's effect value, ensuring it doesn't go negative
 
           if (hpLoss > 0) {
             if (attacker === 'player') {
               this.enemyHp = Math.max(0, this.enemyHp - hpLoss);
               this.enemyDamageText.setText(`-${hpLoss}`);
-            } else {
+            }
+            
+            else {
               this.playerHp = Math.max(0, this.playerHp - hpLoss);
               this.playerDamageText.setText(`-${hpLoss}`);
             }
@@ -2018,7 +2019,9 @@ export class DuelScene extends Phaser.Scene {
           defenderState.forcedResponseNumber = previousTableCard.power;
           defenderState.iceFloodLockTurnCounter = 1;
           damage = 0;
-        } else {
+        } 
+        
+        else {
           attackerState.shield += 25;
           this.healSide(attacker, 25);
 
@@ -2037,43 +2040,54 @@ export class DuelScene extends Phaser.Scene {
         break; // placeholder for a complex effect that would allow playing an additional card immediately
 
       case 'IMMUNITY':
-        this.healSide(attacker, isPlayer ? this.playerMaxHp : this.enemyMaxHp);
-        this.cleanseNegative(attackerState);
+        this.healSide(attacker, isPlayer ? this.playerMaxHp : this.enemyMaxHp); // fully heal the attacker to represent immunity to damage
+        this.cleanseNegative(attackerState); // remove all negative status effects from the attacker
         damage = 0;
         break;
 
       case 'RANDOM_STATUS': {
-        const roll = Math.floor(Math.random() * 5);
+        const roll = Math.floor(Math.random() * 5); // randomly select one of five status effects to apply to the defender, with equal probability
         if (roll === 0) {
           defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, 2);
           defenderState.poisonDamage = Math.max(defenderState.poisonDamage, 6);
-        } else if (roll === 1) {
+        } // the first effect applies a moderate poison that lasts for a few turns
+        
+        else if (roll === 1) {
           defenderState.burnTurnCounter = Math.max(defenderState.burnTurnCounter, 2);
           defenderState.burnDamage = Math.max(defenderState.burnDamage, 6);
-        } else if (roll === 2) {
+        } // the second effect applies a moderate burn that lasts for a few turns
+        
+        else if (roll === 2) {
           defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, 2);
           defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, 8);
-        } else if (roll === 3) {
+        } // the third effect applies a weaken that reduces damage by a noticeable amount for a few turns
+        
+        else if (roll === 3) {
           defenderState.stunTurnCounter = Math.max(defenderState.stunTurnCounter, 1);
-        } else {
+        } // the fourth effect applies a stun that causes the defender to skip their next turn
+        
+        else {
           defenderState.jamTurnCounter = Math.max(defenderState.jamTurnCounter, 1);
-        }
+        } // the fifth effect applies a jam that prevents the enemy from playing non-base cards on their next turn
 
         damage = 0;
         break;
       }
 
       case 'EXECUTE': {
-        const defenderHp = attacker === 'player' ? this.enemyHp : this.playerHp;
+        const defenderHp = attacker === 'player' ? this.enemyHp : this.playerHp; // target the opponent's HP for the execute effect
         const hpLoss = Math.max(0, defenderHp - 25);
         if (attacker === 'player') {
           this.enemyHp = Math.min(this.enemyHp, 25);
           if (hpLoss > 0) this.enemyDamageText.setText(`-${hpLoss}`);
-        } else {
+        } // if the player is the attacker, reduce the enemy's HP to 25 if it is above that threshold, and show the appropriate damage popup if any HP was lost
+        
+        else {
           this.playerHp = Math.min(this.playerHp, 25);
           if (hpLoss > 0) this.playerDamageText.setText(`-${hpLoss}`);
-        }
+        } // if the enemy is the attacker, reduce the player's HP to 25 if it is above that threshold, and show the appropriate damage popup if any HP was lost
 
+        // the execute effect is designed to finish off opponents that are already weakened, so it doesn't deal direct damage but instead sets a maximum HP threshold for the defender
         const shieldLoss = Math.max(0, defenderState.shield - 25);
         defenderState.shield = Math.min(defenderState.shield, 25);
         if (shieldLoss > 0) this.showShieldLossIndicator(isPlayer ? 'enemy' : 'player', shieldLoss);

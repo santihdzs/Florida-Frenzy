@@ -287,7 +287,7 @@ const LEGENDARY_DROPS = [
   { name: 'Gavial', tint: 0x8b5a2b },
   { name: 'Caiman', tint: 0x7ed957 },
   { name: 'Sarcosuchus', tint: 0xffdf00 },
-] as const;
+] as const; // the pool of legendary drops that can be found in runs; each has a unique name and tint color for the coin sprite
 type LegendaryDropName = typeof LEGENDARY_DROPS[number]['name'];
 
 interface Projectile {
@@ -482,7 +482,7 @@ export class RunScene extends Phaser.Scene {
     this.coins            = [];
     this.projectiles      = [];
     this.enemyProjectiles = [];
-    this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
+    this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name); // reset available legendary drops at the start of each run since they are consumed when picked up
 
     // Create a server-side run record at the start of each new run.
     // We store the promise so endRun() can chain off it — avoids the race condition
@@ -563,9 +563,8 @@ export class RunScene extends Phaser.Scene {
     this.grid = this.generateGrid();
     this.buildWorld(this.grid);
     this.spawnEnemies(this.grid);
-    await this.loadLegendaryDropPool();
-    this.spawnCoins(this.grid);
-
+    
+    // Create playerImg BEFORE awaiting loadLegendaryDropPool to prevent update() from crashing
     this.px = TILE * 2;
     this.py = Math.floor(ROWS / 2) * TILE;
     const playerScale = PLAYER_SIZE / (CHARACTER_VISUALS[this.playerSkin].run.xCuts[1] - CHARACTER_VISUALS[this.playerSkin].run.xCuts[0]);
@@ -573,10 +572,7 @@ export class RunScene extends Phaser.Scene {
       .setOrigin(0, 0).setDepth(5).setScale(playerScale);
     this.playerImg.play(`${this.playerSkin}-walk-down`);
 
-    if (this.step === RUNS_PER_CYCLE - 1) {
-      void this.spawnDuelBossAtGoal();
-    }
-    
+    // Create HUD BEFORE awaiting, so update() has valid references
     const cw = this.cameras.main.width;
     this.levelIndicator = this.add.text(cw / 2, 30, `Level ${this.level}`, {
       fontFamily: 'Impact, Arial black, sans-serif',
@@ -595,6 +591,14 @@ export class RunScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 2,
     }).setOrigin(0.5, 1).setDepth(15).setVisible(false);
+
+    // Now safe to await async operations
+    await this.loadLegendaryDropPool();
+    this.spawnCoins(this.grid);
+
+    if (this.step === RUNS_PER_CYCLE - 1) {
+      void this.spawnDuelBossAtGoal();
+    }
 
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
     escKey?.on('down', () => {
@@ -728,7 +732,7 @@ export class RunScene extends Phaser.Scene {
 
   private async loadLegendaryDropPool(): Promise<void> {
     this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
-    if (!this.playerCanFindLegendaryDrops()) return;
+    if (!this.playerCanFindLegendaryDrops()) return; // condition to check if the player is eligible to find legendary drops
 
     const player = getPlayer();
     const playerId = Number(player?.id ?? 0);
@@ -748,19 +752,21 @@ export class RunScene extends Phaser.Scene {
         if (!name || !Number.isFinite(id) || id <= 0) continue;
         if (!LEGENDARY_DROPS.some(drop => drop.name === name)) continue;
         legendaryById.set(id, name);
-      }
+      } // build a map of cardGameId to LegendaryDropName for all legendary cards in the game
 
       const unlockedLegendaryNames = new Set<LegendaryDropName>();
       for (const owned of bootstrap.ownedCards) {
         if (!owned.isUnlocked || owned.numCardsOwned <= 0) continue;
         const name = legendaryById.get(owned.cardGameId);
         if (name) unlockedLegendaryNames.add(name);
-      }
+      } // iterate through the player's owned cards and add the corresponding LegendaryDropName
 
       this.availableLegendaryDrops = LEGENDARY_DROPS
         .map(drop => drop.name)
-        .filter(name => !unlockedLegendaryNames.has(name));
-    } catch (error) {
+        .filter(name => !unlockedLegendaryNames.has(name)); // the final pool of legendary drops the player can find is all legendary drops minus the ones they already have unlocked
+    } 
+    
+    catch (error) {
       console.error('Failed to load legendary drop pool; using fallback pool.', error);
       this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
     }
@@ -768,6 +774,7 @@ export class RunScene extends Phaser.Scene {
 
   update(time: number, delta: number) {
     if (this.done) return;
+    if ((this as any).__transitioning) return; // guard: don't update during scene transition
     if (this.isShowingQuitDialog) return;
     if (this.duelBossSprite && this.waitingForBossTouch) {
       this.duelBossSprite.y += this.duelBossDirection * 0.5; // bob up and down to indicate interactivity
@@ -1251,7 +1258,7 @@ export class RunScene extends Phaser.Scene {
     const count = randInt(COIN_COUNT_MIN, COIN_COUNT_MAX);
     let placed = 0, attempts = 0;
 
-    while (placed < count && attempts < 500) {
+    while (placed < count && attempts < 500) { // coins are less critical to place than enemies, so we allow more attempts to find valid locations for them without blocking the path
       attempts++;
       const col = randInt(START_COLS + 1, END_COL - 2);
       const row = randInt(0, ROWS - 1);
@@ -1268,13 +1275,13 @@ export class RunScene extends Phaser.Scene {
       placed++;
     }
 
-    this.trySpawnLegendaryDrop(grid);
+    this.trySpawnLegendaryDrop(grid); // after placing regular coins, attempt to place a legendary drop if the player is eligible to find them and there are still some left in the pool
   }
 
   private playerCanFindLegendaryDrops(): boolean {
     const player = getPlayer();
     const clanRank = ((player?.clanRank as string | undefined) ?? '').toUpperCase();
-    return clanRank === 'LEGEND';
+    return clanRank === 'LEGEND'; // only players with LEGEND clan rank can find legendary drops
   }
 
   private trySpawnLegendaryDrop(grid: number[][]): void {
@@ -1282,8 +1289,8 @@ export class RunScene extends Phaser.Scene {
     if (this.availableLegendaryDrops.length === 0) return;
     if (Math.random() > LEGENDARY_DROP_SPAWN_CHANCE) return;
 
-    const dropName = this.availableLegendaryDrops[randInt(0, this.availableLegendaryDrops.length - 1)];
-    const drop = LEGENDARY_DROPS.find(candidate => candidate.name === dropName);
+    const dropName = this.availableLegendaryDrops[randInt(0, this.availableLegendaryDrops.length - 1)]; // pick a random legendary drop from the pool of available drops that the player hasn't unlocked
+    const drop = LEGENDARY_DROPS.find(candidate => candidate.name === dropName); // find the full drop data for the selected legendary drop
     if (!drop) return;
     let attempts = 0;
 
@@ -1311,7 +1318,7 @@ export class RunScene extends Phaser.Scene {
       });
       return;
     }
-  }
+  } // attempt to spawn a legendary drop at a random valid location on the map, ensuring it doesn't overlap with existing coins
 
   // ── HUD ──
 
@@ -1352,6 +1359,9 @@ export class RunScene extends Phaser.Scene {
   }
 
   private refreshHud() {
+    // Guard: HUD elements may be null/destroyed during scene transition
+    if (!this.hpLabel || !this.coinText || !this.ammoText || !this.levelIndicator) return;
+
     const BAR_X = 75;
     const BAR_W = 248;
 
@@ -1399,12 +1409,12 @@ export class RunScene extends Phaser.Scene {
 
     this.keyP.on('down', () => {
       const player = getPlayer();
-      if (player?.isAdmin && !this.done) {
+      if (player?.isAdmin && !this.done && !(this as any).__transitioning) {
         this.done = true;
         this.totalCoins += this.coinsCollected + 100;
         this.totalXp += 250;
         this.coinsCollected = 0;
-        this.advanceStage();
+        this.advanceStage(); // transitionTo() will handle __transitioning flag
       }
     });
 
@@ -1424,6 +1434,9 @@ export class RunScene extends Phaser.Scene {
   // ── Movement & collision ──
 
   private handleMovement(time: number, delta: number) {
+    // Guard: playerImg may not be ready yet during async create(), or destroyed during transition
+    if (!this.playerImg || !this.playerImg.anims || !this.cursors) return;
+
     const dt = delta / 1000;
 
     const movingX = this.cursors.left.isDown || this.keyA.isDown ||
@@ -1788,7 +1801,7 @@ export class RunScene extends Phaser.Scene {
 
         if (c.kind === 'legendary' && c.legendaryName) {
           void unlockLegendaryRunCard(c.legendaryName).catch(() => {
-            // Silent by design: collectible unlocks are meant to be discovered indirectly in the deck browser.
+            // silent by design: collectible unlocks are meant to be discovered indirectly in the deck browser
           });
           continue;
         }
@@ -1801,6 +1814,9 @@ export class RunScene extends Phaser.Scene {
   // ── Camera ──
 
   private updateCamera(delta: number) {
+    // Guard: camera may be destroyed during scene transition
+    if (!this.cameras.main) return;
+
     const cam  = this.cameras.main;
     const camW = cam.width;
     const camH = cam.height;
