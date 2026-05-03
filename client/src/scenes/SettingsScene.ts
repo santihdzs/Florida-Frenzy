@@ -3,7 +3,7 @@
 import Phaser from 'phaser';
 import { getPlayer, updatePreferences, isLoggedIn } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
-import { translations } from '../utils/translations.ts';
+import { translations } from '../utils/translations.ts'; // Importing translations for multilingual support
 
 export class SettingsScene extends Phaser.Scene {
   private fromPause = false; // track if we came from the pause menu
@@ -18,13 +18,13 @@ export class SettingsScene extends Phaser.Scene {
     const centerX = width / 2;
 
     // Get current language for translations
-    const langKey = this.registry.get('language') || 'en';
-    const t = translations[langKey];
+    const langKey = this.registry.get('language') || 'en'; // Default to English if not set
+    const t = translations[langKey]; // Get the translations for the current language
 
     this.cameras.main.setBackgroundColor('#1a1a1a');
 
-    const isMuted = localStorage.getItem('ff_muted') === 'true';
-    this.sound.mute = isMuted;
+    const isMuted = localStorage.getItem('ff_muted') === 'true'; // Set initial mute state based on localStorage
+    this.sound.mute = isMuted; // Ensure the sound manager's mute state is in sync with localStorage on scene creation
 
     const titleStyle = {
       fontFamily: 'Impact, sans-serif',
@@ -53,18 +53,18 @@ export class SettingsScene extends Phaser.Scene {
     // Volume
     let currentVolume = parseFloat(localStorage.getItem('gameVolume') || '1');
     const music = this.registry.get('music');
-    if (music) music.setVolume(currentVolume);
+    if (music) music.setVolume(currentVolume); // Ensure music volume is set to the current volume level on scene creation
 
     this.add.text(centerX - 190, 158, t.audio_vol, labelStyle).setOrigin(0.5);
     const volDisplay = this.add.text(centerX - 190, 203, `${Math.round(currentVolume * 100)}%`, labelStyle).setOrigin(0.5);
 
     this.createMetalBtn(centerX - 260, 203, 60, 50, '-', () => {
       currentVolume = Math.max(0, currentVolume - 0.1);
-      this.updateVolume(currentVolume, volDisplay);
+      this.updateVolume(currentVolume, volDisplay); // Update the volume and the display text when the button is clicked
     });
     this.createMetalBtn(centerX - 120, 203, 60, 50, '+', () => {
       currentVolume = Math.min(1, currentVolume + 0.1);
-      this.updateVolume(currentVolume, volDisplay);
+      this.updateVolume(currentVolume, volDisplay); // Update the volume and the display text when the button is clicked
     });
 
     // Mute toggle
@@ -84,10 +84,11 @@ export class SettingsScene extends Phaser.Scene {
     // ── LANGUAGE ───────────────────────────────────────────────────────────
     this.add.text(centerX, 240, t.lang, sectionStyle).setOrigin(0.5);
     const updateLang = (newLang: string) => {
-      localStorage.setItem('gameLanguage', newLang);
-      this.registry.set('language', newLang);
-      this.scene.restart();
+      localStorage.setItem('gameLanguage', newLang); // Save the selected language in localStorage so it persists across sessions
+      this.registry.set('language', newLang); // Update the registry with the new language so it can be accessed by other scenes
+      this.scene.restart(); // Restart the scene to apply the new language immediately (in a more complex app, you might want to update text objects directly instead of restarting)
     };
+    // Language selection buttons
     const langEBtn = this.createMetalBtn(centerX - 91, 288, 180, 60, t.english, () => updateLang('en'));
     const langSBtn = this.createMetalBtn(centerX + 91, 288, 180, 60, t.spanish, () => updateLang('es'));
     if(langKey === 'en') langEBtn.setAlpha(0.7); else langSBtn.setAlpha(0.7);
@@ -100,6 +101,7 @@ export class SettingsScene extends Phaser.Scene {
     ];
     let currentResIndex = parseInt(localStorage.getItem('gameResolution') || '1');
 
+    // IA was used in this section for the logic of cycling through resolutions and applying them
     this.add.text(centerX, 372, t.res, sectionStyle).setOrigin(0.5);
     this.createMetalBtn(centerX, 416, 300, 60, resolutions[currentResIndex].label, () => {
       this.input.enabled = false;
@@ -151,7 +153,8 @@ export class SettingsScene extends Phaser.Scene {
     }   
   }
 
-  // metal button
+  // Custom method to draw a stylized "metal plate" background for buttons, with different appearance based on whether it's pressed or not
+  // IA was used to creat the style, but the implementation was hand-coded by us based on the generated design
   createMetalBtn(x: number, y: number, w: number, h: number, label: string, callback: () => void) {
     const container = this.add.container(x, y);
     const graphics = this.add.graphics();

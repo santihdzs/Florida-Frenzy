@@ -11,7 +11,7 @@ import skawlImg from '../assets/characters/skawl/Skawl_resized.webp';
 import rabyzImg from '../assets/characters/rabyz/Rabyz_resized.webp';
 import boldearImg from '../assets/characters/boldear/Boldear_resized.webp';
 import pythraImg from '../assets/characters/pythra/Pythra_evolution-1_resized.webp';
-import { translations } from '../utils/translations.js';
+import { translations } from '../utils/translations.js'; // Importing translations for multilingual support
 
 interface CharacterDef {
   key: string;
@@ -21,6 +21,7 @@ interface CharacterDef {
   imgPath: string;
 }
 
+// function to get character definitions with translated roles and descriptions based on the current language
 const getHeroes: (t: Record<string, string>) => CharacterDef[] = (t) => [
   { key: 'st-christian', name: 'Christian', role: t.christian_role, desc: t.christian_desc, imgPath: christianImg },
   { key: 'st-gustav',    name: 'Gustav',    role: t.gustav_role,    desc: t.gustav_desc,    imgPath: gustavImg },
@@ -29,6 +30,7 @@ const getHeroes: (t: Record<string, string>) => CharacterDef[] = (t) => [
   { key: 'st-klancy',    name: 'Klancy',    role: t.klancy_role,    desc: t.klancy_desc,    imgPath: klancyImg },
 ];
 
+// function to get enemy character definitions with translated roles and descriptions based on the current language
 const getEnemies: (t: Record<string, string>) => CharacterDef[] = (t) => [
   { key: 'st-skawl',   name: 'Skawl',   role: t.skawl_role,   desc: t.skawl_desc,   imgPath: skawlImg },
   { key: 'st-rabyz',   name: 'Rabyz',   role: t.rabyz_role,   desc: t.rabyz_desc,   imgPath: rabyzImg },
@@ -37,8 +39,9 @@ const getEnemies: (t: Record<string, string>) => CharacterDef[] = (t) => [
 ];
 
 export class StoryScene extends Phaser.Scene {
-  private scrollContainer!: Phaser.GameObjects.Container;
-  private scrollMask!: Phaser.Display.Masks.GeometryMask;
+  // The scroll implentation is based un a chatGPT example of a scrollable container, but is modified and expanded by us to fit the needs of our story scene, including adding a mask to limit the visible area and implementing a custom method for drawing stylized buttons that match the theme of the game. The character definitions are also structured to allow for easy translation of roles and descriptions based on the selected language, ensuring that the story content is accessible in multiple languages. The overall design and layout of the scene are hand-crafted by us to create an engaging and visually appealing presentation of the game's story and characters.
+  private scrollContainer!: Phaser.GameObjects.Container; // Container that holds all the scrollable content (lore text and character cards)
+  private scrollMask!: Phaser.Display.Masks.GeometryMask; // Mask to limit the visible area of the scroll container to the background area
   private contentHeight = 0;
 
   constructor() {
@@ -46,9 +49,10 @@ export class StoryScene extends Phaser.Scene {
   }
 
   preload() {
+    // Preload all character portraits and the title background image
     const allChars = [...getHeroes(translations['en']), ...getEnemies(translations['en'])];
     allChars.forEach((c) => {
-      if (!this.textures.exists(c.key)) this.load.image(c.key, c.imgPath);
+      if (!this.textures.exists(c.key)) this.load.image(c.key, c.imgPath); // Only load if not already in the texture manager to avoid duplicates when switching languages
     });
 
     if (!this.textures.exists('title-background')) {
@@ -63,8 +67,8 @@ export class StoryScene extends Phaser.Scene {
     this.input.enabled = true;
 
     // Get current language for translations
-    const langKey = this.registry.get('language') || 'en';
-    const t = translations[langKey];
+    const langKey = this.registry.get('language') || 'en'; // Default to English if not set
+    const t = translations[langKey]; // Get the translations for the current language to use in the scene (this allows the story scene to display text in the selected language, and also ensures that character roles and descriptions are shown in the correct language)
     const HEROES = getHeroes(t); // Get heroes with current language
     const ENEMIES = getEnemies(t); // Get enemies with current language
 
@@ -92,8 +96,8 @@ export class StoryScene extends Phaser.Scene {
     bgGraphics.lineStyle(4, 0x666666);
     bgGraphics.strokeRoundedRect(bgX, bgY, bgW, bgH, 12);
 
-    this.scrollContainer = this.add.container(bgX + 20, bgY + 20);
-    let yOffset = 0;
+    this.scrollContainer = this.add.container(bgX + 20, bgY + 20); // Container for all scrollable content, positioned with some padding inside the background area
+    let yOffset = 0; // Track the vertical position for adding content to the scroll container, starting at 0 and increasing as we add lore text and character cards
 
     const addSectionTitle = (text: string, color: string) => {
       const t = this.add.text(bgW / 2, yOffset, text, {
@@ -104,22 +108,22 @@ export class StoryScene extends Phaser.Scene {
         strokeThickness: 4,
       }).setOrigin(0.5, 0);
       this.scrollContainer.add(t);
-      yOffset += t.height + 10;
+      yOffset += t.height + 10; // Move yOffset down for the next content, adding some extra space after the title
 
       const div = this.add.graphics();
       div.lineStyle(2, color === '#ffcc00' ? 0xffcc00 : 0xff4444, 0.6);
       div.lineBetween(40, yOffset - 4, bgW - 40, yOffset - 4);
       this.scrollContainer.add(div);
-      yOffset += 14;
+      yOffset += 14; // Add extra space after the divider for better separation between sections
     };
 
     const addLore = () => {
       // Use current language for lore text
-      const t_local = translations[this.registry.get('language') || 'en'];
+      const t_local = translations[this.registry.get('language') || 'en']; // Get the translations for the current language to access the lore text, ensuring it's displayed in the correct language
 
       const lore = t_local.lore_text;
         
-      const t = this.add.text(10, yOffset, lore, {
+      const t = this.add.text(10, yOffset, lore, { // The lore text is displayed in the current language, and the content is wrapped to fit within the background area with some padding
         fontFamily: 'Impact, Arial Black, sans-serif',
         fontSize: '20px',
         color: '#e0e0e0',
@@ -128,15 +132,16 @@ export class StoryScene extends Phaser.Scene {
         wordWrap: { width: bgW - 60 },
         lineSpacing: 6,
       }).setOrigin(0, 0);
-      this.scrollContainer.add(t);
-      yOffset += t.height + 30;
+      this.scrollContainer.add(t); // Add the lore text to the scroll container so it will be part of the scrollable content
+      yOffset += t.height + 30; // Move yOffset down for the next content, adding extra space after the lore section for better separation before the character cards
     };
 
+    // Function to add a character card for a given character definition, including portrait, name, role, and description, all styled and laid out within a card design. The character's role and description are displayed in the current language based on the translations provided to the getHeroes and getEnemies functions.
     const addCharacterCard = (char: CharacterDef) => {
       const cardW = bgW - 90;
       const cardH = 180;
       const cardX = bgW / 2;
-      const cardY = yOffset + cardH / 2;
+      const cardY = yOffset + cardH / 2; // Position the card based on the current yOffset, which tracks where we are in the scrollable content. The card is centered horizontally within the background area, and its vertical position is determined by yOffset to ensure it is placed correctly in the scroll flow. After adding the card, yOffset will be increased by the card's height plus some extra space to position the next content correctly below it.
 
       const cardBg = this.add.graphics();
       cardBg.fillStyle(0x1a1a1a, 0.9);
@@ -166,7 +171,7 @@ export class StoryScene extends Phaser.Scene {
       }).setOrigin(0, 0));
 
       this.scrollContainer.add(cardContainer);
-      yOffset += cardH + 16;
+      yOffset += cardH + 16; // Move yOffset down for the next content, adding extra space after the character card for better separation
     };
 
     addSectionTitle(t.story_rebelion_title, '#ffcc00');
@@ -189,6 +194,7 @@ export class StoryScene extends Phaser.Scene {
     this.scrollMask = maskShape.createGeometryMask();
     this.scrollContainer.setMask(this.scrollMask);
 
+    // Add mouse wheel scrolling to allow the user to scroll through the content if it exceeds the height of the background area. The scroll is limited to prevent scrolling past the top or bottom of the content, ensuring a smooth and controlled scrolling experience.
     this.input.on('wheel', (_pointer: unknown, _gameObjects: unknown, _deltaX: number, deltaY: number) => {
       this.scrollContainer.y -= deltaY * 0.5;
       this.limitScroll(bgY + 20, bgH);
@@ -201,12 +207,15 @@ export class StoryScene extends Phaser.Scene {
     this.events.on('shutdown', () => { this.input.off('wheel'); });
   }
 
+  // Method to limit the vertical scrolling of the content within the bounds of the background area, ensuring that the user cannot scroll past the top or bottom of the content. This is called whenever the user scrolls to adjust the position of the scroll container and keep it within the defined limits.
   private limitScroll(startY: number, bgHeight: number) {
     const minHeight = startY - (this.contentHeight - bgHeight + 40);
     if (this.scrollContainer.y > startY) this.scrollContainer.y = startY;
     if (this.scrollContainer.y < minHeight) this.scrollContainer.y = minHeight;
   }
 
+  // Custom method to draw a stylized "metal plate" background for buttons, with different appearance based on whether it's pressed or not
+  // IA was used to creat the style, but the implementation was hand-coded by us based on the generated design
   private createMetalBtn(x: number, y: number, w: number, h: number, label: string, callback: () => void) {
     const container = this.add.container(x, y);
     const graphics = this.add.graphics();
@@ -224,10 +233,12 @@ export class StoryScene extends Phaser.Scene {
     };
 
     draw(false);
+    // The button text is styled with a metallic look using stroke and shadow, and the font is chosen to match the theme of the game. The text color changes on hover for interactivity feedback.
     const text = this.add.text(0, 0, label, {
       fontFamily: 'Impact, Arial Black, sans-serif', fontSize: '22px', color: '#c2baba', stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
+    // Add interactive behavior for the button, including visual feedback on hover and click, and executing the callback when clicked
     container.add([graphics, text]);
     container.setSize(w, h).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => { draw(true); text.y = 2; })
