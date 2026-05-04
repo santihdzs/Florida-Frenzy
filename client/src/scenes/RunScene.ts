@@ -28,6 +28,7 @@ import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } fro
 import skawlSheet from '../assets/characters/skawl/Skawl_SpriteSheet.webp';
 import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.webp';
 import boldearSheet from '../assets/characters/boldear/Boldear_SpriteSheet.webp';
+import pythraSheet from '../assets/characters/pythra/Pythra_SpriteSheet.webp';
 
 import rackoSheet from '../assets/characters/top-down_enemies/shooter/Racko_SpriteSheet.webp';
 import rhondaSheet from '../assets/characters/top-down_enemies/shooter/Rhonda_SpriteSheet.webp';
@@ -251,6 +252,12 @@ const RUN_BOSS_SHEETS = {
   Boldear: {
     textureKey: 'boss-boldear-run-sheet',
     framePrefix: 'boss-boldear-run',
+    xCuts: [0, 293, 587, 880],
+    yCuts: [0, 300, 599, 899, 1198],
+  },
+  Pythra: {
+    textureKey: 'boss-pythra-run-sheet',
+    framePrefix: 'boss-pythra-run',
     xCuts: [0, 293, 587, 880],
     yCuts: [0, 300, 599, 899, 1198],
   },
@@ -521,6 +528,8 @@ export class RunScene extends Phaser.Scene {
       this.load.image('boss-rabyz-run-sheet', rabyzSheet);
     if (!this.textures.exists('boss-boldear-run-sheet'))
       this.load.image('boss-boldear-run-sheet', boldearSheet);
+    if (!this.textures.exists('boss-pythra-run-sheet'))
+      this.load.image('boss-pythra-run-sheet', pythraSheet);
 
     const skinUrl = CHARACTER_VISUALS[this.playerSkin].sheetUrl;
     if (!this.textures.exists(this.playerSkin))
@@ -1009,6 +1018,7 @@ export class RunScene extends Phaser.Scene {
       case 'Skawl': return 'boss-skawl-run-sheet';
       case 'Rabyz': return 'boss-rabyz-run-sheet';
       case 'Boldear': return 'boss-boldear-run-sheet';
+      case 'Pythra': return 'boss-pythra-run-sheet';
       default: return KEY_SPR_ENEMY; // fallback to generic enemy sprite if something goes wrong with fetching boss data
     }
   }
@@ -1018,6 +1028,7 @@ export class RunScene extends Phaser.Scene {
       case 'Skawl': return 'boss-skawl-run-down';
       case 'Rabyz': return 'boss-rabyz-run-down';
       case 'Boldear': return 'boss-boldear-run-down';
+      case 'Pythra': return 'boss-pythra-run-down';
       default: return ''; // fallback to generic idle animation
     }
   }
@@ -1061,6 +1072,19 @@ export class RunScene extends Phaser.Scene {
         repeat: -1,
       });
     }
+
+    if (!this.anims.exists('boss-pythra-run-down')) {
+      this.anims.create({
+        key: 'boss-pythra-run-down',
+        frames: [
+          { key: 'boss-pythra-run-sheet', frame: 'boss-pythra-run-down-0' },
+          { key: 'boss-pythra-run-sheet', frame: 'boss-pythra-run-down-1' },
+          { key: 'boss-pythra-run-sheet', frame: 'boss-pythra-run-down-2' },
+        ],
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
   }
 
 
@@ -1089,6 +1113,7 @@ export class RunScene extends Phaser.Scene {
         this.selectedBoss?.enemyName === 'Skawl' ? 'boss-skawl-run' :
         this.selectedBoss?.enemyName === 'Rabyz' ? 'boss-rabyz-run' :
         this.selectedBoss?.enemyName === 'Boldear' ? 'boss-boldear-run' :
+        this.selectedBoss?.enemyName === 'Pythra' ? 'boss-pythra-run' :
         '';
 
       this.duelBossSprite = this.add.sprite(
