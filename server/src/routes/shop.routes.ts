@@ -469,6 +469,7 @@ const shopRoutes: FastifyPluginAsync = async (fastify) => {
       const existing = await fastify.prisma.playerCard.findFirst({ where: { playerId, cardGameId } });
       if (existing?.isUnlocked && existing.numCardsOwned > 0) throw badRequest('You already own this card.');
 
+      // decrement coins and upsert the playerCard record atomically
       const updatedPlayer = await fastify.prisma.$transaction(async (tx) => {
         await tx.player.update({ where: { id: playerId }, data: { totalCoins: { decrement: cost } } });
         if (existing) {

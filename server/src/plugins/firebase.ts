@@ -19,6 +19,7 @@ const firebasePlugin: FastifyPluginAsync = fp(async (fastify) => {
     return;
   }
 
+  // guard prevents re-init if the module is loaded more than once (e.g. watch mode)
   if (admin.apps.length === 0) {
     let parsed: object;
     try {

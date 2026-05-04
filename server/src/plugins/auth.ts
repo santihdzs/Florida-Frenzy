@@ -15,6 +15,7 @@ declare module 'fastify' {
   }
 }
 
+// fp wrapper prevents encapsulation so authenticate is available app-wide
 const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
   if (!process.env.JWT_SECRET) {
     fastify.log.warn('JWT_SECRET not set — using insecure default. Do NOT use in production.');
