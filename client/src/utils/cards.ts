@@ -5,6 +5,9 @@
 * including their properties, effects, and how they are created and managed within the game. 
 * This includes defining types for elements, categories, rarities, and effects, as well as 
 * functions for creating base cards and special cards with unique abilities.
+* 
+* ChatGPT was used to assist in the design of the card system, including defining the Cards'
+* utilities and implementation on the system.
 */ 
 
 
@@ -905,7 +908,7 @@ export function isCounterBonusTrigger(selected: Card, tableCard: Card): boolean 
 // Validate if a card can be played
 export function canPlayCard(selected: Card, tableCard: Card): boolean {
   if (selected.rarity === 'legendary' || tableCard.rarity === 'legendary') {
-    return true;
+    return true; // Legendary cards can be played against any card, and any card can be played against legendary cards
   }
 
   if (selected.element === 'ice') {

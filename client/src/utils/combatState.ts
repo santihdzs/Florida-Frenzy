@@ -7,6 +7,13 @@
 
 export interface CombatState {
   shield: number;
+  statusImmunityTurnCounter: number;
+  incomingDamageReductionTurnCounter: number;
+  incomingDamageReductionPercent: number;
+  outgoingDamageBoostTurnCounter: number;
+  outgoingDamageBoostPercent: number;
+  baseDamageBoostTurnCounter: number;
+  baseDamageBoostPercent: number;
   poisonTurnCounter: number;
   poisonDamage: number;
   burnTurnCounter: number;
@@ -33,6 +40,13 @@ export interface CombatState {
 export function createEmptyCombatState(): CombatState { // factory function to create a new combat state with default values
   return {
     shield: 0,
+    statusImmunityTurnCounter: 0,
+    incomingDamageReductionTurnCounter: 0,
+    incomingDamageReductionPercent: 0,
+    outgoingDamageBoostTurnCounter: 0,
+    outgoingDamageBoostPercent: 0,
+    baseDamageBoostTurnCounter: 0,
+    baseDamageBoostPercent: 0,
     poisonTurnCounter: 0,
     poisonDamage: 0,
     burnTurnCounter: 0,

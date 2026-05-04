@@ -1,3 +1,17 @@
+/*
+* Santiago Hernandez - A01787550
+* Manuel Montero - A01660761
+* Yael Ordaz - A01786776
+* 
+* This module defines the API routes related to game runs, 
+* including starting a new run, completing a run, 
+* abandoning stale runs, and unlocking legendary cards.
+* 
+* AI was used to assist in the design of the API routes and their 
+* interactions with the database
+*/
+
+
 import type { FastifyPluginAsync } from 'fastify';
 import { getRunsByPlayer, getRunById } from '../services/run.service.js';
 import { notFound, badRequest } from '../utils/errors.js';
@@ -117,23 +131,33 @@ const runRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/runs/beat-pythra
   fastify.post('/beat-pythra', async (request, reply) => {
     const playerId = request.user.playerId;
-    const prismaAny = fastify.prisma as any;
 
-    const player = await prismaAny.player.findUniqueOrThrow({
-      where: { id: playerId },
-      select: { hasBeatenPythra: true },
-    });
+    try {
+      const player = await (fastify.prisma as any).player.findUnique({
+        where: { id: playerId },
+        select: { hasBeatenPythra: true },
+      });
 
-    if (player.hasBeatenPythra) {
+      if (!player) {
+        return reply.code(404).send(notFound('Player not found'));
+      }
+
+      const firstTime = !player.hasBeatenPythra;
+
+      if (firstTime) {
+        await (fastify.prisma as any).player.update({
+          where: { id: playerId },
+          data: { hasBeatenPythra: true },
+        });
+      }
+
+      return reply.send({ firstTime });
+    } 
+    
+    catch (error) {
+      console.error('beatPythra endpoint error:', error);
       return reply.send({ firstTime: false });
     }
-
-    await prismaAny.player.update({
-      where: { id: playerId },
-      data: { hasBeatenPythra: true },
-    });
-
-    return reply.send({ firstTime: true });
   });
 
   // POST /api/runs/abandon-stale

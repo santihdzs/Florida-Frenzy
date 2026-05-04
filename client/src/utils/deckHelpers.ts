@@ -1,8 +1,12 @@
 /*
-*
+* Manuel Montero, Yael Ordaz & Santiago Hernandez
+
 * A module for managing local deck storage and access rules based on clan rank. 
 * It defines the structure of local deck data, provides functions to determine 
 * card access based on player rank, and handles saving/loading deck configurations to/from localStorage.
+* 
+* ChatGPT was used to assist in the design of the deck management system, 
+* including defining the data structures and access rules.
 * 
 */
 

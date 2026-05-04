@@ -1,11 +1,11 @@
 /* 
 *
+* Manuel Montero, Yael Ordaz & Santiago Hernandez
+* 
 * This file defines JSON schemas for validating the input parameters and request bodies of the 
 * deck-related API endpoints in the server.
-* These schemas ensure that the incoming data for operations such as fetching deck bootstrap data, 
-* saving a deck configuration, and activating a deck adhere to the expected structure and types.
-* These schemas specify required fields, their types, and any constraints (like minimum values or 
-* array lengths) to maintain data integrity and prevent invalid requests from being processed by the server.
+* 
+* AI was used to assist in the design of the API routes and their interactions with the database
 */
 
 export const deckBootstrapParamsSchema = {

@@ -1,8 +1,9 @@
 /*
-*
+* Manuel Montero, Yael Ordaz & Santiago Hernandez
 * AlL the routes to manage decks, including fetching the initial data for the deck 
 * management screen, saving a deck, and activating a deck.
 * 
+* AI was used to assist in the design of the API routes and their interactions with the database
 */
 
 import type { FastifyInstance } from 'fastify';

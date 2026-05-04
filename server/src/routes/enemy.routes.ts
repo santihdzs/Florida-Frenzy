@@ -1,3 +1,12 @@
+/*
+* Manuel Montero, Yael Ordaz & Santiago Hernandez
+* 
+* This module defines the API routes related to enemies, 
+* specifically for retrieving duel bosses and a random duel 
+* boss for the duel mode of the game.
+* 
+* AI was used to assist in the design of the API routes and their interactions with the database
+*/
 import type { FastifyPluginAsync } from 'fastify';
 import { getDuelBosses, getRandomDuelBoss } from '../services/enemy.service.js';
 import { getRandomDuelBossSchema } from '../schemas/enemy.schema.js';

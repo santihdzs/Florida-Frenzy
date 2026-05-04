@@ -32,6 +32,7 @@ import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } fro
 import skawlSheet from '../assets/characters/skawl/Skawl_SpriteSheet.webp';
 import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.webp';
 import boldearSheet from '../assets/characters/boldear/Boldear_SpriteSheet.webp';
+import pythraSheet from '../assets/characters/pythra/Pythra_SpriteSheet.webp';
 
 // enemy spritesheets
 import rackoSheet from '../assets/characters/top-down_enemies/shooter/Racko_SpriteSheet.webp';
@@ -102,7 +103,7 @@ const COIN_SIZE      = 12;
 const COIN_COUNT_MIN = 8;
 const COIN_COUNT_MAX = 15;
 const COIN_COLLECT_R = 24;
-const LEGENDARY_DROP_SPAWN_CHANCE = 0.05;
+const LEGENDARY_DROP_SPAWN_CHANCE = 0.15;
 
 // player projectile constants
 const PROJ_SIZE  = 8;
@@ -301,6 +302,12 @@ const RUN_BOSS_SHEETS = {
     xCuts: [0, 293, 587, 880],
     yCuts: [0, 300, 599, 899, 1198],
   },
+  Pythra: {
+    textureKey: 'boss-pythra-run-sheet',
+    framePrefix: 'boss-pythra-run',
+    xCuts: [0, 293, 587, 880],
+    yCuts: [0, 300, 599, 899, 1198],
+  },
 } as const;
 
 // struct for enemies
@@ -338,8 +345,7 @@ const LEGENDARY_DROPS = [
   { name: 'Gavial', tint: 0x8b5a2b },
   { name: 'Caiman', tint: 0x7ed957 },
   { name: 'Sarcosuchus', tint: 0xffdf00 },
-] as const;
-// type is one of the five legendary drop name string
+] as const; // the pool of legendary drops that can be found in runs; each has a unique name and tint color for the coin sprite
 type LegendaryDropName = typeof LEGENDARY_DROPS[number]['name'];
 
 // player projectile struct
@@ -512,7 +518,17 @@ export class RunScene extends Phaser.Scene {
     this.step           = data.step ?? 0;
     this.runId          = data.runId ?? 0;
 
-    // select a new map only at the start of a level (step 0), restore it for subsequent steps
+    // Reset duel-boss state on every run init to avoid stale boss triggers across levels
+    this.selectedBoss = undefined;
+    this.waitingForBossTouch = false;
+    this.duelBossDirection = 1;
+    this.duelBossBaseY = 0;
+    if (this.duelBossSprite) {
+      this.duelBossSprite.destroy();
+      this.duelBossSprite = undefined;
+    }
+
+    // Select a new map only at the start of a level (step 0); restore it for subsequent steps
     if (this.step === 0) {
       this.activeMap = selectMap(data.currentMap);
     } else {
@@ -559,14 +575,16 @@ export class RunScene extends Phaser.Scene {
     this.coins            = [];
     this.projectiles      = [];
     this.enemyProjectiles = [];
-    this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
+    this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name); // reset available legendary drops at the start of each run since they are consumed when picked up
 
     // Create a server-side run record at the start of each new run. - AI did this if block:
     // We store the promise so endRun() can chain off it — avoids the race condition
-    // where the player dies before the async response arrives and runId is still 0.
+    // where the player dies before the async response arrives and runId is still 0
     if (this.level === 1 && this.step === 0) {
       this.runCreationPromise = createRun().then(id => { this.runId = id ?? 0; });
-    } else {
+    } 
+    
+    else {
       this.runCreationPromise = Promise.resolve();
     }
   }
@@ -593,6 +611,8 @@ export class RunScene extends Phaser.Scene {
       this.load.image('boss-rabyz-run-sheet', rabyzSheet);
     if (!this.textures.exists('boss-boldear-run-sheet'))
       this.load.image('boss-boldear-run-sheet', boldearSheet);
+    if (!this.textures.exists('boss-pythra-run-sheet'))
+      this.load.image('boss-pythra-run-sheet', pythraSheet);
 
     // player character sprites
     const skinUrl = CHARACTER_VISUALS[this.playerSkin].sheetUrl;
@@ -630,6 +650,12 @@ export class RunScene extends Phaser.Scene {
     this.cameras.main.fadeIn(300, 0, 0, 0);
     if (this.input.keyboard) this.input.keyboard.enabled = true;
 
+    // FAILSAFE: if step wasn't set by init() (shouldn't happen, but Phaser reuses scenes)
+    // ensure we default to 0 at the start of each new run
+    if (typeof this.step === 'undefined' || this.step === null) {
+      this.step = 0;
+    }
+
     // Reset all flags — these persist across scene restarts since Phaser reuses the instance
     this.done = false;
     this.runEnded = false;
@@ -663,6 +689,7 @@ export class RunScene extends Phaser.Scene {
       .setOrigin(0, 0).setDepth(5).setScale(playerScale);
     this.playerImg.play(`${this.playerSkin}-walk-down`);
 
+    // Create HUD BEFORE awaiting, so update() has valid references
     // ONLY spawn the duel boss on the last stage of a cycle (last step, 2 for now)
     if (this.step === RUNS_PER_CYCLE - 1) {
       void this.spawnDuelBossAtGoal();
@@ -688,6 +715,14 @@ export class RunScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 2,
     }).setOrigin(0.5, 1).setDepth(15).setVisible(false);
+
+    // Now safe to await async operations
+    await this.loadLegendaryDropPool();
+    this.spawnCoins(this.grid);
+    
+    if (this.step === RUNS_PER_CYCLE - 1) {
+      void this.spawnDuelBossAtGoal();
+    }
 
     // ESC key opens pause overlay without stopping scene music, AI did this, we figured it was a nice feat. to have and not worth too much of our time
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
@@ -828,7 +863,7 @@ export class RunScene extends Phaser.Scene {
   // builds pool of legendary card names, can't comment too much on this or legendary drops in general, Manuel handled this part - Santi
   private async loadLegendaryDropPool(): Promise<void> {
     this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
-    if (!this.playerCanFindLegendaryDrops()) return;
+    if (!this.playerCanFindLegendaryDrops()) return; // condition to check if the player is eligible to find legendary drops
 
     const player = getPlayer();
     const playerId = Number(player?.id ?? 0);
@@ -848,19 +883,21 @@ export class RunScene extends Phaser.Scene {
         if (!name || !Number.isFinite(id) || id <= 0) continue;
         if (!LEGENDARY_DROPS.some(drop => drop.name === name)) continue;
         legendaryById.set(id, name);
-      }
+      } // build a map of cardGameId to LegendaryDropName for all legendary cards in the game
 
       const unlockedLegendaryNames = new Set<LegendaryDropName>();
       for (const owned of bootstrap.ownedCards) {
         if (!owned.isUnlocked || owned.numCardsOwned <= 0) continue;
         const name = legendaryById.get(owned.cardGameId);
         if (name) unlockedLegendaryNames.add(name);
-      }
+      } // iterate through the player's owned cards and add the corresponding LegendaryDropName
 
       this.availableLegendaryDrops = LEGENDARY_DROPS
         .map(drop => drop.name)
-        .filter(name => !unlockedLegendaryNames.has(name));
-    } catch (error) {
+        .filter(name => !unlockedLegendaryNames.has(name)); // the final pool of legendary drops the player can find is all legendary drops minus the ones they already have unlocked
+    } 
+    
+    catch (error) {
       console.error('Failed to load legendary drop pool; using fallback pool.', error);
       this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
     }
@@ -870,11 +907,10 @@ export class RunScene extends Phaser.Scene {
   // time is absolute time in ms since start of game, delta is the frame duration in ms (to compute frame rate independent stuff)
   update(time: number, delta: number) {
     if (this.done) return;
+    if ((this as any).__transitioning) return; // guard: don't update during scene transition
     if (this.isShowingQuitDialog) return;
-
-    // boss animation and touch detection (only while waiting for player to engage)
-    if (this.duelBossSprite && this.waitingForBossTouch) {
-      this.duelBossSprite.y += this.duelBossDirection * 0.5; 
+    if (this.step === RUNS_PER_CYCLE - 1 && this.duelBossSprite && this.waitingForBossTouch) {
+      this.duelBossSprite.y += this.duelBossDirection * 0.5; // bob up and down to indicate interactivity
       if (this.duelBossSprite.y > this.duelBossBaseY + 20) this.duelBossDirection = -1;
       if (this.duelBossSprite.y < this.duelBossBaseY - 20) this.duelBossDirection = 1;
       
@@ -1107,6 +1143,7 @@ export class RunScene extends Phaser.Scene {
       case 'Skawl': return 'boss-skawl-run-sheet';
       case 'Rabyz': return 'boss-rabyz-run-sheet';
       case 'Boldear': return 'boss-boldear-run-sheet';
+      case 'Pythra': return 'boss-pythra-run-sheet';
       default: return KEY_SPR_ENEMY; // fallback to generic enemy sprite if something goes wrong with fetching boss data
     }
   }
@@ -1117,6 +1154,7 @@ export class RunScene extends Phaser.Scene {
       case 'Skawl': return 'boss-skawl-run-down';
       case 'Rabyz': return 'boss-rabyz-run-down';
       case 'Boldear': return 'boss-boldear-run-down';
+      case 'Pythra': return 'boss-pythra-run-down';
       default: return ''; // fallback to generic idle animation
     }
   }
@@ -1161,6 +1199,19 @@ export class RunScene extends Phaser.Scene {
         repeat: -1,
       });
     }
+
+    if (!this.anims.exists('boss-pythra-run-down')) {
+      this.anims.create({
+        key: 'boss-pythra-run-down',
+        frames: [
+          { key: 'boss-pythra-run-sheet', frame: 'boss-pythra-run-down-0' },
+          { key: 'boss-pythra-run-sheet', frame: 'boss-pythra-run-down-1' },
+          { key: 'boss-pythra-run-sheet', frame: 'boss-pythra-run-down-2' },
+        ],
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
   }
 
 
@@ -1169,7 +1220,6 @@ export class RunScene extends Phaser.Scene {
   private async spawnDuelBossAtGoal() {
     try {
       this.selectedBoss = await fetchRandomDuelBoss();
-      console.log('Boss fetched for RunScene:', this.selectedBoss);
 
       this.waitingForBossTouch = true;
 
@@ -1179,8 +1229,6 @@ export class RunScene extends Phaser.Scene {
       this.duelBossBaseY = bossY;
       const bossKey = this.getRunBossSpriteKey();
       const bossAnim = this.getRunBossAnimationKey();
-
-      console.log('bossKey:', bossKey, 'bossAnim:', bossAnim);
 
       if (!bossAnim) {
         this.duelBossSprite = this.add.sprite(bossX, bossY, KEY_SPR_ENEMY)
@@ -1193,6 +1241,7 @@ export class RunScene extends Phaser.Scene {
         this.selectedBoss?.enemyName === 'Skawl' ? 'boss-skawl-run' :
         this.selectedBoss?.enemyName === 'Rabyz' ? 'boss-rabyz-run' :
         this.selectedBoss?.enemyName === 'Boldear' ? 'boss-boldear-run' :
+        this.selectedBoss?.enemyName === 'Pythra' ? 'boss-pythra-run' :
         '';
 
       this.duelBossSprite = this.add.sprite(
@@ -1217,6 +1266,8 @@ export class RunScene extends Phaser.Scene {
   
   // transition to DuelScene passing current run state, guard prevents double trigger
   private startBossDuel() {
+    // Duel boss is only valid on the last run step.
+    if (this.step !== RUNS_PER_CYCLE - 1) return;
     if (!this.selectedBoss || this.done) return; // guard against multiple triggers
 
     this.done = true;
@@ -1387,7 +1438,7 @@ export class RunScene extends Phaser.Scene {
     const count = randInt(COIN_COUNT_MIN, COIN_COUNT_MAX);
     let placed = 0, attempts = 0;
 
-    while (placed < count && attempts < 500) {
+    while (placed < count && attempts < 500) { // coins are less critical to place than enemies, so we allow more attempts to find valid locations for them without blocking the path
       attempts++;
       const col = randInt(START_COLS + 1, END_COL - 2);
       const row = randInt(0, ROWS - 1);
@@ -1405,16 +1456,13 @@ export class RunScene extends Phaser.Scene {
       placed++;
     }
 
-    this.trySpawnLegendaryDrop(grid);
+    this.trySpawnLegendaryDrop(grid); // after placing regular coins, attempt to place a legendary drop if the player is eligible to find them and there are still some left in the pool
   }
 
   private playerCanFindLegendaryDrops(): boolean {
     const player = getPlayer();
     const clanRank = ((player?.clanRank as string | undefined) ?? '').toUpperCase();
-    if (clanRank === 'LEGEND') return true;
-
-    const maxXp = Number(player?.maxXp ?? 0);
-    return Number.isFinite(maxXp) && maxXp >= 13;
+    return clanRank === 'LEGEND'; // only players with LEGEND clan rank can find legendary drops
   }
 
   private trySpawnLegendaryDrop(grid: number[][]): void {
@@ -1422,8 +1470,8 @@ export class RunScene extends Phaser.Scene {
     if (this.availableLegendaryDrops.length === 0) return;
     if (Math.random() > LEGENDARY_DROP_SPAWN_CHANCE) return;
 
-    const dropName = this.availableLegendaryDrops[randInt(0, this.availableLegendaryDrops.length - 1)];
-    const drop = LEGENDARY_DROPS.find(candidate => candidate.name === dropName);
+    const dropName = this.availableLegendaryDrops[randInt(0, this.availableLegendaryDrops.length - 1)]; // pick a random legendary drop from the pool of available drops that the player hasn't unlocked
+    const drop = LEGENDARY_DROPS.find(candidate => candidate.name === dropName); // find the full drop data for the selected legendary drop
     if (!drop) return;
     let attempts = 0;
 
@@ -1451,7 +1499,7 @@ export class RunScene extends Phaser.Scene {
       });
       return;
     }
-  }
+  } // attempt to spawn a legendary drop at a random valid location on the map, ensuring it doesn't overlap with existing coins
 
   // ── HUD ──
 
@@ -1496,6 +1544,9 @@ export class RunScene extends Phaser.Scene {
 
   // redrwaw HUD elements every frame
   private refreshHud() {
+    // Guard: HUD elements may be null/destroyed during scene transition
+    if (!this.hpLabel || !this.coinText || !this.ammoText || !this.levelIndicator) return;
+
     const BAR_X = 75;
     const BAR_W = 248;
 
@@ -1546,12 +1597,12 @@ export class RunScene extends Phaser.Scene {
     // admin shortcut: advance stage immediately
     this.keyP.on('down', () => {
       const player = getPlayer();
-      if (player?.isAdmin && !this.done) {
+      if (player?.isAdmin && !this.done && !(this as any).__transitioning) {
         this.done = true;
         this.totalCoins += this.coinsCollected + 100;
         this.totalXp += 250;
         this.coinsCollected = 0;
-        this.advanceStage();
+        this.advanceStage(); // transitionTo() will handle __transitioning flag
       }
     });
 
@@ -1574,6 +1625,9 @@ export class RunScene extends Phaser.Scene {
   // handle player movement, sprint, barrier pushback, animation updates
   // AI helped iron out the collision and stamina logic 
   private handleMovement(time: number, delta: number) {
+    // playerImg may not be ready yet during async create(), or destroyed during transition
+    if (!this.playerImg || !this.playerImg.anims || !this.cursors) return;
+
     const dt = delta / 1000;
 
     const movingX = this.cursors.left.isDown || this.keyA.isDown ||
@@ -1967,7 +2021,7 @@ export class RunScene extends Phaser.Scene {
 
         if (c.kind === 'legendary' && c.legendaryName) {
           void unlockLegendaryRunCard(c.legendaryName).catch(() => {
-            // Silent by design: collectible unlocks are meant to be discovered indirectly in the deck browser.
+            // collectible unlocks are meant to be discovered indirectly in the deck browser
           });
           continue;
         }
@@ -1981,6 +2035,9 @@ export class RunScene extends Phaser.Scene {
 
   // scroll camera rightward at level scaled speed, kill player if camera overtakes them
   private updateCamera(delta: number) {
+    // camera may be destroyed during scene transition
+    if (!this.cameras.main) return;
+
     const cam  = this.cameras.main;
     const camW = cam.width;
     const camH = cam.height;
@@ -2097,7 +2154,7 @@ export class RunScene extends Phaser.Scene {
     this.totalCoins += this.coinsCollected;
     this.coinsCollected = 0;
     // Chain off runCreationPromise so we never call completeRun before the run ID
-    // is assigned from the server (guards the race condition on very fast deaths in step 0).
+    // is assigned from the server (guards the race condition on very fast deaths in step 0)
     const coins = this.totalCoins;
     const xp    = this.totalXp;
     const level = this.level;

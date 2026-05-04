@@ -2,7 +2,12 @@
 * Manuel Montero, Yael Ordaz & Santiago Hernandez
 * 
 *
-*
+* Here's where we define the UI rendering logic for the duel scene, 
+* including functions to update the HP bars, shield bars, 
+* and energy bars for both the player and the enemy.
+* 
+* ChatGPT was used to assist in the design of the duel UI, including the 
+* layout and rendering logic for the various bars and indicators.
 *
 */
 

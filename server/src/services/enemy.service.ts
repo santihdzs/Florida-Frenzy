@@ -1,3 +1,12 @@
+/* 
+* Manuel Montero, Yael Ordaz & Santiago Hernandez
+*
+* This module provides functions to manage enemy data for the duel mode of the game.
+* It includes functions to fetch all duel bosses and select a random boss for duels.
+* 
+* AI was used to assist in the design of the API routes and their interactions with the database
+*/
+
 import type { FastifyInstance } from 'fastify';
 
 export async function getDuelBosses(fastify: FastifyInstance) { // fetch all bosses from the database

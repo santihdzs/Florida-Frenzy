@@ -48,13 +48,6 @@ import {
   HAND_SIZE,
   PLAYER_DECK_SIZE,
   DISCARD_BASE_SIZE,
-  PLAYER_IDLE_SCALE,
-  PLAYER_ATTACK_SCALE,
-  PLAYER_HURT_SCALE,
-  // ENEMY_IDLE_SCALE,
-  // ENEMY_ATTACK_SCALE,
-  // ENEMY_HURT1_SCALE,
-  // ENEMY_HURT2_SCALE,
 } from '../utils/duelConfig'; // constants for duel mechanics and rendering parameters
 
 // import { createBaseDiscardPile } from '../utils/duelSetup';
@@ -119,8 +112,8 @@ import boldearDefeated from '../assets/characters/boldear/Boldear_defeated.webp'
 import pythraEvolution1 from '../assets/characters/pythra/Pythra_evolution-1_resized.webp'; // Pythra evolution phase 1 sprite
 import pythraAttack1 from '../assets/characters/pythra/Pythra_attack-1.webp'; // Pythra attack animation frame 1
 import pythraAttack2 from '../assets/characters/pythra/Pythra_attack-2.webp'; // Pythra attack animation frame 2
-import pythraUlti1 from '../assets/characters/pythra/Pythra_ulti-1.webp'; // Pythra ultimate animation frame 1
-import pythraUlti2 from '../assets/characters/pythra/Pythra_ulti-2.webp'; // Pythra ultimate animation frame 2
+import pythraUlti1 from '../assets/characters/pythra/Pythra_ulti-1.webp'; // Pythra ultimate animation frame 1 for his first phase
+import pythraUlti2 from '../assets/characters/pythra/Pythra_ulti-2.webp'; // Pythra ultimate animation frame 2 for his first phase
 import pythraPrepare1 from '../assets/characters/pythra/Pythra_prepare-1.webp'; // Pythra evolution preparation sprite 1
 import pythraPrepare2 from '../assets/characters/pythra/Pythra_prepare-2.webp'; // Pythra evolution preparation sprite 2
 import pythraEvolution2 from '../assets/characters/pythra/Pythra_evolution-2.webp'; // Pythra evolution phase 2 sprite
@@ -220,12 +213,24 @@ export class DuelScene extends Phaser.Scene {
   private selectedCharacter?: CharacterGameData;
   private playerAttackBonus = 0;
   private playerDefenseBonus = 0;
-  private readonly playerPoseY = 335;
+  private getPlayerDuelConfig() {
+    return CHARACTER_VISUALS[this.playerSkinKey].duelVisuals;
+  } // helper to access the player's character-specific visual configuration for the duel
 
   private playerCharacter!: Phaser.GameObjects.Image; // player character sprite
   private enemyCharacter!: Phaser.GameObjects.Image; // enemy character sprite
   private playerShadow!: Phaser.GameObjects.Graphics; // player shadow graphic
   private enemyShadow!: Phaser.GameObjects.Graphics; // enemy shadow graphic
+  private ultimateButtonFrame!: Phaser.GameObjects.Graphics; // ultimate button background plate
+  private ultimateButtonFill!: Phaser.GameObjects.Graphics; // ultimate charge fill
+  private ultimateButtonLabel!: Phaser.GameObjects.Text; // ultimate title / name
+  private ultimateButtonStatus!: Phaser.GameObjects.Text; // readiness / charge text
+  private ultimateButtonHint!: Phaser.GameObjects.Text; // short helper text
+  private ultimateButtonZone!: Phaser.GameObjects.Zone; // click target for the ultimate button
+  private ultimateTooltip?: Phaser.GameObjects.Text; // tooltip shown on hover with ultimate description
+
+  private playerUltToggle = false; // alternates player ulti pose
+  private enemyUltToggle = false; // alternates enemy ulti pose per use
 
   protected isAnimating = false; // locks input while a turn animation is running
   // private currentEnemyImage = 'enemy-default'; // tracks which enemy texture is currently active
@@ -282,6 +287,8 @@ export class DuelScene extends Phaser.Scene {
     if (!this.textures.exists(`${skin}-idle`))     this.load.image(`${skin}-idle`,     skinAssets.idle);
     if (!this.textures.exists(`${skin}-attack-1`)) this.load.image(`${skin}-attack-1`, skinAssets.attack1);
     if (!this.textures.exists(`${skin}-attack-2`)) this.load.image(`${skin}-attack-2`, skinAssets.attack2);
+    if (!this.textures.exists(`${skin}-ulti-1`))   this.load.image(`${skin}-ulti-1`,   (skinAssets as any).ulti1 ?? skinAssets.attack1);
+    if (!this.textures.exists(`${skin}-ulti-2`))   this.load.image(`${skin}-ulti-2`,   (skinAssets as any).ulti2 ?? skinAssets.attack2);
     if (!this.textures.exists(`${skin}-damage-1`)) this.load.image(`${skin}-damage-1`, skinAssets.damage1);
     if (!this.textures.exists(`${skin}-damage-2`)) this.load.image(`${skin}-damage-2`, skinAssets.damage2);
     if (!this.textures.exists(`${skin}-defeated`)) this.load.image(`${skin}-defeated`, skinAssets.defeated);
@@ -358,7 +365,9 @@ export class DuelScene extends Phaser.Scene {
 
     try {
       this.selectedCharacter = await fetchCharacterByKey(equipped);
-    } catch (error) {
+    } 
+    
+    catch (error) {
       console.error('Failed to load duel character data from backend, using profile fallback.', error);
       this.selectedCharacter = {
         id: 0,
@@ -371,7 +380,7 @@ export class DuelScene extends Phaser.Scene {
         chUltimate: '',
         chUltimateDesc: null,
         isDefaultUnlocked: true,
-      };
+      }; // if the server load fails, create a fallback character using the player's profile stats
     }
 
     const hpUpgradeBonus = Math.max(0, ((player?.maxHp as number | undefined) ?? 50) - 50);
@@ -422,15 +431,16 @@ export class DuelScene extends Phaser.Scene {
     const { width, height } = this.cameras.main; // current scene dimensions
     const centerX = width / 2; // horizontal center point
 
-    // Load translations for the active language
+    // load translations for the active language
     const langKey = this.registry.get('language') || 'en';
     this.t = translations[langKey];
 
     let currentMusic = this.registry.get('music');
     if (currentMusic && currentMusic.key !== 'duel-music') {
         currentMusic.stop();
-        currentMusic = null; // Limpiamos para crear la nueva
+        currentMusic = null;
     }
+
     if (!currentMusic || !currentMusic.isPlaying) {
         const duelMusic = this.sound.add('duel-music', { loop: true, volume: 0.5 });
         this.registry.set('music', duelMusic);
@@ -469,7 +479,12 @@ export class DuelScene extends Phaser.Scene {
 
     if (getPlayer()?.isAdmin) {
       const keyP = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P); // shortcut for advancing the run
-      keyP.on('down', () => this.advanceToNextCycle()); // move to the next run scene on P press
+      keyP.on('down', () => {
+        this.advanceToNextCycle().catch((error) => {
+          console.error('Error advancing to next cycle:', error);
+          (this as any).__transitioning = false; // reset flag if transition fails
+        });
+      }); // move to the next run scene on P press
     }
 
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
@@ -570,17 +585,25 @@ export class DuelScene extends Phaser.Scene {
       totalXp: this.totalXp,
       runId: this.runId,
       currentMap: this.currentMap,
-    };
+    }; // pass all relevant run data to the next scene, incrementing the level for progression
 
-    if (this.selectedBoss?.enemyName === 'Pythra') {
-      const firstTime = await beatPythra();
-      if (firstTime) {
-        transitionTo(this, 'EndScene', runData);
-        return;
-      }
+    try {
+      if (this.selectedBoss?.enemyName === 'Pythra') {
+        const firstTime = await beatPythra();
+        if (firstTime) {
+          transitionTo(this, 'EndScene', runData);
+          return;
+        }
+      } // if the player defeated Pythra, check if it's their first time doing so and if yes, send them to the special end scene instead of the next duel scene
+
+      transitionTo(this, 'RunScene', runData);
+    } 
+    
+    catch (error) {
+      console.error('Failed to advance cycle:', error);
+      (this as any).__transitioning = false; // unlock on error
+      throw error;
     }
-
-    transitionTo(this, 'RunScene', runData);
   }
 
   private resetDuelState() {
@@ -836,36 +859,39 @@ export class DuelScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#84ff00', 2, false, true).setAlpha(0.9); // discard counter display
 
     this.drawDeckPlaceholder(centerX - 135, 478, 'Deck').setDepth(5); // visual placeholder for the deck pile
+    this.createUltimateControl(centerX + 6, 480); // position the ulimate button in the center between the deck and discard piles
 
-    this.discardDrawHintText = this.add.text(centerX + 243, 489, this.tf('duel_discard_hint'), {
+    this.discardDrawHintText = this.add.text(centerX + 243, 489, this.tf('<- DISCARD'), {
       fontSize: '12px',
       color: '#eed112',
       fontStyle: 'bold',
-      stroke: '#fffb00',
+      stroke: '#0e0e0d',
+      strokeThickness: 4,
     }).setOrigin(0.5).setDepth(5).setShadow(1, 1, '#373600', 2, false, true).setAlpha(0.9); // hint under the discard pile
   }
 
   private createCharacters() {
-    const bossConfig = this.getCurrentBossConfig();
-    const currentPhase = this.getCurrentBossVisual();
+    const bossConfig = this.getCurrentBossConfig(); // get the base visual configuration for the enemy character based on the selected boss
+    const currentPhase = this.getCurrentBossVisual(); // get the visual configuration for the enemy character based on the selected boss and current phase of the duel
+    const playerConfig = this.getPlayerDuelConfig(); // get the visual configuration for the player character based on the selected character
 
     this.playerShadow = this.add.graphics().setDepth(0);
     this.playerShadow.fillStyle(0x000000, 0.22);
-    this.playerShadow.fillEllipse(210, 520, 150, 32);
+    this.playerShadow.fillEllipse(playerConfig.shadowX, playerConfig.shadowY, playerConfig.shadowRadiusX, playerConfig.shadowRadiusY); // add a shadow ellipse under the player character for depth, using the player's specific shadow configuration from the duel config
 
     this.enemyShadow = this.add.graphics().setDepth(0);
     this.enemyShadow.fillStyle(0x000000, 0.22);
     this.enemyShadow.fillEllipse(bossConfig.x + 90, bossConfig.y + 95, 170, 34);
 
-    this.playerCharacter = this.add.image(210, this.playerPoseY, `${this.playerSkinKey}-idle`)
-      .setScale(PLAYER_IDLE_SCALE)
-      .setDepth(0);
+    this.playerCharacter = this.add.image(playerConfig.poseX, playerConfig.poseY, `${this.playerSkinKey}-idle`)
+      .setScale(playerConfig.idleScale)
+      .setDepth(0); // add the player character sprite to the scene, scaling it according to the player's specific configuration
 
     this.enemyCharacter = this.add.image(bossConfig.x, bossConfig.y, currentPhase.idleKey)
       .setScale(bossConfig.idleScale)
       .setFlipX(bossConfig.flipX)
       .setDepth(bossConfig.depth);
-  }
+  } // create the player and enemy character sprites based on the selected boss and player's equipped character, and add shadows for depth
 
   private cloneDeckCard(card: Card, index: number): Card {
     return {
@@ -961,7 +987,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private createDiscardPileFromPool(pool: Card[], size: number): Card[] {
-    const shuffled = shuffleCards(pool);
+    const shuffled = shuffleCards(pool); // shuffle the pool to ensure variability in the discard pile each run
     const pile: Card[] = [];
 
     for (let i = 0; i < size; i++) {
@@ -970,7 +996,7 @@ export class DuelScene extends Phaser.Scene {
         ...source,
         id: `${source.id}-discard-${i}-${Math.random().toString(36).slice(2, 7)}`,
       });
-    }
+    } // fill the discard pile with unique instances of cards from the shuffled pool, allowing for duplicates if the pool is smaller than the discard size
 
     return pile;
   }
@@ -980,6 +1006,7 @@ export class DuelScene extends Phaser.Scene {
       console.warn('No boss selected for this duel, falling back to Skawl visuals'); // log a warning if we don't have a boss selected, since this should generally not happen and indicates a setup issue
       return BOSS_VISUALS.Skawl; // default to Skawl's visuals if no boss is selected, to ensure the game still functions even with a setup issue
     }
+
     return BOSS_VISUALS[this.selectedBoss.enemyName];
   }
 
@@ -1035,7 +1062,7 @@ export class DuelScene extends Phaser.Scene {
       this.updatePythraPhaseVisuals();
       this.showBattleMessage(this.tf('duel_pythra_evolved', this.bossLivesRemaining), '#ff9966');
       return false;
-    }
+    } // if the defeated boss is Pythra and he has lives remaining, instead of ending the duel
 
     return true;
   }
@@ -1082,6 +1109,342 @@ export class DuelScene extends Phaser.Scene {
     this.discardCountText.setText(this.tf('duel_discard_count', this.discardPile.length)); // refresh discard count
     this.totalXpText.setText(this.tf('duel_xp', this.totalXp)); // refresh total XP display
     this.totalCoinsText.setText(this.tf('duel_coins', this.totalCoins)); // refresh total coin display
+    this.updateUltimateControl(); // keep the ultimate button in sync with the current energy state and selected character/boss
+  }
+
+  private createUltimateControl(x: number, y: number) { // this method sets up the ultimate ability button in the UI
+    const width = 150;
+    const height = 54;
+    const fillInset = 6;
+
+    this.ultimateButtonFrame = this.add.graphics().setDepth(5);
+    this.ultimateButtonFill = this.add.graphics().setDepth(6);
+    this.ultimateButtonLabel = this.add.text(x, y - 14, 'ULTI', {
+      fontSize: '15px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 6,
+      align: 'center',
+    }).setOrigin(0.5).setDepth(7);
+
+    this.ultimateButtonStatus = this.add.text(x, y, '', {
+      fontSize: '12px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 5,
+      align: 'center',
+    }).setOrigin(0.5).setDepth(7);
+    
+    this.ultimateButtonHint = this.add.text(x, y + 15, '', {
+      fontSize: '10px',
+      color: '#d8ffd1',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 6,
+      align: 'center',
+    }).setOrigin(0.5).setDepth(7);
+
+    this.ultimateButtonZone = this.add.zone(x, y, width, height)
+      .setDepth(8)
+      .setInteractive({ useHandCursor: true });
+
+    this.ultimateButtonZone.on('pointerover', () => {
+      if (this.isAnimating) return;
+      this.ultimateButtonLabel.setColor('#fffd9b');
+    });
+
+    this.ultimateButtonZone.on('pointerout', () => {
+      this.ultimateButtonLabel.setColor('#ffffff');
+    });
+
+    this.ultimateButtonZone.on('pointerdown', () => {
+      this.handlePlayerUltimateRequest();
+    });
+
+    this.ultimateButtonFrame.fillStyle(0x1f1f1f, 0.9);
+    this.ultimateButtonFrame.fillRoundedRect(x - width / 2, y - height / 2, width, height, 10);
+    this.ultimateButtonFrame.lineStyle(2, 0xffffff, 0.5);
+    this.ultimateButtonFrame.strokeRoundedRect(x - width / 2, y - height / 2, width, height, 10);
+
+    this.ultimateButtonFill.fillStyle(0x5de08b, 0.9);
+    this.ultimateButtonFill.fillRoundedRect(x - width / 2 + fillInset, y + 10, width - fillInset * 2, 10, 5);
+
+    this.updateUltimateControl();
+  }
+
+  private getPlayerUltimateName(): string {
+    return this.selectedCharacter?.chUltimate?.trim() ?? ''; // get the player's ultimate name from the selected character's configuration, or return an empty string if not available, trimming any extra whitespace for cleaner display
+  }
+
+  private getBossUltimateName(): string {
+    if (!this.selectedBoss) return '';
+
+    if (this.selectedBoss.enemyName === 'Pythra') {
+      return ['Double Rat', 'Nasty Corrosion', 'Crushing Control'][Math.min(this.pythraPhase - 1, 2)];
+    }
+
+    return this.selectedBoss.enemyUltimate?.trim() ?? '';
+  }
+
+  private getUltimateChargeRatio(side: 'player' | 'enemy'): number {
+    const elementalEnergy = side === 'player' ? this.playerElementalEnergy : this.enemyElementalEnergy;
+    const instinctEnergy = side === 'player' ? this.playerInstinctEnergy : this.enemyInstinctEnergy;
+    return Math.min(1, (elementalEnergy / MAX_ENERGY + instinctEnergy / MAX_ENERGY) / 2);
+  } // this method calculates the charge ratio for the ultimate ability
+
+  private canUseUltimate(side: 'player' | 'enemy'): boolean {
+    const elementalEnergy = side === 'player' ? this.playerElementalEnergy : this.enemyElementalEnergy;
+    const instinctEnergy = side === 'player' ? this.playerInstinctEnergy : this.enemyInstinctEnergy;
+    return elementalEnergy >= MAX_ENERGY && instinctEnergy >= MAX_ENERGY;
+  }
+
+  private updateUltimateControl() {
+    if (!this.ultimateButtonFrame || !this.ultimateButtonFill || !this.ultimateButtonLabel || !this.ultimateButtonStatus || !this.ultimateButtonHint) {
+      return;
+    }
+
+    const playerReady = this.canUseUltimate('player');
+    const chargeRatio = this.getUltimateChargeRatio('player');
+    const playerUltimateName = this.getPlayerUltimateName();
+    const labelText = playerUltimateName || 'ULTI';
+    const statusText = playerReady ? 'READY' : `${Math.round(chargeRatio * 100)}%`;
+    const hintText = playerReady ? 'CLICK TO CAST' : 'FULL EE + EI';
+
+    this.ultimateButtonFrame.clear();
+    this.ultimateButtonFrame.fillStyle(playerReady ? 0x245f33 : 0x1f1f1f, 0.94);
+    this.ultimateButtonFrame.fillRoundedRect(this.ultimateButtonZone.x - 75, this.ultimateButtonZone.y - 27, 150, 54, 10);
+    this.ultimateButtonFrame.lineStyle(2, playerReady ? 0xf6ff7a : 0xffffff, playerReady ? 0.95 : 0.45);
+    this.ultimateButtonFrame.strokeRoundedRect(this.ultimateButtonZone.x - 75, this.ultimateButtonZone.y - 27, 150, 54, 10);
+
+    this.ultimateButtonFill.clear();
+    this.ultimateButtonFill.fillStyle(playerReady ? 0x38ff7d : 0xffbb44, 0.95);
+    this.ultimateButtonFill.fillRoundedRect(this.ultimateButtonZone.x - 69, this.ultimateButtonZone.y + 11, Math.max(0, 138 * chargeRatio), 10, 5);
+
+    this.ultimateButtonLabel.setText(labelText);
+    this.ultimateButtonStatus.setText(statusText);
+    this.ultimateButtonHint.setText(hintText);
+    this.ultimateButtonLabel.setColor(playerReady ? '#fffd9b' : '#ffffff');
+    this.ultimateButtonStatus.setColor(playerReady ? '#d5ffab' : '#ffffff');
+    this.ultimateButtonHint.setColor(playerReady ? '#eaffd8' : '#d8ffd1');
+
+    // tooltip text in sync with the selected character's ultimate description
+    const desc = this.selectedCharacter?.chUltimateDesc ?? '';
+    this.ultimateTooltip?.setText(desc).setVisible(false);
+  }
+
+  private handlePlayerUltimateRequest() {
+    if (this.isAnimating) return;
+    if (!this.canUseUltimate('player')) {
+      this.showBattleMessage('Ultimate not ready', '#ffaa00');
+      return;
+    } // if the player tries to use their ultimate but it's not ready, show a message and prevent the action
+
+    const ultimateName = this.getPlayerUltimateName();
+    if (!ultimateName) {
+      this.showBattleMessage('No ultimate configured', '#ffaa00');
+      return;
+    }
+
+    this.castUltimate('player', ultimateName);
+  }
+
+  private handleEnemyUltimateIfReady(): boolean {
+    if (!this.canUseUltimate('enemy')) return false;
+
+    const ultimateName = this.getBossUltimateName();
+    if (!ultimateName) return false;
+
+    this.castUltimate('enemy', ultimateName);
+    return true;
+  }
+
+  private castUltimate(side: 'player' | 'enemy', ultimateName: string) {
+    this.isAnimating = true;
+    const label = side === 'player' ? 'Player' : 'Enemy';
+    this.showBattleMessage(`${label} Ultimate: ${ultimateName}`, side === 'player' ? '#00ff88' : '#ff6666'); // show a battle message indicating the ultimate is being cast
+    this.playUltimateVisual(side, ultimateName); // play the ultimate animation for the appropriate character based on the side and selected boss/character
+
+    // consume energies on ultimate use
+    if (side === 'player') {
+      this.playerElementalEnergy = 10;
+      this.playerInstinctEnergy = 10;
+    } 
+    
+    else {
+      this.enemyElementalEnergy = 10;
+      this.enemyInstinctEnergy = 10;
+    }
+
+    this.time.delayedCall(450, () => {
+      this.resolveUltimateEffect(side, ultimateName);
+      if (this.checkCombatEnded()) return; // if the ultimate effect ended the combat, skip the rest of the turn processing
+
+      this.refreshHud();
+      this.renderDiscardTopCard();
+      this.renderCards();
+
+      if (side === 'player') {
+        this.time.delayedCall(300, () => {
+          if (!this.checkCombatEnded()) {
+            this.handleEnemyTurn();
+          }
+        }); // after the player's ultimate resolves and the visuals update, proceed to the enemy's turn if the combat isn't over
+        return;
+      }
+
+      this.time.delayedCall(300, () => {
+        if (!this.checkCombatEnded()) {
+          this.finishLevel();
+        }
+      }); // after the enemy's ultimate resolves and the visuals update, finish the level if the combat isn't over, since the enemy's ultimate is the last action in their turn
+    });
+  }
+
+  private playUltimateVisual(side: 'player' | 'enemy', ultimateName: string) {
+    void ultimateName; // currently unused, but can be used in the future to trigger different animations based on the ultimate being cast, if desired
+
+    if (side === 'player') {
+      const playerConfig = this.getPlayerDuelConfig();
+      const skin = this.playerSkinKey;
+      const ultiKey = this.playerUltToggle ? `${skin}-ulti-2` : `${skin}-ulti-1`;
+      this.playerUltToggle = !this.playerUltToggle;
+
+      this.playerCharacter
+        .setTexture(ultiKey)
+        .setScale(playerConfig.attackScale)
+        .setY(playerConfig.poseY)
+        .setTint(0xfff2a0);
+
+      this.time.delayedCall(300, () => {
+        this.playerCharacter.clearTint();
+        this.updatePlayerPose();
+      });
+      return;
+    } // for the player ultimate visual, we toggle between two ultimate textures for the selected character to add some variation, and apply a tint during the animation
+
+    const bossConfig = this.getCurrentBossConfig();
+    const currentPhase = this.getCurrentBossVisual();
+    const ultiKeys = currentPhase.ultiKeys ?? [currentPhase.idleKey];
+    const index = ultiKeys.length > 1 ? (this.enemyUltToggle ? 1 : 0) : 0;
+    const chosen = ultiKeys[index] ?? currentPhase.idleKey;
+    this.enemyUltToggle = !this.enemyUltToggle; // for the enemy ultimate visual, if there are multiple ultimate textures for the current phase we toggle between them to add variation
+
+    this.enemyCharacter
+      .setTexture(chosen)
+      .setScale(bossConfig.attackScale)
+      .setFlipX(bossConfig.flipX)
+      .setPosition(bossConfig.x, bossConfig.y)
+      .setDepth(bossConfig.depth);
+  }
+
+  private resolveUltimateEffect(side: 'player' | 'enemy', ultimateName: string) {
+    const normalized = ultimateName.trim().toLowerCase();
+    const attackerState = side === 'player' ? this.playerState : this.enemyState;
+    const defenderState = side === 'player' ? this.enemyState : this.playerState;
+    const isPlayer = side === 'player';
+
+    switch (normalized) {
+      case 'vertical leap': { // Christian's Ultimate
+        const healAmount = Math.ceil((isPlayer ? this.playerMaxHp : this.enemyMaxHp) * 0.55);
+        const shieldGain = Math.ceil((isPlayer ? this.playerMaxHp : this.enemyMaxHp) * 0.30);
+        this.healSide(side, healAmount);
+        attackerState.shield += shieldGain;
+        this.showShieldGainIndicator(side, shieldGain);
+
+        const drawn = this.drawUntilPlayable('player', this.tableCard, true);
+        if (drawn) {
+          this.showBattleMessage('A valid card was drawn', '#7ed9ff');
+        }
+        break;
+      }
+
+      case 'head crack': { // Gustav's Ultimate
+        this.healSide(side, Math.ceil((isPlayer ? this.playerMaxHp : this.enemyMaxHp) * 0.25));
+        const shieldGain = Math.ceil((isPlayer ? this.playerMaxHp : this.enemyMaxHp) * 0.60);
+        attackerState.shield += shieldGain;
+        attackerState.statusImmunityTurnCounter = 3;
+        this.showShieldGainIndicator(side, shieldGain);
+        this.cleanseNegative(attackerState);
+        break;
+      }
+
+      case 'testing': { // Gavin's Ultimate
+        this.healSide(side, Math.ceil((isPlayer ? this.playerMaxHp : this.enemyMaxHp) * 0.30));
+        const shieldGain = Math.ceil((isPlayer ? this.playerMaxHp : this.enemyMaxHp) * 0.30);
+        attackerState.shield += shieldGain;
+        attackerState.incomingDamageReductionTurnCounter = 2;
+        attackerState.incomingDamageReductionPercent = 50;
+        this.showShieldGainIndicator(side, shieldGain);
+        break;
+      }
+
+      case 'swamp trait': { // Eddy's Ultimate
+        const healAmount = Math.ceil((isPlayer ? this.playerMaxHp : this.enemyMaxHp) * 0.75);
+        this.healSide(side, healAmount);
+        const shieldLoss = Math.ceil(attackerState.shield * 0.35);
+        attackerState.shield = Math.max(0, attackerState.shield - shieldLoss);
+        if (shieldLoss > 0) this.showShieldLossIndicator(side, shieldLoss);
+        attackerState.outgoingDamageBoostTurnCounter = 2;
+        attackerState.outgoingDamageBoostPercent = 100;
+        break;
+      }
+
+      case 'double rat': { // Skawl's Ultimate
+        const healAmount = 10;
+        const shieldGain = 5;
+        this.healSide(side, healAmount);
+        attackerState.shield += shieldGain;
+        attackerState.baseDamageBoostTurnCounter = 2;
+        attackerState.baseDamageBoostPercent = 100;
+        this.showShieldGainIndicator(side, shieldGain);
+        break;
+      }
+
+      case 'nasty corrosion': { // Rabyz's Ultimate
+        const healAmount = 30;
+        this.healSide(side, healAmount);
+        attackerState.shield += 0;
+        defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, 3);
+        defenderState.poisonDamage = Math.max(defenderState.poisonDamage, 6);
+        if (isPlayer) {
+          this.playerElementalEnergy = 0;
+          this.playerInstinctEnergy = 0;
+        } 
+        
+        else {
+          this.enemyElementalEnergy = 0;
+          this.enemyInstinctEnergy = 0;
+        }
+        break;
+      }
+
+      case 'crushing control': { // Boldear's Ultimate
+        const healAmount = 10;
+        const shieldGain = 25;
+        const shieldLoss = defenderState.shield;
+        this.healSide(side, healAmount);
+        attackerState.shield += shieldGain;
+        defenderState.shield = 0;
+        defenderState.stunTurnCounter = Math.max(defenderState.stunTurnCounter, 1);
+        this.showShieldGainIndicator(side, shieldGain);
+        this.showShieldLossIndicator(isPlayer ? 'enemy' : 'player', shieldLoss);
+        break;
+      }
+
+      case 'frozen dominion': { // Pythra's Ultimate
+        const copiedUltimate = ['Double Rat', 'Nasty Corrosion', 'Crushing Control'][Math.min(this.pythraPhase - 1, 2)];
+        this.showBattleMessage(`Pythra copies ${copiedUltimate}`, '#9fe8ff');
+        this.resolveUltimateEffect(side, copiedUltimate);
+        return;
+      }
+
+      default:
+        break;
+    }
+
+    this.refreshHud();
   }
 
   private drawDeckPlaceholder(
@@ -1241,8 +1604,8 @@ export class DuelScene extends Phaser.Scene {
     
     const isEffectCard = card.rarity === 'effect'; // check if the card is an effect card for tooltip purposes
     const isIceCard = card.rarity === 'rare' && card.element === 'ice'; // special case for rare ice cards that have a unique frame and may need a custom tooltip
-    const isLegendaryCard = card.rarity === 'legendary';
-    const hasSpecialArt = isIceCard || isLegendaryCard;
+    const isLegendaryCard = card.rarity === 'legendary'; // legendary cards also have a unique full-art frame that requires adjustments to the layout and tooltip content
+    const hasSpecialArt = isIceCard || isLegendaryCard; // both rare ice cards and legendary cards use special full-art frames that require adjustments to the layout and tooltip content
     
     const cardWidth = hasSpecialArt ? 118 : (isEffectCard ? 118 : 122); // slightly narrower width for effect cards to accommodate the special frame design
     const cardHeight = hasSpecialArt ? 162 : (isEffectCard ? 197 : 161);
@@ -1321,9 +1684,9 @@ export class DuelScene extends Phaser.Scene {
     let infoText: Phaser.GameObjects.Text | null = null;
     let infoZone: Phaser.GameObjects.Zone | null = null;
 
-    const infoX = hasSpecialArt ? -0 : 39;
-    const infoY = hasSpecialArt ? -8 : -72;
-    const infoFontSize = hasSpecialArt ? '32px' : '14px';
+    const infoX = isLegendaryCard ? 30 : (hasSpecialArt ? -0 : 39);
+    const infoY = isLegendaryCard ? 62 : (hasSpecialArt ? -8 : -72);
+    const infoFontSize = isLegendaryCard ? '18px' : (hasSpecialArt ? '32px' : '14px');
     if (card.rarity === 'effect' || hasSpecialArt) {
       infoText = this.add.text(infoX, infoY, '?', {
         fontSize: infoFontSize,
@@ -1333,7 +1696,8 @@ export class DuelScene extends Phaser.Scene {
         strokeThickness: 5,
       }).setOrigin(0.5); // small question mark icon to indicate more information is available on hover
 
-      infoZone = this.add.zone(infoX, infoY, hasSpecialArt ? 34 : 24, hasSpecialArt ? 34 : 24).setOrigin(0.5); // invisible interactive area over the info icon
+      const infoZoneSize = isLegendaryCard ? 30 : (hasSpecialArt ? 34 : 24); // larger hitbox for legendary cards due to the smaller question mark and for full-art cards to accommodate the different layout
+      infoZone = this.add.zone(infoX, infoY, infoZoneSize, infoZoneSize).setOrigin(0.5); // invisible interactive area over the info icon
 
       tooltipBg = this.add.graphics(); // background for the tooltip that appears when hovering over the info icon
       tooltipBg.fillStyle(0x000000, 0.9);
@@ -1593,6 +1957,10 @@ export class DuelScene extends Phaser.Scene {
       return;
     }
 
+    if (this.handleEnemyUltimateIfReady()) {
+      return;
+    } // if the enemy played an ultimate, skip the rest of the turn logic to allow the ultimate's effects to resolve properly before ending the level
+
     const enemyCard = this.getEnemyPlayableCard(); // select a legal enemy card
 
     if (!enemyCard) { 
@@ -1787,6 +2155,7 @@ export class DuelScene extends Phaser.Scene {
     const isPlayer = attacker === 'player'; // boolean used to branch between player and enemy
     const attackerState = isPlayer ? this.playerState : this.enemyState; // status state for the card owner
     const defenderState = isPlayer ? this.enemyState : this.playerState; // status state for the target
+    const defenderImmune = defenderState.statusImmunityTurnCounter > 0; // Gustav-style immunity blocks hostile effects
     const attackBonus = isPlayer && card.category === 'attack' ? this.playerAttackBonus : 0;
     const shieldBonus = isPlayer && card.category === 'defense' ? this.playerDefenseBonus : 0;
     let damage = card.baseDamage + attackBonus; // start with base damage and add the selected character bonus for attack cards
@@ -1810,7 +2179,16 @@ export class DuelScene extends Phaser.Scene {
     }
  
     if (attackerState.sandBuffTurnCounter > 0 && card.element === 'sand') damage += Math.ceil(damage * attackerState.sandBuffPercent / 100); // sand buff increases damage for sand cards
-    switch (card.effect) {
+    if (attackerState.outgoingDamageBoostTurnCounter > 0) {
+      damage += Math.ceil(damage * (attackerState.outgoingDamageBoostPercent / 100));
+    }
+
+    if (attackerState.baseDamageBoostTurnCounter > 0 && card.rarity === 'base') {
+      damage += Math.ceil(damage * (attackerState.baseDamageBoostPercent / 100));
+    }
+
+    if (!defenderImmune || !this.isDefenderTargetingEffect(card.effect)) {
+      switch (card.effect) {
       case 'DAMAGE': 
         break; // raw damage card, no extra effect handling
 
@@ -1953,7 +2331,9 @@ export class DuelScene extends Phaser.Scene {
           if (attacker === 'player') {
             this.playerElementalEnergy = MAX_ENERGY;
             this.playerInstinctEnergy = MAX_ENERGY;
-          } else {
+          } // if the player is the attacker, fully restore the player's energy to maximum
+          
+          else {
             this.enemyElementalEnergy = MAX_ENERGY;
             this.enemyInstinctEnergy = MAX_ENERGY;
           }
@@ -1979,32 +2359,18 @@ export class DuelScene extends Phaser.Scene {
         break;
       }
 
-      // case 'AMPLIFY': {
-      //   if (previousTableCard?.rarity === 'base') {
-      //     defenderState.forcedResponseNumber = previousTableCard.power;
-      //     defenderState.iceFloodLockTurnCounter = 1;
-      //     damage = 0;
-      //   } 
-        
-      //   else {
-      //     attackerState.shield += 15;
-      //     this.healSide(attacker, 15);
-      //     damage = 0;
-      //   }
-
-      //   break;
-      // }
-
       case 'AMPLIFY': {
         if (card.name === 'Crocodile') {
-          const currentHp = attacker === 'player' ? this.enemyHp : this.playerHp;
-          const hpLoss = Math.max(0, Math.floor(currentHp * (card.effectValue / 100)));
+          const currentHp = attacker === 'player' ? this.enemyHp : this.playerHp; // target the opponent's HP for the amplification effect
+          const hpLoss = Math.max(0, Math.floor(currentHp * (card.effectValue / 100))); // calculate HP loss based on the opponent's current HP and the card's effect value, ensuring it doesn't go negative
 
           if (hpLoss > 0) {
             if (attacker === 'player') {
               this.enemyHp = Math.max(0, this.enemyHp - hpLoss);
               this.enemyDamageText.setText(`-${hpLoss}`);
-            } else {
+            }
+            
+            else {
               this.playerHp = Math.max(0, this.playerHp - hpLoss);
               this.playerDamageText.setText(`-${hpLoss}`);
             }
@@ -2018,7 +2384,9 @@ export class DuelScene extends Phaser.Scene {
           defenderState.forcedResponseNumber = previousTableCard.power;
           defenderState.iceFloodLockTurnCounter = 1;
           damage = 0;
-        } else {
+        } 
+        
+        else {
           attackerState.shield += 25;
           this.healSide(attacker, 25);
 
@@ -2037,43 +2405,54 @@ export class DuelScene extends Phaser.Scene {
         break; // placeholder for a complex effect that would allow playing an additional card immediately
 
       case 'IMMUNITY':
-        this.healSide(attacker, isPlayer ? this.playerMaxHp : this.enemyMaxHp);
-        this.cleanseNegative(attackerState);
+        this.healSide(attacker, isPlayer ? this.playerMaxHp : this.enemyMaxHp); // fully heal the attacker to represent immunity to damage
+        this.cleanseNegative(attackerState); // remove all negative status effects from the attacker
         damage = 0;
         break;
 
       case 'RANDOM_STATUS': {
-        const roll = Math.floor(Math.random() * 5);
+        const roll = Math.floor(Math.random() * 5); // randomly select one of five status effects to apply to the defender, with equal probability
         if (roll === 0) {
           defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, 2);
           defenderState.poisonDamage = Math.max(defenderState.poisonDamage, 6);
-        } else if (roll === 1) {
+        } // the first effect applies a moderate poison that lasts for a few turns
+        
+        else if (roll === 1) {
           defenderState.burnTurnCounter = Math.max(defenderState.burnTurnCounter, 2);
           defenderState.burnDamage = Math.max(defenderState.burnDamage, 6);
-        } else if (roll === 2) {
+        } // the second effect applies a moderate burn that lasts for a few turns
+        
+        else if (roll === 2) {
           defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, 2);
           defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, 8);
-        } else if (roll === 3) {
+        } // the third effect applies a weaken that reduces damage by a noticeable amount for a few turns
+        
+        else if (roll === 3) {
           defenderState.stunTurnCounter = Math.max(defenderState.stunTurnCounter, 1);
-        } else {
+        } // the fourth effect applies a stun that causes the defender to skip their next turn
+        
+        else {
           defenderState.jamTurnCounter = Math.max(defenderState.jamTurnCounter, 1);
-        }
+        } // the fifth effect applies a jam that prevents the enemy from playing non-base cards on their next turn
 
         damage = 0;
         break;
       }
 
       case 'EXECUTE': {
-        const defenderHp = attacker === 'player' ? this.enemyHp : this.playerHp;
+        const defenderHp = attacker === 'player' ? this.enemyHp : this.playerHp; // target the opponent's HP for the execute effect
         const hpLoss = Math.max(0, defenderHp - 25);
         if (attacker === 'player') {
           this.enemyHp = Math.min(this.enemyHp, 25);
           if (hpLoss > 0) this.enemyDamageText.setText(`-${hpLoss}`);
-        } else {
+        } // if the player is the attacker, reduce the enemy's HP to 25 if it is above that threshold, and show the appropriate damage popup if any HP was lost
+        
+        else {
           this.playerHp = Math.min(this.playerHp, 25);
           if (hpLoss > 0) this.playerDamageText.setText(`-${hpLoss}`);
-        }
+        } // if the enemy is the attacker, reduce the player's HP to 25 if it is above that threshold, and show the appropriate damage popup if any HP was lost
 
+        // the execute effect is designed to finish off opponents that are already weakened, so it doesn't deal direct damage but instead sets a maximum HP threshold for the defender
         const shieldLoss = Math.max(0, defenderState.shield - 25);
         defenderState.shield = Math.min(defenderState.shield, 25);
         if (shieldLoss > 0) this.showShieldLossIndicator(isPlayer ? 'enemy' : 'player', shieldLoss);
@@ -2086,6 +2465,7 @@ export class DuelScene extends Phaser.Scene {
       // case 'FORCE_DRAW': case 'IMMUNITY': case 'RANDOM_STATUS': case 'EXECUTE':  damage = card.baseDamage; break; // reserved / shared effect bucket
 
       default: break; // ignore unsupported effects
+      }
     }
 
     if (card.effect === 'JAM') {
@@ -2112,6 +2492,11 @@ export class DuelScene extends Phaser.Scene {
         this.showShieldLossIndicator(isPlayer ? 'enemy' : 'player', absorbed); // show shield loss popup if any damage was absorbed
       }
     }
+
+    if (defenderState.incomingDamageReductionTurnCounter > 0) {
+      const reduction = defenderState.incomingDamageReductionPercent;
+      remainingDamage = Math.max(0, Math.ceil(remainingDamage * (100 - reduction) / 100));
+    } // apply percentage-based damage reduction if active
 
     if (remainingDamage <= 0) { 
       this.showBattleMessage(this.tf('duel_shield_blocked'), '#7fd7ff'); // notify the player that the hit was fully blocked
@@ -2218,6 +2603,10 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private tickEndOfTurnFlags(state: CombatState) {
+    if (state.statusImmunityTurnCounter > 0) state.statusImmunityTurnCounter -= 1; // reduce status immunity duration
+    if (state.incomingDamageReductionTurnCounter > 0) state.incomingDamageReductionTurnCounter -= 1; // reduce damage reduction duration
+    if (state.outgoingDamageBoostTurnCounter > 0) state.outgoingDamageBoostTurnCounter -= 1; // reduce damage boost duration
+    if (state.baseDamageBoostTurnCounter > 0) state.baseDamageBoostTurnCounter -= 1; // reduce base damage boost duration
     if (state.weakenTurnCounter > 0) state.weakenTurnCounter -= 1; // reduce weaken duration
     if (state.reflectTurnCounter > 0) state.reflectTurnCounter -= 1; // reduce reflect duration
     if (state.blockFireTurnCounter > 0) state.blockFireTurnCounter -= 1; // reduce fire block duration
@@ -2226,6 +2615,9 @@ export class DuelScene extends Phaser.Scene {
     if (state.energyBoostTurnCounter > 0) state.energyBoostTurnCounter -= 1; // reduce energy boost duration
     if (state.weakenTurnCounter === 0) state.weakenEffectValue = 0; // clear weaken effect value when expired
     if (state.reflectTurnCounter === 0) state.reflectPercent = 0; // clear reflect percent when expired
+    if (state.incomingDamageReductionTurnCounter === 0) state.incomingDamageReductionPercent = 0; // reduce incoming damage reduction duration
+    if (state.outgoingDamageBoostTurnCounter === 0) state.outgoingDamageBoostPercent = 0; // reduce outgoing damage boost duration
+    if (state.baseDamageBoostTurnCounter === 0) state.baseDamageBoostPercent = 0; // reduce base damage boost duration
     if (state.sandBuffTurnCounter === 0) state.sandBuffPercent = 0; // clear sand buff when expired
     if (state.energyBoostTurnCounter === 0) state.energyBoostPercent = 0; // clear energy boost when expired
     if (state.blockFireTurnCounter === 0) state.blockedNumberTurnCounter = null; // clear blocked number when fire block expires
@@ -2260,6 +2652,28 @@ export class DuelScene extends Phaser.Scene {
     return card.element === previousTableCard.element && card.power !== null && previousTableCard.power !== null && card.power === previousTableCard.power; // both element and power must match
   }
 
+  private isDefenderTargetingEffect(effect: Card['effect']): boolean {
+    return [
+      'POISON',
+      'WEAKEN',
+      'BURN',
+      'BLOCK_FIRE',
+      'BLOCK_NUMBER',
+      'STUN',
+      'JAM',
+      'HAND_RESET',
+      'AMPLIFY',
+      'DOUBLE_PLAY',
+      'RANDOM_STATUS',
+      'EXECUTE',
+      'TOXIC',
+      'DECAY',
+      'EXTEND',
+      'WEAKEN_ATTACK',
+      'BLIND',
+    ].includes(effect ?? '');
+  } // this helper function identifies which card effects are meant to target the opponent with debuffs or control effects, as opposed to purely self-targeting buffs or neutral effects, which is important for correctly applying status immunity and similar mechanics
+
   // private updateInstruction() {
   //   const hasPlayable = this.playerHand.some((card) => this.isPlayerCardPlayable(card));
   //   this.instructionText.setText(hasPlayable ? 'Choose a valid card or right-click to discard.' : 'No valid move in hand. Press Draw or right-click to discard.');
@@ -2272,8 +2686,9 @@ export class DuelScene extends Phaser.Scene {
 
   private animatePlayerAttack() {
     const attackImage = Math.random() < 0.5 ? `${this.playerSkinKey}-attack-1` : `${this.playerSkinKey}-attack-2`;
-    this.playerCharacter.setTexture(attackImage).setScale(PLAYER_ATTACK_SCALE).setY(this.playerPoseY);
-  }
+    const playerConfig = this.getPlayerDuelConfig();
+    this.playerCharacter.setTexture(attackImage).setScale(playerConfig.attackScale).setY(playerConfig.poseY);
+  } // randomly choose between two attack poses for visual variety, using the player's skin key to determine the correct image prefix
 
   private animateEnemyAttack() {
     const bossConfig = this.getCurrentBossConfig(); // get the current boss configuration for attack pose details
@@ -2290,22 +2705,26 @@ export class DuelScene extends Phaser.Scene {
 
   private updatePlayerPose() {
     const s = this.playerSkinKey;
+    const playerConfig = this.getPlayerDuelConfig(); // get the player's duel configuration for pose thresholds and scale values
     const hpRatio = this.playerHp / Math.max(1, this.playerMaxHp);
 
     if (hpRatio <= 0) {
-      this.playerCharacter.setTexture(`${s}-defeated`).setScale(PLAYER_HURT_SCALE).setY(this.playerPoseY);
+      this.playerCharacter.setTexture(`${s}-defeated`).setScale(playerConfig.hurtScale).setY(playerConfig.poseY);
       return;
     }
+
     if (hpRatio <= 0.25) {
-      this.playerCharacter.setTexture(`${s}-damage-2`).setScale(PLAYER_HURT_SCALE).setY(this.playerPoseY);
+      this.playerCharacter.setTexture(`${s}-damage-2`).setScale(playerConfig.hurtScale).setY(playerConfig.poseY);
       return;
     }
+
     if (hpRatio <= 0.5) {
-      this.playerCharacter.setTexture(`${s}-damage-1`).setScale(PLAYER_HURT_SCALE).setY(this.playerPoseY);
+      this.playerCharacter.setTexture(`${s}-damage-1`).setScale(playerConfig.hurtScale).setY(playerConfig.poseY);
       return;
     }
-    this.playerCharacter.setTexture(`${s}-idle`).setScale(PLAYER_IDLE_SCALE).setY(this.playerPoseY);
-  }
+
+    this.playerCharacter.setTexture(`${s}-idle`).setScale(playerConfig.idleScale).setY(playerConfig.poseY);
+  } // player poses are determined by simple HP thresholds and use the player's skin key to select the correct images, with separate damage stages for more visual feedback as HP gets lower
 
   private updateEnemyPose() {
     const bossConfig = this.getCurrentBossConfig(); // get the current boss configuration for pose thresholds
