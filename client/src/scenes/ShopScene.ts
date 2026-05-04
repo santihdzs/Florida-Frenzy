@@ -330,6 +330,7 @@ export class ShopScene extends Phaser.Scene {
     };
 
     // Bootstrap load: fetch rank + cards then render card tab
+    // ai helped structure this part
     void (async () => {
       try {
         const playerId = Number((player as any)?.id ?? 0);
@@ -623,6 +624,7 @@ export class ShopScene extends Phaser.Scene {
           refreshCoins();
           canBeEquipped = true;
           actionRef!.setText(this.tf('shop_chr_equip')).setColor('#c2baba');
+          // ai helped with this
           actionRef!.off('pointerover').off('pointerout').off('pointerdown');
           actionRef!.on('pointerover', () => { if (!isEquipped) actionRef!.setColor('#226d1b'); });
           actionRef!.on('pointerout',  () => { if (!isEquipped) actionRef!.setColor('#c2baba'); });
@@ -841,6 +843,7 @@ export class ShopScene extends Phaser.Scene {
     barBg.fillRoundedRect(barX, barY, barW, BAR_H, 4);
 
     const barFill = track(this.add.graphics());
+    // proxy object lets the tween interpolate fill width through barProxy.ratio each frame
     const barProxy = { ratio: config.currentValue() / config.maxValue };
 
     const redrawBar = () => {
@@ -887,6 +890,7 @@ export class ShopScene extends Phaser.Scene {
         costText.setText(config.costLabel(newVal));
 
         const targetRatio = newVal / config.maxValue;
+        // ai helped with this
         this.tweens.add({
           targets: barProxy,
           ratio: targetRatio,

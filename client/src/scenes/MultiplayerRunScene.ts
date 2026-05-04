@@ -177,7 +177,6 @@ export interface MultiplayerRunInitData {
   mapKey: string;
 }
 
-// ── Scene ──────────────────────────────────────────────────────────────────
 
 export class MultiplayerRunScene extends Phaser.Scene {
 
@@ -258,8 +257,6 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private leftStart = false;
 
   constructor() { super({ key: 'MultiplayerRunScene' }); }
-
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   init(data: Partial<MultiplayerRunInitData>) {
     this.grid          = data.grid    ?? [];
@@ -758,6 +755,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
 
   private setupSocketListeners() {
     const socket = getSocket();
+    // clear stale listeners before reattaching; prevents duplicates on scene restart
     socket.off('run:tick');
     socket.off('run:enemy_died');
     socket.off('run:player_died');
@@ -1071,7 +1069,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
   }
 
   private checkEndZone() {
-    if (!this.levelReady) return;
+    if (!this.levelReady) return; // guard prevents triggering during the initial create() frame
     if (this.endReached) return;
     const ez = this.endZone;
     if (rectsOverlap(this.localX, this.localY, PLAYER_SIZE, PLAYER_SIZE, ez.x, ez.y, ez.w, ez.h)) {

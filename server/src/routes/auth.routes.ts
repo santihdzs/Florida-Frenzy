@@ -115,6 +115,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         const usernameExists = await fastify.prisma.player.findUnique({
           where: { username: rawUsername },
         });
+        // append timestamp suffix if the display name collides with an existing username
         const username = usernameExists
           ? `${rawUsername}_${Date.now()}`.slice(0, 30)
           : rawUsername;

@@ -17,6 +17,7 @@ const prismaPlugin: FastifyPluginAsync = fp(async (fastify) => {
   const prisma = new PrismaClient();
   await prisma.$connect();
   fastify.decorate('prisma', prisma);
+  // disconnect on server close to prevent hanging processes
   fastify.addHook('onClose', async (instance) => {
     await instance.prisma.$disconnect();
   });

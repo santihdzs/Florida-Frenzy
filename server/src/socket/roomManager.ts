@@ -169,6 +169,7 @@ export function deleteRoom(code: string): void {
   rooms.delete(code);
 }
 
+// strips socketId so clients never receive internal socket identifiers
 export function serializePlayers(room: Room): Omit<RoomPlayer, 'socketId'>[] {
   return Array.from(room.players.values()).map(({ socketId: _s, ...rest }) => rest);
 }

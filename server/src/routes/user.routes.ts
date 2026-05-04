@@ -10,6 +10,7 @@ interface PatchMeBody {
   isMuted?: boolean;
 }
 
+// bestLevel is not persisted on player; derived from the highest maxLevel run at query time
 async function getBestLevel(fastify: Parameters<FastifyPluginAsync>[0], playerId: number): Promise<number> {
   const bestRun = await fastify.prisma.run.findFirst({
     where: { playerId },

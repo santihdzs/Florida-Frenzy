@@ -30,6 +30,7 @@ class SeededRNG {
   }
 }
 
+// bfs flood fill places a cluster of matching tiles starting from a seed cell
 function growCluster(
   rng: SeededRNG,
   grid: number[][],
@@ -145,6 +146,7 @@ export function tickEnemies(room: Room, dt: number): void {
   const alive = Array.from(room.players.values()).filter(p => p.alive);
   if (alive.length === 0) return;
 
+  // enemies target the centroid of all alive players
   const cx = alive.reduce((s, p) => s + p.x, 0) / alive.length;
   const cy = alive.reduce((s, p) => s + p.y, 0) / alive.length;
 

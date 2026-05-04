@@ -64,6 +64,7 @@ const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
         where: { id: playerId },
         select: { maxXp: true },
       });
+      // count players with higher xp then add 1 for a 1-based rank
       const rank = await fastify.prisma.player.count({
         where: { maxXp: { gt: player?.maxXp ?? 0 } },
       }) + 1;

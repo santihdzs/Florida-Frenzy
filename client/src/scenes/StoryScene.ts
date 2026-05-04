@@ -188,6 +188,7 @@ export class StoryScene extends Phaser.Scene {
     yOffset += 30;
     this.contentHeight = yOffset;
 
+    // geometry mask clips the scroll container to the visible panel bounds
     const maskShape = this.make.graphics();
     maskShape.fillStyle(0xffffff);
     maskShape.fillRoundedRect(bgX, bgY, bgW, bgH, 12);

@@ -215,6 +215,7 @@ export class StatsScene extends Phaser.Scene {
       });
     };
 
+    // seq counter cancels stale async tab-switch fetches if the user switches again before the first resolves
     let seq = 0;
     const loadAndRenderLeaderboard = async (mode: LeaderboardMode) => {
       const mySeq = ++seq;

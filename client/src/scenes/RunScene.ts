@@ -10,10 +10,13 @@
 * The scene also communicates with the server to create run records 
 * and update player stats.
 * 
-* - AI was used to help us with sprite handling, and all everglades sprites came from https://opengameart.org/
-* - AI was used to handle login check before displaying popups
+* - AI was used to help us with some parts (labeled), and to create some of the art
+*  all everglades sprites came from https://opengameart.org/
 */
 
+
+// import map config helpers, auth utilities, character API, deck bootstrap, loading overlay,
+// transition scene, boss utilities, character visuals
 import Phaser from 'phaser';
 import { MAP_CONFIGS, selectMap, type MapConfig, type TileRect } from '../utils/mapConfig.js';
 import { completeRun, createRun, getPlayer, unlockLegendaryRunCard } from '../utils/auth.js';
@@ -25,10 +28,12 @@ import { showLoadingScreen } from '../utils/loadingScreen.js';
 import { transitionTo } from '../utils/sceneTransition.js';
 import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } from '../utils/characterVisuals.js';
 
+// boss run (third part of each level) spritesheets
 import skawlSheet from '../assets/characters/skawl/Skawl_SpriteSheet.webp';
 import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.webp';
 import boldearSheet from '../assets/characters/boldear/Boldear_SpriteSheet.webp';
 
+// enemy spritesheets
 import rackoSheet from '../assets/characters/top-down_enemies/shooter/Racko_SpriteSheet.webp';
 import rhondaSheet from '../assets/characters/top-down_enemies/shooter/Rhonda_SpriteSheet.webp';
 import riccSheet from '../assets/characters/top-down_enemies/shooter/Ricc_SpriteSheet.webp';
@@ -41,75 +46,89 @@ import schremySheet from '../assets/characters/top-down_enemies/warrior/Schremy_
 import skullySheet from '../assets/characters/top-down_enemies/warrior/Skully_SpriteSheet.webp';
 import stirrSheet from '../assets/characters/top-down_enemies/warrior/Stirr_SpriteSheet.webp';
 
+
+// map geometry constants
 const TILE    = 48;
 const COLS    = 105;
 const ROWS    = 18;
 const WORLD_W = COLS * TILE;
 const WORLD_H = ROWS * TILE;
 
+// texture keys for enemy fallback (just a red square) and coins
 const KEY_SPR_ENEMY      = 'spr-enemy';
 const KEY_SPR_COIN       = 'spr-coin';
 
+// seperating enemy skins by archetype (each type of enemy can have multiple skins)
 const SHOOTER_SKINS = ['racko', 'rhonda', 'ricc', 'ritta'] as const;
 const TANK_SKINS    = ['blurd', 'brandon', 'brim', 'brook'] as const;
 const SWIFT_SKINS   = ['schremy', 'skully', 'stirr'] as const;
+
+// projectile textures
 const KEY_SPR_PROJECTILE = 'spr-projectile';
 const KEY_SPR_ENEMY_PROJ = 'spr-enemy-proj';
 
-
+// player constants
 const PLAYER_SIZE   = 48;
 const PLAYER_SPEED  = 220;
-const PLAYER_SPRINT = Math.round(PLAYER_SPEED * 1.55); // 341; ~1.55× base
+const PLAYER_SPRINT = Math.round(PLAYER_SPEED * 1.55); // 1.55× base
 const MAX_HP        = 100;
 
+// stamina constants
 const STAMINA_MAX         = 100;
 const STAMINA_DRAIN       = 40;
 const STAMINA_REGEN       = 25;
 const STAMINA_REGEN_DELAY = 10000;
 
+// enemy constants
 const ENEMY_SIZE      = 48;
-const ENEMY_SPEED     = 113; // was 75; increased 50%
+const ENEMY_SPEED     = 113; 
 const ENEMY_DPS       = 20;
 const ENEMY_HP        = 100;
 const ENEMY_COUNT_MIN = 3;
 const ENEMY_COUNT_MAX = 6;
-const ENEMY_REPATH_MS = 800;
-const ENEMY_BAR_W     = 30;
+const ENEMY_REPATH_MS = 800; // ms between A* recomputation
+const ENEMY_BAR_W     = 30; // health bar dimensions
 const ENEMY_BAR_H     = 4;
 const ENEMY_BAR_Y     = -6;
 
+// shooter enemy constants
 const SHOOTER_FIRE_INTERVAL = 2000; // ms between shots
 const ENEMY_PROJ_SIZE  = 8;
 const ENEMY_PROJ_SPEED = 200;
 const ENEMY_PROJ_DMG   = 10;
 
+// coin and legendary card drop chance (legendary cards share generation logic with coins)
 const COIN_SIZE      = 12;
 const COIN_COUNT_MIN = 8;
 const COIN_COUNT_MAX = 15;
 const COIN_COLLECT_R = 24;
 const LEGENDARY_DROP_SPAWN_CHANCE = 0.05;
 
+// player projectile constants
 const PROJ_SIZE  = 8;
 const PROJ_SPEED = 420;
 
-const HEAL_PER_SEC = 12;
+const HEAL_PER_SEC = 12; // hp healed /s when in puddles
 
-const CAMERA_SCROLL_BASE = 100; // was 90; cap raised to match PLAYER_SPEED (220)
+const CAMERA_SCROLL_BASE = 100; // cam scroll speed (base)
 
+// # of runscene stages before boss fights per level
 const RUNS_PER_CYCLE = 3;
-const END_COL         = COLS - 1;
-const START_COLS      = 4;
+const END_COL = COLS - 1; // column index for last tile, to mark end zone
+const START_COLS = 4; // safe columns at left stage (start zone), no enemies spaewn here
 
-const FLOOR   = 0;
-const BARRIER = 1;
-const HOLE    = 2;
-const PUDDLE  = 3;
+// tile type constants
+const FLOOR   = 0; // normal passable tile
+const BARRIER = 1; // solid obstacle
+const HOLE    = 2; // instant death tile
+const PUDDLE  = 3; // healing tile
 
+// seeds for proceural generation (amount of clusters to generate in map for each tile type)
 const BARRIER_SEEDS = 22;
 const HOLE_SEEDS    = 7;
 const PUDDLE_SEEDS  = 2;
 
-
+// AABB collision check
 function rectsOverlap(
   ax: number, ay: number, aw: number, ah: number,
   bx: number, by: number, bw: number, bh: number
@@ -117,47 +136,61 @@ function rectsOverlap(
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
+// Helper functions
+
+// clamp, keeps n between min and max
 function clamp(val: number, min: number, max: number): number {
   return val < min ? min : val > max ? max : val;
 }
 
+// returns random int in range 
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// euclidean distance between 2 points (pythagorean)
 function dist(x1: number, y1: number, x2: number, y2: number): number {
   const dx = x1 - x2;
   const dy = y1 - y2;
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+// single cell object in tile grid, has row and column indicies
 interface GridCell { row: number; col: number }
 
-function astar(
-  grid: number[][], sr: number, sc: number, er: number, ec: number
-): GridCell[] {
+// A* for enemy pathfinding - Santi
+// finds a walkable path from (sr, sc) to (er, ec) avoiding barrier and hole tiles
+// open set is iterated linearly each step (no priority queue), hence,  worst-case cost is O(n^2)
+// 300 iteration hard cap keeps it safe so game doesn't get stuck
+// AI helped tweak A* a bit for game purposes but I built most of it
+function astar(grid: number[][], sr: number, sc: number, er: number, ec: number): GridCell[] {
   const rows = grid.length;
   const cols = grid[0].length;
-  const key = (r: number, c: number) => r * cols + c;
+  // encoding tile positions in single int to avoid making str for every tile, saves lots of memory
+  const key = (r: number, c: number) => r * cols + c; // js arrow funct (lambda)
 
+  // already at target
   if (sr === er && sc === ec) return [];
 
-  const gScore   = new Map<number, number>();
-  const parent   = new Map<number, number>();
-  const openSet  = new Set<number>();
-  const closedSet = new Set<number>();
+  const gScore   = new Map<number, number>(); // cost from start to each visited node
+  const parent   = new Map<number, number>(); // back pointer to reconstruct path
+  const openSet  = new Set<number>(); // nodes left to explore
+  const closedSet = new Set<number>(); // fully explored nodes
 
+  // convert start and end nodes to keys, init start node with cost of 0, add it to open set
   const sk = key(sr, sc);
   const gk = key(er, ec);
   gScore.set(sk, 0);
   openSet.add(sk);
 
+  // manhattan distance (sum of v and h distance, estimated cost from tile to goal)
   const h = (r: number, c: number) => Math.abs(er - r) + Math.abs(ec - c);
   let iters = 0;
 
   while (openSet.size > 0 && iters < 300) {
     iters++;
 
+    // linear scan for the lowest total estimated cost (f =  g+ h), no priority queue
     let best = -1;
     let bestF = Infinity;
     for (const n of openSet) {
@@ -168,26 +201,33 @@ function astar(
       if (f < bestF) { bestF = f; best = n; }
     }
 
+    // reached target, stop
     if (best === gk) break;
     openSet.delete(best);
     closedSet.add(best);
 
+    // decoding back to row/col coords
     const cr = Math.floor(best / cols);
     const cc = best % cols;
     const cg = gScore.get(best)!;
 
+    // expand for neighboring tiles on all 4 sides to possibly add to open set
     for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]] as const) {
       const nr = cr + dr;
       const nc = cc + dc;
+
+      // bounds check
       if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+      // check for barrier and hole tiles
       if (grid[nr][nc] === BARRIER || grid[nr][nc] === HOLE) continue;
 
       const nk = key(nr, nc);
       if (closedSet.has(nk)) continue;
 
-      const ng = cg + 1;
+      const ng = cg + 1; // uniform step cost
       const prev = gScore.get(nk);
-      if (prev === undefined || ng < prev) {
+      // better path found, update cost and parent
+      if (prev === undefined || ng < prev) { 
         gScore.set(nk, ng);
         parent.set(nk, best);
         openSet.add(nk);
@@ -195,27 +235,33 @@ function astar(
     }
   }
 
+  // no path found, blocked or iteration hit limit
   if (!parent.has(gk)) return [];
 
+  // reconstruct path using back pointers from goal to start, then reverse
   const path: GridCell[] = [];
   let cur = gk;
   while (cur !== sk) {
     path.push({ row: Math.floor(cur / cols), col: cur % cols });
     cur = parent.get(cur)!;
   }
+
   path.reverse();
   return path;
 }
 
+// rectangle, data struct to represent AABB collisions
 interface Rect { x: number; y: number; w: number; h: number }
 
+// fixed set of enemy type constants EnemyType.X instead of raw strings, avoids typos and gives compile checks (TS feature, AI suggested and implemented this)
 const EnemyType = {
   SHOOTER: 'SHOOTER',
   TANK:    'TANK',
   SWIFT:   'SWIFT',
-} as const;
-type EnemyType = typeof EnemyType[keyof typeof EnemyType];
+} as const; // as const, compiles plain js object, no runtime overhead
+type EnemyType = typeof EnemyType[keyof typeof EnemyType]; // extract type, type is one of the three enemy type strings
 
+// spritesheet cut tables since each spritesheet has slighlty different boundaries between frames -  AI did all this part
 const CHAR_SHEETS = {
   christian: CHARACTER_VISUALS.christian.run,
   gavin:     CHARACTER_VISUALS.gavin.run,
@@ -235,6 +281,7 @@ const CHAR_SHEETS = {
 } as const;
 type CharSheetKey = keyof typeof CHAR_SHEETS;
 
+// pixel cuts for boss run sprites, similar to cuts above, AI helped calculate cut positions
 const RUN_BOSS_SHEETS = {
   Skawl: {
     textureKey: 'boss-skawl-run-sheet',
@@ -256,12 +303,14 @@ const RUN_BOSS_SHEETS = {
   },
 } as const;
 
+// struct for enemies
+
 interface Enemy {
   x: number; y: number;
   hp: number;
   maxHp: number;
   speed: number;
-  contactDmgRate: number; // damage/sec on contact; 0 for SHOOTER
+  contactDmgRate: number; // damage/s on contact, 0 for SHOOTER
   enemyType: EnemyType;
   shootTimer: number;     // ms until next shot (SHOOTER only)
   img: Phaser.GameObjects.Sprite;
@@ -273,6 +322,7 @@ interface Enemy {
   pathIdx: number;
 }
 
+// struct for coins, includes legendary info in case of legendary drop
 interface Coin {
   x: number; y: number;
   img: Phaser.GameObjects.Image;
@@ -281,6 +331,7 @@ interface Coin {
   legendaryName?: LegendaryDropName;
 }
 
+// legendary card drops with their colors (post presentation change)
 const LEGENDARY_DROPS = [
   { name: 'Crocodile', tint: 0x1f5d2f },
   { name: 'Alligator', tint: 0xd9d9d9 },
@@ -288,14 +339,17 @@ const LEGENDARY_DROPS = [
   { name: 'Caiman', tint: 0x7ed957 },
   { name: 'Sarcosuchus', tint: 0xffdf00 },
 ] as const;
+// type is one of the five legendary drop name string
 type LegendaryDropName = typeof LEGENDARY_DROPS[number]['name'];
 
+// player projectile struct
 interface Projectile {
   x: number; y: number;
   vx: number; vy: number;
   img: Phaser.GameObjects.Image;
 }
 
+// enemy projectile struct
 interface EnemyProjectile {
   x: number; y: number;
   vx: number; vy: number;
@@ -303,8 +357,11 @@ interface EnemyProjectile {
   img: Phaser.GameObjects.Image;
 }
 
+// reason for run end, used for game over, must be one of these 3
 type DeathReason = 'hp' | 'hole' | 'camera';
 
+// compute enemy stats based on enemy type and level (enemy stats scale)
+// Math.min sets inline max values so game doesn't go crazy at higher levels
 function getEnemyStats(type: EnemyType, level: number): {
   hp: number; maxHp: number; speed: number; contactDmgRate: number;
 } {
@@ -327,6 +384,7 @@ function getEnemyStats(type: EnemyType, level: number): {
   return { hp: 1, maxHp: 1, speed, contactDmgRate };
 }
 
+// return possible enemy spawns, AI did this with a lambda funct and using spread operators
 function getSpawnPool(level: number): EnemyType[] {
   const r = (t: EnemyType, n: number): EnemyType[] => Array.from({ length: n }, () => t);
   if (level <= 1) return r(EnemyType.SHOOTER, 10);
@@ -334,6 +392,7 @@ function getSpawnPool(level: number): EnemyType[] {
   return [...r(EnemyType.SHOOTER, 4), ...r(EnemyType.TANK, 2), ...r(EnemyType.SWIFT, 2)];
 }
 
+// struct for cross scene run data
 export interface RunData {
   level: number;
   step: number;
@@ -344,7 +403,10 @@ export interface RunData {
   currentMap?: string;
 }
 
+
+// export class so it can be imported by other files
 export class RunScene extends Phaser.Scene {
+  // legendary drop pool filtered against already owned cards
   private availableLegendaryDrops: LegendaryDropName[] = LEGENDARY_DROPS.map(drop => drop.name);
 
   private px = 0;
@@ -352,7 +414,7 @@ export class RunScene extends Phaser.Scene {
   private maxHp = MAX_HP;
   private hp = MAX_HP;
   private playerImg!: Phaser.GameObjects.Sprite;
-  private lastPlayerDir = 'down';
+  private lastPlayerDir = 'down'; // last player direction to prevent redundant animations
   private sprinting = false;
   private stamina = STAMINA_MAX; // replaced by this.maxStamina at runtime via init()
   private lastSprintTime = -STAMINA_REGEN_DELAY;
@@ -375,11 +437,13 @@ export class RunScene extends Phaser.Scene {
     e.preventDefault();
     e.returnValue = '';
   };
-  private timer = 0;
+  private timer = 0; // time elapsed in ms
+  // coins for current run only
   private coinsCollected = 0;
   private deathReason: DeathReason = 'hp';
   private enemiesKilledThisRun = 0;
 
+  // upgrade states, loaded from player profile in init
   private bulletDamage = 10;
   private fireRateLevel = 1;
   private reloadTimeLevel = 1;
@@ -395,23 +459,27 @@ export class RunScene extends Phaser.Scene {
   private ammoText!: Phaser.GameObjects.Text;
   private levelIndicator!: Phaser.GameObjects.Text;
 
+  // world data
   private grid: number[][] = [];
   private barrierRects: Rect[] = [];
   private holeRects:    Rect[] = [];
   private puddleRects:  Rect[] = [];
   private endZone: Rect = { x: 0, y: 0, w: 0, h: 0 };
 
+  // lists for entities
   private enemies:          Enemy[]           = [];
   private coins:            Coin[]            = [];
   private projectiles:      Projectile[]      = [];
   private enemyProjectiles: EnemyProjectile[] = [];
 
+  // duel boss state
   private selectedBoss?: DuelBossData;
   private duelBossSprite?: Phaser.GameObjects.Sprite;
   private duelBossDirection = 1;
   private duelBossBaseY = 0;
   private waitingForBossTouch = false;
 
+  // HUD objects
   private hudContainer!: Phaser.GameObjects.Container;
   private hpBar!:      Phaser.GameObjects.Graphics;
   private hpLabel!:    Phaser.GameObjects.Text;
@@ -420,26 +488,31 @@ export class RunScene extends Phaser.Scene {
   private levelText!:  Phaser.GameObjects.Text;
   private avatarMask!: Phaser.GameObjects.Graphics;
 
+  // character data
   private playerSkin: CharacterSkinKey = 'christian';
   private selectedCharacter?: CharacterGameData;
+  // base attack + bonus
   private playerAttackBonus = 0;
 
+  // inputs
   private cursors!:  Phaser.Types.Input.Keyboard.CursorKeys;
   private keyW!:     Phaser.Input.Keyboard.Key;
   private keyA!:     Phaser.Input.Keyboard.Key;
   private keyS!:     Phaser.Input.Keyboard.Key;
   private keyD!:     Phaser.Input.Keyboard.Key;
   private keyShift!: Phaser.Input.Keyboard.Key;
-  private keyP!:     Phaser.Input.Keyboard.Key;
+  private keyP!:     Phaser.Input.Keyboard.Key; // admin skip key
 
   constructor() { super({ key: 'RunScene' }); }
 
+  // init cycle, resets mutable scene state from incoming run data 
   init(data: Partial<RunData>) {
+    // check level, runb step and run id, defaults if no existing data
     this.level          = data.level ?? 1;
     this.step           = data.step ?? 0;
     this.runId          = data.runId ?? 0;
 
-    // Select a new map only at the start of a level (step 0); restore it for subsequent steps
+    // select a new map only at the start of a level (step 0), restore it for subsequent steps
     if (this.step === 0) {
       this.activeMap = selectMap(data.currentMap);
     } else {
@@ -463,6 +536,7 @@ export class RunScene extends Phaser.Scene {
     this.coinsCollected        = 0;
     this.deathReason           = 'hp';
     this.enemiesKilledThisRun  = 0;
+    // load player upgrade stats from cache
     this.bulletDamage          = (getPlayer()?.bulletDamage as number | undefined) ?? 10;
     this.fireRateLevel         = (getPlayer()?.fireRate as number | undefined) ?? 1;
     this.reloadTimeLevel       = (getPlayer()?.reloadTime as number | undefined) ?? 1;
@@ -471,10 +545,13 @@ export class RunScene extends Phaser.Scene {
     this.ammo                  = this.maxAmmo;
     this.staminaPoolLevel      = (getPlayer()?.staminaPool as number | undefined) ?? 1;
     this.staminaRegenLevel     = (getPlayer()?.staminaRegen as number | undefined) ?? 1;
+    // each stamina upgrade tier adds 15% to the base stamina max
     this.maxStamina            = STAMINA_MAX + (STAMINA_MAX * 0.15 * (this.staminaPoolLevel - 1));
     this.stamina               = this.maxStamina;
     this.reloading             = false;
     this.lastShootTime         = 0;
+
+    // clear entity and world arrays so world and enemies start fresh
     this.barrierRects   = [];
     this.holeRects      = [];
     this.puddleRects    = [];
@@ -484,7 +561,7 @@ export class RunScene extends Phaser.Scene {
     this.enemyProjectiles = [];
     this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
 
-    // Create a server-side run record at the start of each new run.
+    // Create a server-side run record at the start of each new run. - AI did this if block:
     // We store the promise so endRun() can chain off it — avoids the race condition
     // where the player dies before the async response arrives and runId is still 0.
     if (this.level === 1 && this.step === 0) {
@@ -494,16 +571,22 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // load assets for scene generation, this.textures.exists prevenrs redundant reloads
   preload() {
     showLoadingScreen(this);
 
+    // map tile sheet
     if (!this.textures.exists(this.activeMap.key))
       this.load.spritesheet(this.activeMap.key, this.activeMap.url, {
         frameWidth: this.activeMap.tileWidth, frameHeight: this.activeMap.tileHeight,
       });
+    
+    // player avatar and HUD portrait
     const avatarUrl = CHARACTER_VISUALS[this.playerSkin].avatarUrl;
     if (!this.textures.exists(`${this.playerSkin}-avatar`))
       this.load.image(`${this.playerSkin}-avatar`, avatarUrl);
+
+    // boss sprites
     if (!this.textures.exists('boss-skawl-run-sheet'))
       this.load.image('boss-skawl-run-sheet', skawlSheet);
     if (!this.textures.exists('boss-rabyz-run-sheet'))
@@ -511,9 +594,12 @@ export class RunScene extends Phaser.Scene {
     if (!this.textures.exists('boss-boldear-run-sheet'))
       this.load.image('boss-boldear-run-sheet', boldearSheet);
 
+    // player character sprites
     const skinUrl = CHARACTER_VISUALS[this.playerSkin].sheetUrl;
     if (!this.textures.exists(this.playerSkin))
       this.load.image(this.playerSkin, skinUrl);
+
+    // enemy sprites, loads all unconditionally so all enemy types and skins can spawn
     if (!this.textures.exists('racko'))
       this.load.image('racko',    rackoSheet);
     if (!this.textures.exists('rhonda'))
@@ -538,6 +624,8 @@ export class RunScene extends Phaser.Scene {
       this.load.image('stirr',    stirrSheet);
   }
 
+  // build entire scene, async since legendary drop pool and boss spawn at goal both fetch from API
+  // AI helped heavily in some parts of this function (we built the base but lots of things had to be ironed out to prevent bugs)
   async create() {
     this.cameras.main.fadeIn(300, 0, 0, 0);
     if (this.input.keyboard) this.input.keyboard.enabled = true;
@@ -548,24 +636,26 @@ export class RunScene extends Phaser.Scene {
     this.isShowingQuitDialog = false;
     this.sidebarNavHandler = null;
 
-    // Initialize input immediately to prevent null reference errors in update()
+    // init input immediately to prevent null reference errors in update() (AI spotted this)
     this.setupInput();
 
-    // Load character data in the background (don't await)
+    // fetch character stats in the background, stats apply when the promise settles
     void this.loadPlayerCharacterData();
 
     this.cameras.main.setBackgroundColor(0x1a1a2e);
     this.generateTextures();
     this.createPlayerAnimations();
     this.createBossRunFrames(); // dynamically slice boss run spritesheets into frames for animation
-    this.createBossRunAnimations(); // create Phaser animations for boss running using the frames we just sliced
+    this.createBossRunAnimations(); // create phaser animations for boss running using the frames we just sliced
 
     this.grid = this.generateGrid();
     this.buildWorld(this.grid);
     this.spawnEnemies(this.grid);
+    // awaited, the drop pool must be loaded before spawnCoins() calls trySpawnLegendaryDrop()
     await this.loadLegendaryDropPool();
     this.spawnCoins(this.grid);
 
+     // place the player sprite at the vertical center of start area
     this.px = TILE * 2;
     this.py = Math.floor(ROWS / 2) * TILE;
     const playerScale = PLAYER_SIZE / (CHARACTER_VISUALS[this.playerSkin].run.xCuts[1] - CHARACTER_VISUALS[this.playerSkin].run.xCuts[0]);
@@ -573,10 +663,12 @@ export class RunScene extends Phaser.Scene {
       .setOrigin(0, 0).setDepth(5).setScale(playerScale);
     this.playerImg.play(`${this.playerSkin}-walk-down`);
 
+    // ONLY spawn the duel boss on the last stage of a cycle (last step, 2 for now)
     if (this.step === RUNS_PER_CYCLE - 1) {
       void this.spawnDuelBossAtGoal();
     }
     
+    // level indicator, scrollFactor(0) pins it regardless of camera position
     const cw = this.cameras.main.width;
     this.levelIndicator = this.add.text(cw / 2, 30, `Level ${this.level}`, {
       fontFamily: 'Impact, Arial black, sans-serif',
@@ -588,6 +680,7 @@ export class RunScene extends Phaser.Scene {
 
     this.buildHud();
 
+    // reloading label above the player sprite during cooldown
     this.reloadingText = this.add.text(0, 0, 'Reloading...', {
       fontFamily: 'Impact, Arial black, sans-serif',
       fontSize: '16px',
@@ -596,6 +689,7 @@ export class RunScene extends Phaser.Scene {
       strokeThickness: 2,
     }).setOrigin(0.5, 1).setDepth(15).setVisible(false);
 
+    // ESC key opens pause overlay without stopping scene music, AI did this, we figured it was a nice feat. to have and not worth too much of our time
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
     escKey?.on('down', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
@@ -603,6 +697,7 @@ export class RunScene extends Phaser.Scene {
       this.scene.launch('PauseScene', { returnScene: 'RunScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
     });
 
+    // pause button in the top-right corner same logic as ESC, we were more involved here to make it look clean
     const pauseBg   = this.add.graphics();
     pauseBg.fillStyle(0x000000, 0.7);
     pauseBg.fillRoundedRect(-45, -18, 90, 36, 6);
@@ -618,7 +713,7 @@ export class RunScene extends Phaser.Scene {
       this.scene.pause(); // pause the duel scene
     });
 
-    // Sidebar navigation guard — show quit confirmation instead of hard-switching
+    // sidebar guard show quit confirmation instead of just switching, we did most of the logic, AI made the overlay look alright
     const onSidebarNavRequest = ((e: Event) => {
       if (this.isShowingQuitDialog) return;
       this.isShowingQuitDialog = true;
@@ -680,8 +775,10 @@ export class RunScene extends Phaser.Scene {
 
     this.sidebarNavHandler = onSidebarNavRequest;
     window.addEventListener('sidebar-nav-request', this.sidebarNavHandler);
+    // native guard, prompts the browsers built in leave page dialog, we put this in but used AI to get docs on how to do it
     window.addEventListener('beforeunload', this.beforeUnloadHandler);
 
+    // cleanup on scene shutdown, remove timers, tweens (phasers animation system), input, and DOM event listeners
     this.events.on('shutdown', () => {
       this.time.removeAllEvents();
       this.tweens.killAll();
@@ -695,6 +792,7 @@ export class RunScene extends Phaser.Scene {
     });
   }
 
+  // fetches character stat data from backend, applies HP and attack bonuses, AI helped structure this a bit
   private async loadPlayerCharacterData(): Promise<void> {
     const player = getPlayer();
     const equipped = (player?.equippedCharacter as string | undefined) ?? 'christian';
@@ -716,7 +814,8 @@ export class RunScene extends Phaser.Scene {
         isDefaultUnlocked: true,
       };
     }
-
+    
+    // upgrade bonus is how much the players stat exceeds the baseline (delta above default)
     const hpUpgradeBonus = Math.max(0, ((player?.maxHp as number | undefined) ?? 50) - 50);
     const attackUpgradeBonus = Math.max(0, ((player?.bulletDamage as number | undefined) ?? 10) - 10);
 
@@ -726,6 +825,7 @@ export class RunScene extends Phaser.Scene {
     this.bulletDamage = Math.max(1, this.playerAttackBonus);
   }
 
+  // builds pool of legendary card names, can't comment too much on this or legendary drops in general, Manuel handled this part - Santi
   private async loadLegendaryDropPool(): Promise<void> {
     this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name);
     if (!this.playerCanFindLegendaryDrops()) return;
@@ -766,11 +866,15 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // game loop per frame, all of this is called in order each tick
+  // time is absolute time in ms since start of game, delta is the frame duration in ms (to compute frame rate independent stuff)
   update(time: number, delta: number) {
     if (this.done) return;
     if (this.isShowingQuitDialog) return;
+
+    // boss animation and touch detection (only while waiting for player to engage)
     if (this.duelBossSprite && this.waitingForBossTouch) {
-      this.duelBossSprite.y += this.duelBossDirection * 0.5; // bob up and down to indicate interactivity
+      this.duelBossSprite.y += this.duelBossDirection * 0.5; 
       if (this.duelBossSprite.y > this.duelBossBaseY + 20) this.duelBossDirection = -1;
       if (this.duelBossSprite.y < this.duelBossBaseY - 20) this.duelBossDirection = 1;
       
@@ -780,11 +884,11 @@ export class RunScene extends Phaser.Scene {
       const overlap = rectsOverlap(
         this.px, this.py, PLAYER_SIZE, PLAYER_SIZE,
         this.duelBossSprite.x, this.duelBossSprite.y, bossWidth, bossHeight
-      ); // simple AABB check for touching the boss to start the duel; no need for pixel-perfect collision here since the boss is large and has a big hitbox
+      ); // AABB check
 
       if (overlap) {
         this.startBossDuel();
-      } // if the player touches the boss, transition to the DuelScene and pass the selected boss data along with the current run stats
+      } // if the player touches the boss, transition to the duel scene and pass selected boss data along with current run stats
     }
 
     this.timer += delta;
@@ -802,6 +906,7 @@ export class RunScene extends Phaser.Scene {
 
   // ── Textures ──
 
+  // generate textures for entities that dont use sprite sheets
   private generateTextures() {
     const make = (key: string, w: number, h: number, color: number) => {
       if (this.textures.exists(key)) return;
@@ -840,20 +945,28 @@ export class RunScene extends Phaser.Scene {
 
   // ── Grid generation ──
 
+  // split into two: first, we trace a 3 tile wide walkable corridor from left to right, with random vertical drift
+  // then, obstacle seeds are placed at random and grown
+  // AI helped in parts here, mostly with the logic since we couldnt guarantee a clear path before, we liked the path solution a lot
   private generateGrid(): number[][] {
     const grid: number[][] = Array.from({ length: ROWS }, () =>
       new Array<number>(COLS).fill(FLOOR)
     );
+
+     // marks the 3 wide corridor as safe obstacles cannot overwrite these cells
     const onPath: boolean[][] = Array.from({ length: ROWS }, () =>
       new Array<boolean>(COLS).fill(false)
     );
 
     let pathRow = Math.floor(ROWS / 2);
     for (let col = 0; col < COLS; col++) {
+      // marks a 3 tile vertical strip as on-path
       for (let dr = -1; dr <= 1; dr++) {
         const r = pathRow + dr;
         if (r >= 0 && r < ROWS) onPath[r][col] = true;
       }
+
+      // random drift: 20% chance up, 20% chance down, bounded to leave room at edges
       if (col > 4 && col < COLS - 5) {
         const roll = Math.random();
         if (roll < 0.2 && pathRow > 3) pathRow--;
@@ -861,11 +974,12 @@ export class RunScene extends Phaser.Scene {
       }
     }
 
-    const safe = (r: number, c: number) =>
-      onPath[r][c] || c < START_COLS || c >= END_COL;
-    const blocked = (r: number, c: number) =>
-      safe(r, c) || grid[r][c] !== FLOOR;
+    // store cells that must not be converted to obstacles
+    const safe = (r: number, c: number) => onPath[r][c] || c < START_COLS || c >= END_COL;
+    const blocked = (r: number, c: number) => safe(r, c) || grid[r][c] !== FLOOR;
 
+
+    // grow clusters with flood style fill (essentially a BFS, more on this below)
     for (let i = 0; i < BARRIER_SEEDS; i++) {
       const sr = randInt(0, ROWS - 1);
       const sc = randInt(START_COLS, END_COL - 2);
@@ -885,6 +999,8 @@ export class RunScene extends Phaser.Scene {
     return grid;
   }
 
+  // spritesheet frame slicing, 12 frames, 4 directions (AI did this, goes in hand with frame slicing
+  // I wouldve done the sprite frames myself but spritesheets I got given were inconsistent, this was painful and getting sprites right took a while, even with AI
   private sliceCharSheetFrames(skinKey: CharSheetKey) {
     const sheet = CHAR_SHEETS[skinKey];
     const texture = this.textures.get(skinKey);
@@ -904,6 +1020,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // create looping walk animations, we handled this part, wasn't terrible with phaser docs
   private createWalkAnimations(skinKey: CharSheetKey) {
     const dirs = ['down', 'left', 'right', 'up'];
     for (const dir of dirs) {
@@ -923,16 +1040,19 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // group slices and animation creation for players
   private createPlayerAnimations() {
     this.sliceCharSheetFrames(this.playerSkin);
     this.createWalkAnimations(this.playerSkin);
   }
 
+  // same with enemies
   private createEnemyAnimations(skinKey: CharSheetKey) {
     this.sliceCharSheetFrames(skinKey);
     this.createWalkAnimations(skinKey);
   }
 
+  // same as sliceCharSheetFrames, Manuel did this part with AI assistance 
   private sliceBossSheetFrames(
     textureKey: string,
     framePrefix: string,
@@ -957,6 +1077,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // slice spritesheet frames for all three bosses
   private createBossRunFrames() {
     this.sliceBossSheetFrames(
       RUN_BOSS_SHEETS.Skawl.textureKey,
@@ -980,6 +1101,7 @@ export class RunScene extends Phaser.Scene {
     );
   }
 
+  // return spritesheet texture key for the selected boss
   private getRunBossSpriteKey(): string {
     switch (this.selectedBoss?.enemyName) {
       case 'Skawl': return 'boss-skawl-run-sheet';
@@ -989,6 +1111,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // return starting animation key for the selected boss
   private getRunBossAnimationKey(): string {
     switch (this.selectedBoss?.enemyName) {
       case 'Skawl': return 'boss-skawl-run-down';
@@ -998,6 +1121,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // register walk down animations for all three bosses, skips if already registered
   private createBossRunAnimations() {
     if (!this.anims.exists('boss-skawl-run-down')) {
       this.anims.create({
@@ -1041,6 +1165,7 @@ export class RunScene extends Phaser.Scene {
 
 
   // ── Boss Duel Start Point ──
+  // can't comment on this one Manuels part - Santi
   private async spawnDuelBossAtGoal() {
     try {
       this.selectedBoss = await fetchRandomDuelBoss();
@@ -1089,6 +1214,8 @@ export class RunScene extends Phaser.Scene {
   }
 
   // ── Boss Duel Transition ──
+  
+  // transition to DuelScene passing current run state, guard prevents double trigger
   private startBossDuel() {
     if (!this.selectedBoss || this.done) return; // guard against multiple triggers
 
@@ -1105,16 +1232,20 @@ export class RunScene extends Phaser.Scene {
     }); // transition to the DuelScene and pass along the current run stats and selected boss data
   }
 
+  // randomized BFS flood fill to grow terrain clusters base BFS structure written by me (santi), based on similar implementations i've done for ICPC,
+  // random frontier pick (highlighted) added by AI to produce organic irregular shapes instead of uniform blobs, much nicer and good to learn for games
   private growCluster(
     grid: number[][], sr: number, sc: number,
     type: number, size: number,
     blocked: (r: number, c: number) => boolean
   ) {
     const frontier = [{ r: sr, c: sc }];
+     // string keys track visited cells to prevent revisiting (avoids infinite loops)
     const visited = new Set<string>([`${sr},${sc}`]);
     let placed = 0;
 
     while (placed < size && frontier.length > 0) {
+      // random pick from frontier produces irregular organic shapes (this is where AI came in)
       const idx = Math.floor(Math.random() * frontier.length);
       const { r, c } = frontier.splice(idx, 1)[0];
       if (blocked(r, c)) continue;
@@ -1133,6 +1264,7 @@ export class RunScene extends Phaser.Scene {
 
   // ── World building ──
 
+  // grid loop and tile placement written by me, frame registration and hole hitbox shrinking written by an AI
   private buildWorld(grid: number[][]) {
     const { key: mapKey, frames: mapFrames } = this.activeMap;
 
@@ -1190,6 +1322,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+ // check which of the 4 neighboring tiles match the given type (used for hole hitbox shrinking)
   private tileNeighbors(grid: number[][], row: number, col: number, type: number) {
     return {
       n: row > 0        && grid[row - 1][col] === type,
@@ -1201,6 +1334,8 @@ export class RunScene extends Phaser.Scene {
 
   // ── Spawning ──
 
+  // spawn enemies from pool, scale count with level, assign random skin and stats per type 
+  // (heavily used AI to guide me here, I built a frame for spawning but couldn't quite get it right on my own)
   private spawnEnemies(grid: number[][]) {
     const pool  = getSpawnPool(this.level);
     const extra = Math.min(20, 2 * (this.level - 1));
@@ -1247,6 +1382,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // spawn coins at random floor tiles
   private spawnCoins(grid: number[][]) {
     const count = randInt(COIN_COUNT_MIN, COIN_COUNT_MAX);
     let placed = 0, attempts = 0;
@@ -1257,6 +1393,7 @@ export class RunScene extends Phaser.Scene {
       const row = randInt(0, ROWS - 1);
       if (grid[row][col] !== FLOOR) continue;
 
+      // center coin within tile
       const cx = col * TILE + (TILE - COIN_SIZE) / 2;
       const cy = row * TILE + (TILE - COIN_SIZE) / 2;
       this.coins.push({
@@ -1318,6 +1455,7 @@ export class RunScene extends Phaser.Scene {
 
   // ── HUD ──
 
+  // construct top left HUD, AI helped me scan phaser docs for the mask part specifically
   private buildHud() {
     const BAR_X = 75;
 
@@ -1332,10 +1470,12 @@ export class RunScene extends Phaser.Scene {
     const avatarSprite = this.add.image(35, 55, `${this.playerSkin}-avatar`);
     avatarSprite.setDisplaySize(56, 56);
 
+    // GeometryMask clips the avatar image to a circle without a render-texture
     this.avatarMask = this.add.graphics();
     this.avatarMask.setScrollFactor(0);
     const mask = this.avatarMask.createGeometryMask();
     avatarSprite.setMask(mask);
+    // mask graphics must be offset by the container position (10, 10) to align correctly
     this.avatarMask.fillStyle(0xffffff);
     this.avatarMask.fillCircle(10 + 35, 10 + 55, 30);
 
@@ -1354,6 +1494,7 @@ export class RunScene extends Phaser.Scene {
     this.refreshHud();
   }
 
+  // redrwaw HUD elements every frame
   private refreshHud() {
     const BAR_X = 75;
     const BAR_W = 248;
@@ -1391,6 +1532,7 @@ export class RunScene extends Phaser.Scene {
 
   // ── Input ──
 
+  // wire keyboard and pointer input handlers
   private setupInput() {
     this.cursors  = this.input.keyboard!.createCursorKeys();
     this.keyW     = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W);
@@ -1400,6 +1542,8 @@ export class RunScene extends Phaser.Scene {
     this.keyShift = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
     this.keyP     = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P);
 
+
+    // admin shortcut: advance stage immediately
     this.keyP.on('down', () => {
       const player = getPlayer();
       if (player?.isAdmin && !this.done) {
@@ -1415,6 +1559,7 @@ export class RunScene extends Phaser.Scene {
       if (this.done) return;
       if (this.reloading) return;
       if (this.ammo <= 0) { this.startReload(); return; }
+      // fire-rate upgrade divides the base 300 ms cooldown, AI helped here cause the way I did it at first was buggy
       const baseCooldown = 300;
       if (this.time.now - this.lastShootTime < baseCooldown / this.fireRateLevel) return;
       this.lastShootTime = this.time.now;
@@ -1424,8 +1569,10 @@ export class RunScene extends Phaser.Scene {
     });
   }
 
-  // ── Movement & collision ──
+  // ── Movement and collision ──
 
+  // handle player movement, sprint, barrier pushback, animation updates
+  // AI helped iron out the collision and stamina logic 
   private handleMovement(time: number, delta: number) {
     const dt = delta / 1000;
 
@@ -1450,6 +1597,7 @@ export class RunScene extends Phaser.Scene {
     if (this.cursors.up.isDown    || this.keyW.isDown) dy = -speed * dt;
     if (this.cursors.down.isDown  || this.keyS.isDown) dy =  speed * dt;
 
+     // separate X/Y updates allow resolveBarriers to work axis by axis
     this.px += dx;
     this.px = clamp(this.px, 0, WORLD_W - PLAYER_SIZE);
     if (dx !== 0) this.resolveBarriers(dx, 0);
@@ -1458,12 +1606,14 @@ export class RunScene extends Phaser.Scene {
     this.py = clamp(this.py, 0, WORLD_H - PLAYER_SIZE);
     if (dy !== 0) this.resolveBarriers(0, dy);
 
+    // prevent player from running ahead of the camera's right viewport
     const cam = this.cameras.main;
     const rightLimit = cam.scrollX + cam.width - PLAYER_SIZE;
     if (this.px > rightLimit) this.px = rightLimit;
 
     this.playerImg.setPosition(this.px, this.py);
 
+    // update walk animation direction, only restarts the animation when the direction changes
     if (dx !== 0 || dy !== 0) {
       const dir = Math.abs(dx) >= Math.abs(dy)
         ? (dx > 0 ? 'right' : 'left')
@@ -1472,8 +1622,9 @@ export class RunScene extends Phaser.Scene {
         this.lastPlayerDir = dir;
         this.playerImg.play(`${this.playerSkin}-walk-${dir}`, true);
       }
-      this.playerImg.anims.timeScale = this.sprinting ? 1.8 : 1;
+      this.playerImg.anims.timeScale = this.sprinting ? 1.8 : 1; // sprint animation plays 80% faster
     } else {
+      // stop animation on the middle frame of the last direction when idle
       this.playerImg.anims.stop();
       this.playerImg.setFrame(`${this.playerSkin}-walk-${this.lastPlayerDir}-1`);
     }
@@ -1483,6 +1634,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // use AABB to push player out of any overlapping barrier 
   private resolveBarriers(dx: number, dy: number) {
     for (const b of this.barrierRects) {
       if (!rectsOverlap(this.px, this.py, PLAYER_SIZE, PLAYER_SIZE, b.x, b.y, b.w, b.h))
@@ -1496,6 +1648,8 @@ export class RunScene extends Phaser.Scene {
 
   // ── Shooting ──
 
+
+  // start reload timer, scales with upgrade level, skips if no reload upgrade is active
   private startReload() {
     if (this.reloading) return;
     if (this.hasNoReloadUpgrade) { this.ammo = this.maxAmmo; return; }
@@ -1510,6 +1664,7 @@ export class RunScene extends Phaser.Scene {
     });
   }
 
+  // convert pointer screen coords to world coords, fire projectile snapped to 8 directions
   private fireProjectile(ptr: Phaser.Input.Pointer) {
     const cam = this.cameras.main;
     const wx = ptr.x / cam.zoom + cam.scrollX;
@@ -1530,6 +1685,8 @@ export class RunScene extends Phaser.Scene {
     });
   }
 
+  // move projectiles each frame, destroy on world bounds or barrier hit, deal damage to enemies
+  // iterating backwards so splicing mid loop is safe (AI suggested this pattern)
   private updateProjectiles(delta: number) {
     const dt = delta / 1000;
 
@@ -1539,6 +1696,7 @@ export class RunScene extends Phaser.Scene {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
 
+      // destroy on world boundary exit
       if (p.x < 0 || p.x + PROJ_SIZE > WORLD_W || p.y < 0 || p.y + PROJ_SIZE > WORLD_H) {
         p.img.destroy();
         this.projectiles.splice(i, 1);
@@ -1546,6 +1704,7 @@ export class RunScene extends Phaser.Scene {
       }
 
       let hit = false;
+      // check barrier collision first, cheaper than iterating all enemies
       for (const b of this.barrierRects) {
         if (rectsOverlap(p.x, p.y, PROJ_SIZE, PROJ_SIZE, b.x, b.y, b.w, b.h)) {
           hit = true;
@@ -1567,7 +1726,7 @@ export class RunScene extends Phaser.Scene {
               }
             }
             hit = true;
-            break;
+            break; // one target
           }
         }
       }
@@ -1583,6 +1742,8 @@ export class RunScene extends Phaser.Scene {
 
   // ── Enemy projectiles ──
 
+
+  // fire projectile from enemy toward player center, normalize direction vector, scale damage with level (AI helped)
   private fireEnemyProjectile(e: Enemy) {
     const ex = e.x + ENEMY_SIZE / 2;
     const ey = e.y + ENEMY_SIZE / 2;
@@ -1604,6 +1765,7 @@ export class RunScene extends Phaser.Scene {
     });
   }
 
+  // fire projectile from enemy toward player center, normalize direction vector, scale damage with level (AI helped)
   private updateEnemyProjectiles(delta: number) {
     if (this.done) return;
     const dt = delta / 1000;
@@ -1652,10 +1814,14 @@ export class RunScene extends Phaser.Scene {
 
   // ── Enemies (A*) ──
 
+// A* pathfinding per enemy on a timer (too expensive to run every frame), normalized movement along path nodes,
+// minimum overlap AABB pushout for barrier collision, behavior defined per enemy type
+// AI helped heavily here, I understood the pieces but couldn't have put it all together alone
   private updateEnemies(delta: number) {
     const dt = delta / 1000;
     const startWall = START_COLS * TILE;
 
+    // while the player hasn't left the start zone, freeze all enemies in place
     if (!this.leftStart) {
       for (const e of this.enemies) {
         e.img.setPosition(e.x, e.y);
@@ -1668,6 +1834,7 @@ export class RunScene extends Phaser.Scene {
     const playerRow = Math.floor((this.py + PLAYER_SIZE / 2) / TILE);
 
     for (const e of this.enemies) {
+       // A* repath timer, recompute path every ENEMY_REPATH_MS ms
       e.pathTimer -= delta;
       if (e.pathTimer <= 0) {
         e.pathTimer = ENEMY_REPATH_MS;
@@ -1677,6 +1844,7 @@ export class RunScene extends Phaser.Scene {
         e.pathIdx = 0;
       }
 
+      // Follow the computed path waypoint by waypoint
       if (e.path.length > 0 && e.pathIdx < e.path.length) {
         const target = e.path[e.pathIdx];
         const tx = target.col * TILE;
@@ -1686,12 +1854,14 @@ export class RunScene extends Phaser.Scene {
         const d  = Math.sqrt(dx * dx + dy * dy);
 
         if (d < 4) {
+          // close enough to waypoint, advance to the next
           e.pathIdx++;
         } else {
           const step = e.speed * dt;
           e.x += (dx / d) * step;
           e.y += (dy / d) * step;
 
+          // update walk animation direction
           const dir = Math.abs(dx) >= Math.abs(dy)
             ? (dx > 0 ? 'right' : 'left')
             : (dy > 0 ? 'down' : 'up');
@@ -1701,13 +1871,16 @@ export class RunScene extends Phaser.Scene {
           }
         }
       } else if (e.img.anims.isPlaying) {
+        // end of path
         e.img.anims.stop();
         e.img.setFrame(`${e.skinKey}-walk-${e.lastDir}-1`);
       }
 
+       // clamp to the playable world area (enemies cannot enter the start safe zone)
       e.x = clamp(e.x, startWall, WORLD_W - ENEMY_SIZE);
       e.y = clamp(e.y, 0, WORLD_H - ENEMY_SIZE);
 
+      // overlap barrier resolution, prevents A* from walking enemies through walls, AI did this
       for (const b of this.barrierRects) {
         if (!rectsOverlap(e.x, e.y, ENEMY_SIZE, ENEMY_SIZE, b.x, b.y, b.w, b.h)) continue;
         const ol = (e.x + ENEMY_SIZE) - b.x;
@@ -1742,7 +1915,7 @@ export class RunScene extends Phaser.Scene {
             this.hp = 0;
             this.deathReason = 'hp';
             this.showGameOver();
-            return;
+            return; // run over
           }
         }
       }
@@ -1752,6 +1925,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // draw enemy HP bar above sprite each frame
   private drawEnemyBar(e: Enemy) {
     const barX = e.x + (ENEMY_SIZE - ENEMY_BAR_W) / 2;
     const barY = e.y + ENEMY_BAR_Y;
@@ -1765,6 +1939,7 @@ export class RunScene extends Phaser.Scene {
 
   // ── Puddle healing ──
 
+  // heal player while standing in a puddle tile, framerate independent
   private checkPuddle(delta: number) {
     const cx = this.px + PLAYER_SIZE / 2;
     const cy = this.py + PLAYER_SIZE / 2;
@@ -1778,6 +1953,7 @@ export class RunScene extends Phaser.Scene {
 
   // ── Coins ──
 
+  // collect coins and legendary drops on proximity, coin value scales with level
   private checkCoins() {
     const cx = this.px + PLAYER_SIZE / 2;
     const cy = this.py + PLAYER_SIZE / 2;
@@ -1803,6 +1979,7 @@ export class RunScene extends Phaser.Scene {
 
   // ── Camera ──
 
+  // scroll camera rightward at level scaled speed, kill player if camera overtakes them
   private updateCamera(delta: number) {
     const cam  = this.cameras.main;
     const camW = cam.width;
@@ -1826,6 +2003,7 @@ export class RunScene extends Phaser.Scene {
 
   // ── Win / Lose ──
 
+  // check if player reached the end zone, trigger level complete (skipped if boss is waiting)
   private checkEndZone() {
     if (this.waitingForBossTouch) return;
     const ez = this.endZone;
@@ -1834,6 +2012,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // check if player center is inside a hole tile, trigger death
   private checkHoleDeath() {
     const cx = this.px + PLAYER_SIZE / 2;
     const cy = this.py + PLAYER_SIZE / 2;
@@ -1848,6 +2027,7 @@ export class RunScene extends Phaser.Scene {
 
   // ── Stage progression ──
 
+  // advance to next step or transition to DuelScene if cycle is complete
   private advanceStage() {
     const nextStep = this.step + 1;
     const runData: RunData = {
@@ -1871,11 +2051,12 @@ export class RunScene extends Phaser.Scene {
 
   // ── Overlays ──
 
+  // show stage complete overlay, calculate tiered bonuses, wait for continue button
   private showLevelComplete() {
     if (this.done) return;
     this.done = true;
 
-    // Commit stage completion rewards to RunData
+    // commit stage completion rewards to RunData
     const collectedThisStage = this.coinsCollected;
     const bonusCoins = this.level >= 15 ? 300 : this.level >= 10 ? 250 : this.level >= 5 ? 150 : 100;
     const bonusXp    = this.level >= 15 ? 500 : this.level >= 10 ? 400 : this.level >= 5 ? 300 : 250;
@@ -1907,6 +2088,7 @@ export class RunScene extends Phaser.Scene {
       .on('pointerdown', () => this.advanceStage());
   }
 
+  // commit run stats to server, chains off runCreationPromise to avoid race condition on fast deaths (AI helped here)
   endRun() {
     if (this.runEnded) return;
     this.runEnded = true;
@@ -1930,6 +2112,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  // show game over overlay with death reason, retry and menu buttons
   private showGameOver() {
     if (this.done) return;
     // endRun() commits coinsCollected, sets done=true, saves run — display-only after this

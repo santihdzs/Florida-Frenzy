@@ -210,6 +210,7 @@ const friendsRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
+    // friendships include both parties; resolve to the other person from the current player's perspective
     const friends = friendships.map(f => ({
       ...(f.senderId === playerId ? f.receiver : f.sender),
       friendshipId: f.id,

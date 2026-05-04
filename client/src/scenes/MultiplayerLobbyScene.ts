@@ -74,6 +74,7 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     const s = this.socket;
 
     // Remove any stale listeners from a previous scene run
+    // ai helped structure this part
     s.off('connected');
     s.off('lobby:created');
     s.off('lobby:state');
@@ -231,6 +232,7 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     const PANEL_TOP = 132;
     const PANEL_H   = H - PANEL_TOP - 100; // leave room for bottom buttons
     const GAP       = 20;
+    // ai helped with this
     const PW        = Math.floor((W - 60 - GAP) / 2);  // each panel half width
     const PX        = 30;                               // left panel x
     const FX        = PX + PW + GAP;                   // right panel x
