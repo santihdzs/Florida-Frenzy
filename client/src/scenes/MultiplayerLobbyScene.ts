@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import titleBackground from '../assets/title-background.webp';
-import type { Socket } from 'socket.io-client';
 import { getSocket, initInviteNotifications } from '../utils/socket.js';
 import { getFriends, getPlayer } from '../utils/auth.js';
 import { transitionTo } from '../utils/sceneTransition.js';
@@ -33,7 +32,7 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
   private lobbyState: LobbyState | null = null;
   private friends: Friend[] = [];
   private uiGroup: Phaser.GameObjects.GameObject[] = [];
-  private socket!: Socket; // captured once in create(); reused everywhere
+  private socket!: ReturnType<typeof getSocket>; // captured once in create(); reused everywhere
 
   constructor() {
     super({ key: 'MultiplayerLobbyScene' });

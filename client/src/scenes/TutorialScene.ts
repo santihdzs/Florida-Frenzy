@@ -7,7 +7,11 @@ import clanUrl from '../assets/sprites/Klan.webp';
 import music from '../assets/music/Lowland_Hymn.mp3';
 import { getPlayer } from '../utils/auth.js';
 
-import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } from '../utils/characterVisuals.js';
+import { CHARACTER_VISUALS } from '../utils/characterVisuals.js';
+import christianSheet from '../assets/characters/christian/Christian_SpriteSheet.webp';
+import gavinSheet from '../assets/characters/gavin/Gavin_SpriteSheet.webp';
+import gustavSheet from '../assets/characters/gustav/Gustav_SpriteSheet.webp';
+import eddySheet from '../assets/characters/eddy/Eddy_SpriteSheet.webp';
 
 const TILE = 48;
 const WORLD_W = 1200;

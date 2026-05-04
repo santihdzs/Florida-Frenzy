@@ -1,11 +1,11 @@
-import { io, type Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { getToken } from './auth.js';
 
 const API_URL = (import.meta as unknown as { env: Record<string, string> }).env?.VITE_API_URL ?? 'http://localhost:3001';
 
-let _socket: Socket | null = null;
+let _socket: ReturnType<typeof io> | null = null;
 
-export function getSocket(): Socket {
+export function getSocket(): ReturnType<typeof io> {
   // Return the existing socket whether it is connected, connecting, or reconnecting.
   // Never disconnect and recreate mid-session — that would orphan all existing listeners.
   if (_socket) return _socket;
@@ -18,7 +18,7 @@ export function getSocket(): Socket {
     autoConnect: true,
   });
 
-  _socket.on('connect_error', (err) => {
+  _socket.on('connect_error', (err: Error) => {
     console.warn('[socket] connection error:', err.message);
   });
 
