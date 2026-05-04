@@ -19,6 +19,7 @@
 import Phaser from 'phaser'; // direct import to ensure Phaser types are available in this file
 
 import { fetchCards } from '../api/cardsApi'; // API function to fetch card data from the server
+import { fetchCharacterByKey, type CharacterGameData } from '../api/characterApi.js';
 import { mapCardData } from '../utils/cardsMapper'; // utility function to convert database card format to the Card type used in the client application
 // import { getBaseCardPool, type Card } from '../utils/cards'; // import the Card type for type annotations in this scene
 import { fetchActiveDeck } from '../api/deckApi';
@@ -61,6 +62,7 @@ import {
 import { updateHpBar, updateEnergyBar, updateShieldBar } from '../utils/duelUi'; // reusable UI rendering functions for HP and energy bars
 
 import { CombatState, createEmptyCombatState } from '../utils/combatState'; // combat status container and reset helper
+import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } from '../utils/characterVisuals.js';
 
 import type { RunData } from './RunScene'; // run-progress data passed into this scene
 import { completeRun, getPlayer, beatPythra } from '../utils/auth.js'; // API call to save run result
@@ -79,33 +81,11 @@ import cardSwampSpecial from '../assets/sprites/CardSwamp.webp';
 
 import cardIceWildcard from '../assets/sprites/CardIceFront.webp'; // sprite for the Ice wildcard
 
-import christianIdle from '../assets/characters/christian/Christian_v4_resized.webp';
-import christianAttack1 from '../assets/characters/christian/Christian_attack-1.webp';
-import christianAttack2 from '../assets/characters/christian/Christian_attack-2.webp';
-import christianDamage1 from '../assets/characters/christian/Christian_damage-1.webp';
-import christianDamage2 from '../assets/characters/christian/Christian_damage-2.webp';
-import christinDefeated from '../assets/characters/christian/Christian_defeated.webp';
-
-import gavinIdle    from '../assets/characters/gavin/Gavin_v3_resized.webp';
-import gavinAttack1 from '../assets/characters/gavin/Gavin_attack-1.webp';
-import gavinAttack2 from '../assets/characters/gavin/Gavin_attack-2.webp';
-import gavinDamage1 from '../assets/characters/gavin/Gavin_damage-1.webp';
-import gavinDamage2 from '../assets/characters/gavin/Gavin_damage-2.webp';
-import gavinDefeated from '../assets/characters/gavin/Gavin_defeated.webp';
-
-import gustavIdle    from '../assets/characters/gustav/Gustav_v3_resized.webp';
-import gustavAttack1 from '../assets/characters/gustav/Gustav_attack-1.webp';
-import gustavAttack2 from '../assets/characters/gustav/Gustav_attack-2.webp';
-import gustavDamage1 from '../assets/characters/gustav/Gustav_damage-1.webp';
-import gustavDamage2 from '../assets/characters/gustav/Gustav_damage-2.webp';
-import gustavDefeated from '../assets/characters/gustav/Gustav_defeated.webp';
-
-import eddyIdle    from '../assets/characters/eddy/Eddy_v2_resized.webp';
-import eddyAttack1 from '../assets/characters/eddy/Eddy_attack-1.webp';
-import eddyAttack2 from '../assets/characters/eddy/Eddy_attack-2.webp';
-import eddyDamage1 from '../assets/characters/eddy/Eddy_damage-1.webp';
-import eddyDamage2 from '../assets/characters/eddy/Eddy_damage-2.webp';
-import eddyDefeated from '../assets/characters/eddy/Eddy_defeated.webp';
+import cardCrocodile from '../assets/sprites/CardCroc.webp'; // Legendary Crocodile card art
+import cardAlligator from '../assets/sprites/CardGator.webp'; // Legendary Alligator card art
+import cardGavial from '../assets/sprites/CardGav.webp'; // Legendary Gavial card art
+import cardCaiman from '../assets/sprites/CardCaiman.webp'; // Legendary Caiman card art
+import cardSarcosuchus from '../assets/sprites/CardSarco.webp'; // Legendary Sarcosuchus card art
 
 import { BOSS_VISUALS } from '../utils/bossConfig.js';
 
@@ -237,6 +217,11 @@ export class DuelScene extends Phaser.Scene {
   private currentMap?: string; // Phaser texture key for the active RunScene map, forwarded back on cycle advance
   private pythraPhase = 1; // tracks Pythra's evolution phase for animation purposes
 
+  private selectedCharacter?: CharacterGameData;
+  private playerAttackBonus = 0;
+  private playerDefenseBonus = 0;
+  private readonly playerPoseY = 335;
+
   private playerCharacter!: Phaser.GameObjects.Image; // player character sprite
   private enemyCharacter!: Phaser.GameObjects.Image; // enemy character sprite
   private playerShadow!: Phaser.GameObjects.Graphics; // player shadow graphic
@@ -259,29 +244,7 @@ export class DuelScene extends Phaser.Scene {
     return val ?? key;
   }
 
-  private playerSkinKey = 'christian';
-
-  private static readonly PLAYER_SKINS: Record<string, {
-    idle: string; attack1: string; attack2: string;
-    damage1: string; damage2: string; defeated: string;
-  }> = {
-    christian: {
-      idle: christianIdle, attack1: christianAttack1, attack2: christianAttack2,
-      damage1: christianDamage1, damage2: christianDamage2, defeated: christinDefeated,
-    },
-    gavin: {
-      idle: gavinIdle, attack1: gavinAttack1, attack2: gavinAttack2,
-      damage1: gavinDamage1, damage2: gavinDamage2, defeated: gavinDefeated,
-    },
-    gustav: {
-      idle: gustavIdle, attack1: gustavAttack1, attack2: gustavAttack2,
-      damage1: gustavDamage1, damage2: gustavDamage2, defeated: gustavDefeated,
-    },
-    eddy: {
-      idle: eddyIdle, attack1: eddyAttack1, attack2: eddyAttack2,
-      damage1: eddyDamage1, damage2: eddyDamage2, defeated: eddyDefeated,
-    },
-  };
+  private playerSkinKey: CharacterSkinKey = 'christian';
 
   init(data: Partial<RunData>) {
     this.level = data.level ?? 1; // restore level if passed in, otherwise start at level 1
@@ -293,7 +256,7 @@ export class DuelScene extends Phaser.Scene {
     this.pythraPhase = 1; // reset Pythra phase to 1 at the start of each duel, will evolve when her HP reaches 0 until she has no lives remaining
     this.currentMap = data.currentMap;
     const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
-    this.playerSkinKey = equipped in DuelScene.PLAYER_SKINS ? equipped : 'christian';
+    this.playerSkinKey = resolveCharacterSkinKey(equipped);
   }
 
   preload() {
@@ -308,9 +271,14 @@ export class DuelScene extends Phaser.Scene {
     if (!this.textures.exists('card-sand-special')) this.load.image('card-sand-special', cardSandSpecial);
     if (!this.textures.exists('card-swamp-special'))this.load.image('card-swamp-special', cardSwampSpecial);
     if (!this.textures.exists('card-ice-wildcard')) this.load.image('card-ice-wildcard', cardIceWildcard);
+    if (!this.textures.exists('card-legendary-crocodile')) this.load.image('card-legendary-crocodile', cardCrocodile);
+    if (!this.textures.exists('card-legendary-alligator')) this.load.image('card-legendary-alligator', cardAlligator);
+    if (!this.textures.exists('card-legendary-gavial')) this.load.image('card-legendary-gavial', cardGavial);
+    if (!this.textures.exists('card-legendary-caiman')) this.load.image('card-legendary-caiman', cardCaiman);
+    if (!this.textures.exists('card-legendary-sarcosuchus')) this.load.image('card-legendary-sarcosuchus', cardSarcosuchus);
 
     const skin = this.playerSkinKey;
-    const skinAssets = DuelScene.PLAYER_SKINS[skin] ?? DuelScene.PLAYER_SKINS['christian'];
+    const skinAssets = CHARACTER_VISUALS[skin].duel;
     if (!this.textures.exists(`${skin}-idle`))     this.load.image(`${skin}-idle`,     skinAssets.idle);
     if (!this.textures.exists(`${skin}-attack-1`)) this.load.image(`${skin}-attack-1`, skinAssets.attack1);
     if (!this.textures.exists(`${skin}-attack-2`)) this.load.image(`${skin}-attack-2`, skinAssets.attack2);
@@ -384,6 +352,36 @@ export class DuelScene extends Phaser.Scene {
     this.legendaryCardsFromDb = mappedCards.filter((card: Card) => card.rarity === 'legendary'); // extract legendary cards for populating the special card pool for deck generation
   }
 
+  private async loadPlayerCharacterData(): Promise<void> {
+    const player = getPlayer();
+    const equipped = (player?.equippedCharacter as string | undefined) ?? 'christian';
+
+    try {
+      this.selectedCharacter = await fetchCharacterByKey(equipped);
+    } catch (error) {
+      console.error('Failed to load duel character data from backend, using profile fallback.', error);
+      this.selectedCharacter = {
+        id: 0,
+        characterKey: equipped,
+        chName: equipped.charAt(0).toUpperCase() + equipped.slice(1),
+        chDesc: null,
+        baseHp: (player?.maxHp as number | undefined) ?? MAX_HP,
+        baseAttack: (player?.bulletDamage as number | undefined) ?? 10,
+        baseDefense: 0,
+        chUltimate: '',
+        chUltimateDesc: null,
+        isDefaultUnlocked: true,
+      };
+    }
+
+    const hpUpgradeBonus = Math.max(0, ((player?.maxHp as number | undefined) ?? 50) - 50);
+
+    this.playerAttackBonus = this.selectedCharacter.baseAttack;
+    this.playerDefenseBonus = this.selectedCharacter.baseDefense;
+    this.playerMaxHp = Math.max(1, this.selectedCharacter.baseHp + hpUpgradeBonus);
+    this.playerHp = this.playerMaxHp;
+  }
+
   private async tryLoadCards(): Promise<void> {
     try {
       await this.loadCardsFromBackend(); // attempt to load card data from the server
@@ -407,6 +405,7 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private async initializeDuel():Promise<void> {
+    await this.loadPlayerCharacterData(); // load selected character stats from the backend before configuring combat
     await this.tryLoadCards(); // ensure card data is loaded before proceeding with duel setup
 
     await this.setupDecks(); // create and populate player and enemy decks
@@ -591,7 +590,6 @@ export class DuelScene extends Phaser.Scene {
     this.isShowingQuitDialog = false;
     this.sidebarNavHandler = null;
 
-    this.playerMaxHp = MAX_HP; // restore player max HP
     this.playerHp = this.playerMaxHp; // reset player HP to max
     this.enemyMaxHp = this.selectedBoss?.enemyBaseHp ?? MAX_HP; // set enemy max HP, using boss base HP if a boss is selected for this duel
     this.enemyHp = this.enemyMaxHp; // reset enemy HP to max
@@ -859,7 +857,7 @@ export class DuelScene extends Phaser.Scene {
     this.enemyShadow.fillStyle(0x000000, 0.22);
     this.enemyShadow.fillEllipse(bossConfig.x + 90, bossConfig.y + 95, 170, 34);
 
-    this.playerCharacter = this.add.image(210, 430, `${this.playerSkinKey}-idle`)
+    this.playerCharacter = this.add.image(210, this.playerPoseY, `${this.playerSkinKey}-idle`)
       .setScale(PLAYER_IDLE_SCALE)
       .setDepth(0);
 
@@ -1121,6 +1119,17 @@ export class DuelScene extends Phaser.Scene {
   }
 
   private getCardFrameKey(card: Card): string { // determines which card frame to use based on the card's rarity and element
+    if (card.rarity === 'legendary') {
+      const legendaryFrames: Record<string, string> = {
+        Crocodile: 'card-legendary-crocodile',
+        Alligator: 'card-legendary-alligator',
+        Gavial: 'card-legendary-gavial',
+        Caiman: 'card-legendary-caiman',
+        Sarcosuchus: 'card-legendary-sarcosuchus',
+      };
+      return legendaryFrames[card.name] ?? 'card-frame';
+    }
+
     if (card.rarity === 'effect') { // if the card is an effect card, use the special frame corresponding to its element
       switch (card.element) {
         case 'fire': return 'card-fire-special';
@@ -1180,6 +1189,17 @@ export class DuelScene extends Phaser.Scene {
       return rareIceNames[card.name] ?? 'ICE'; // use the special rare ice name if available, otherwise default to 'ICE'
     }
 
+    if (card.rarity === 'legendary') {
+      const legendaryNames: Record<string, string> = {
+        Crocodile: 'CROC',
+        Alligator: 'GATOR',
+        Gavial: 'GAVIAL',
+        Caiman: 'CAIMAN',
+        Sarcosuchus: 'SARCO',
+      };
+      return legendaryNames[card.name] ?? 'LEGEND';
+    }
+
     if (isStatic) return 'TABLE'; // static table card gets a unique label
 
     return isPlayable ? 'PLAY' : 'LOCK';
@@ -1195,7 +1215,7 @@ export class DuelScene extends Phaser.Scene {
     
     this.playerHand.forEach((card, index) => {
       const x = startX + index * spacing; // spread cards across the hand row
-      const cardY = card.rarity === 'rare' && card.element === 'ice' ? y - 10 : y; // slightly raise rare ice cards to fit the special frame design
+      const cardY = (card.rarity === 'rare' && card.element === 'ice') || card.rarity === 'legendary' ? y - 10 : y; // slightly raise special framed cards to fit their design
       const isPlayable = this.isPlayerCardPlayable(card); // determine whether the card can be selected
 
       const cardContainer = this.createCardContainer(x, cardY, card, isPlayable); // render the card UI
@@ -1221,9 +1241,11 @@ export class DuelScene extends Phaser.Scene {
     
     const isEffectCard = card.rarity === 'effect'; // check if the card is an effect card for tooltip purposes
     const isIceCard = card.rarity === 'rare' && card.element === 'ice'; // special case for rare ice cards that have a unique frame and may need a custom tooltip
+    const isLegendaryCard = card.rarity === 'legendary';
+    const hasSpecialArt = isIceCard || isLegendaryCard;
     
-    const cardWidth = isIceCard ? 118 : (isEffectCard ? 118 : 122); // slightly narrower width for effect cards to accommodate the special frame design
-    const cardHeight = isIceCard ? 162 : (isEffectCard ? 197 : 161);
+    const cardWidth = hasSpecialArt ? 118 : (isEffectCard ? 118 : 122); // slightly narrower width for effect cards to accommodate the special frame design
+    const cardHeight = hasSpecialArt ? 162 : (isEffectCard ? 197 : 161);
 
     const innerBg = this.add.graphics();
     innerBg.fillStyle(baseColor, alpha); // fill color based on element and playability
@@ -1254,7 +1276,7 @@ export class DuelScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5); // rarity label at the top of the card
 
-    rarityLabel.setVisible(!isIceCard); // hide the rarity label for rare ice cards since the frame already indicates it's a wildcard
+    rarityLabel.setVisible(!hasSpecialArt); // hide the rarity label for full-art cards since the frame already conveys card family
 
     const elementY = isEffectCard ? 28 : -20; // adjust element label position for effect cards to avoid overlap with the rarity label
     const elementText = this.add.text(0, elementY, card.element.toUpperCase(), {
@@ -1266,9 +1288,9 @@ export class DuelScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5); // element label below the rarity, centered and with a stroke for readability
 
-    elementText.setVisible(!isIceCard); // hide the standard element text for rare ice cards since the frame already indicates it's a wildcard
+    elementText.setVisible(!hasSpecialArt); // hide the standard element text for full-art cards since the frame already indicates it's a wildcard
 
-    const powerTextY = isIceCard ? 30 : 22; // adjust power text position for rare ice cards to fit within the special frame design
+    const powerTextY = hasSpecialArt ? 30 : 22; // adjust power text position for full-art cards
     const showPowerText = card.rarity !== 'effect'; // only show power for non-effect cards, as effect cards use the footer for their label
     const powerFontSize = isIceCard && card.name === 'Ice Flood' ? '18px' : '36px'; // slightly smaller font size for the rare ice card with a longer name to fit within the frame
     const powerValue = card.power === null ? 'FX' : String(card.power); // display 'FX' for cards with variable power, otherwise show the numeric value
@@ -1281,11 +1303,11 @@ export class DuelScene extends Phaser.Scene {
     }).setOrigin(0.5); // power value in the middle of the card, with a larger font size for emphasis
 
     powerText.setVisible(showPowerText); // hide the power text if it's an effect card, since it doesn't have a fixed power value
-    const showPowerForIceCard = !isEffectCard && (!isIceCard || card.name === 'Ice Flood'); // only show power for non-effect cards, and for the rare ice card if it's the one that has a fixed power value
-    powerText.setVisible(showPowerForIceCard); // hide the power text for the rare ice card if it's not the one with a fixed power value
+    const showPowerForSpecialArt = !isEffectCard && !isLegendaryCard && (!isIceCard || card.name === 'Ice Flood'); // only show power for non-effect cards and the special Ice Flood case
+    powerText.setVisible(showPowerForSpecialArt); // hide power text for most full-art cards
 
     const footerLabel = this.getCardFooterLabel(card, isPlayable, isStatic, footerOverride); // determine footer text based on card properties and overrides
-    const footerY = isIceCard ? 60 : (isEffectCard ? 46 : 58); // adjust footer position for effect cards to fit within the special frame design
+    const footerY = hasSpecialArt ? 60 : (isEffectCard ? 46 : 58); // adjust footer position for effect cards to fit within the special frame design
     const footerText = this.add.text(0, footerY, footerLabel, {
       fontSize: '12px',
       color: '#f7f30a',
@@ -1299,10 +1321,10 @@ export class DuelScene extends Phaser.Scene {
     let infoText: Phaser.GameObjects.Text | null = null;
     let infoZone: Phaser.GameObjects.Zone | null = null;
 
-    const infoX = isIceCard ? -0 : 39;
-    const infoY = isIceCard ? -8 : -72;
-    const infoFontSize = isIceCard ? '32px' : '14px';
-    if (card.rarity === 'effect' || isIceCard) {
+    const infoX = hasSpecialArt ? -0 : 39;
+    const infoY = hasSpecialArt ? -8 : -72;
+    const infoFontSize = hasSpecialArt ? '32px' : '14px';
+    if (card.rarity === 'effect' || hasSpecialArt) {
       infoText = this.add.text(infoX, infoY, '?', {
         fontSize: infoFontSize,
         color: '#ffffff',
@@ -1311,12 +1333,12 @@ export class DuelScene extends Phaser.Scene {
         strokeThickness: 5,
       }).setOrigin(0.5); // small question mark icon to indicate more information is available on hover
 
-      infoZone = this.add.zone(infoX, infoY, isIceCard ? 34 : 24, isIceCard ? 34 : 24).setOrigin(0.5); // invisible interactive area over the info icon
+      infoZone = this.add.zone(infoX, infoY, hasSpecialArt ? 34 : 24, hasSpecialArt ? 34 : 24).setOrigin(0.5); // invisible interactive area over the info icon
 
       tooltipBg = this.add.graphics(); // background for the tooltip that appears when hovering over the info icon
       tooltipBg.fillStyle(0x000000, 0.9);
 
-      if (isIceCard) {
+      if (hasSpecialArt) {
         tooltipBg.fillRoundedRect(-170, -209, 339, 132, 17); // larger tooltip for rare ice cards to accommodate the longer description of the wildcard mechanic (40% bigger)
       }
       else {
@@ -1325,13 +1347,13 @@ export class DuelScene extends Phaser.Scene {
 
       tooltipBg.setVisible(false);
 
-      tooltipText = this.add.text(0, isIceCard ? -143 : -130, card.effectDescription ?? 'No description', {
-        fontSize: isIceCard ? '20px' : '18px',
+      tooltipText = this.add.text(0, hasSpecialArt ? -143 : -130, card.effectDescription ?? 'No description', {
+        fontSize: hasSpecialArt ? '20px' : '18px',
         color: '#fff200',
         align: 'center',
         stroke: '#000000',
         strokeThickness: 6,
-        wordWrap: { width: isIceCard ? 302 : 225 },
+        wordWrap: { width: hasSpecialArt ? 302 : 225 },
       }).setOrigin(0.5).setVisible(false); // tooltip text that shows the card's effect description, hidden by default (40% bigger)
     }
 
@@ -1765,7 +1787,9 @@ export class DuelScene extends Phaser.Scene {
     const isPlayer = attacker === 'player'; // boolean used to branch between player and enemy
     const attackerState = isPlayer ? this.playerState : this.enemyState; // status state for the card owner
     const defenderState = isPlayer ? this.enemyState : this.playerState; // status state for the target
-    let damage = card.baseDamage; // start with base damage
+    const attackBonus = isPlayer && card.category === 'attack' ? this.playerAttackBonus : 0;
+    const shieldBonus = isPlayer && card.category === 'defense' ? this.playerDefenseBonus : 0;
+    let damage = card.baseDamage + attackBonus; // start with base damage and add the selected character bonus for attack cards
     let selfDamage = 0; // recoil damage is tracked separately
     if (attackerState.weakenTurnCounter > 0) damage = Math.max(0, damage - attackerState.weakenEffectValue); // weaken reduces damage
 
@@ -1792,7 +1816,7 @@ export class DuelScene extends Phaser.Scene {
 
       case 'SHIELD': {
         const beforeShield = attackerState.shield;
-        attackerState.shield += card.shieldValue; 
+        attackerState.shield += card.shieldValue + shieldBonus; 
         this.showShieldGainIndicator(attacker, attackerState.shield - beforeShield);
         damage = 0;
         break; // convert effect into shield
@@ -1820,7 +1844,8 @@ export class DuelScene extends Phaser.Scene {
 
       case 'RAGE': {
         const defenderHP = isPlayer ? this.enemyHp : this.playerHp;
-        if (defenderHP <= MAX_HP / 2) damage *= 2; // double damage if the opponent is below half health
+        const defenderMaxHp = isPlayer ? this.enemyMaxHp : this.playerMaxHp;
+        if (defenderHP <= defenderMaxHp / 2) damage *= 2; // double damage if the opponent is below half health
         break; // conditional damage boost based on opponent's HP
       }
 
@@ -1832,14 +1857,14 @@ export class DuelScene extends Phaser.Scene {
         break; // store a future fire bonus
       
       case 'HEAL': {
-        attackerState.shield += card.shieldValue;
+        attackerState.shield += card.shieldValue + shieldBonus;
         this.healSide(attacker, card.effectValue);
         damage = 0;
         break; // heal and grant shield
       }
 
       case 'DOUBLE_SHIELD': 
-        attackerState.shield = attackerState.shield > 0 ? attackerState.shield * 2 : card.shieldValue; 
+        attackerState.shield = attackerState.shield > 0 ? attackerState.shield * 2 + shieldBonus : card.shieldValue + shieldBonus; 
         damage = 0; 
         break; // double existing shield or set a base shield
       
@@ -1898,7 +1923,7 @@ export class DuelScene extends Phaser.Scene {
         break; // remove damage but keep the card action
       
       case 'SHIELD_BOOST': 
-        attackerState.shield += card.shieldValue; 
+        attackerState.shield += card.shieldValue + shieldBonus; 
         damage = 0; 
         break; // add shield directly
       
@@ -1924,6 +1949,19 @@ export class DuelScene extends Phaser.Scene {
         break; // block non-base enemy cards
 
       case 'HAND_RESET': {
+        if (card.name === 'Gavial') {
+          if (attacker === 'player') {
+            this.playerElementalEnergy = MAX_ENERGY;
+            this.playerInstinctEnergy = MAX_ENERGY;
+          } else {
+            this.enemyElementalEnergy = MAX_ENERGY;
+            this.enemyInstinctEnergy = MAX_ENERGY;
+          }
+
+          damage = 0;
+          break;
+        }
+
         const defenderHand = attacker === 'player' ? this.enemyHand : this.playerHand; // identify the defender's hand to be reset
 
         // move all cards from the defender's hand to the discard pile
@@ -1958,7 +1996,23 @@ export class DuelScene extends Phaser.Scene {
       // }
 
       case 'AMPLIFY': {
-        const previousTableCard = this.tableCard;
+        if (card.name === 'Crocodile') {
+          const currentHp = attacker === 'player' ? this.enemyHp : this.playerHp;
+          const hpLoss = Math.max(0, Math.floor(currentHp * (card.effectValue / 100)));
+
+          if (hpLoss > 0) {
+            if (attacker === 'player') {
+              this.enemyHp = Math.max(0, this.enemyHp - hpLoss);
+              this.enemyDamageText.setText(`-${hpLoss}`);
+            } else {
+              this.playerHp = Math.max(0, this.playerHp - hpLoss);
+              this.playerDamageText.setText(`-${hpLoss}`);
+            }
+          }
+
+          damage = 0;
+          break;
+        }
 
         if (previousTableCard?.rarity === 'base' && previousTableCard.power !== null) {
           defenderState.forcedResponseNumber = previousTableCard.power;
@@ -1981,6 +2035,52 @@ export class DuelScene extends Phaser.Scene {
         attackerState.doublePlayTurnCounter = Math.max(attackerState.doublePlayTurnCounter, 1);
         damage = 0;
         break; // placeholder for a complex effect that would allow playing an additional card immediately
+
+      case 'IMMUNITY':
+        this.healSide(attacker, isPlayer ? this.playerMaxHp : this.enemyMaxHp);
+        this.cleanseNegative(attackerState);
+        damage = 0;
+        break;
+
+      case 'RANDOM_STATUS': {
+        const roll = Math.floor(Math.random() * 5);
+        if (roll === 0) {
+          defenderState.poisonTurnCounter = Math.max(defenderState.poisonTurnCounter, 2);
+          defenderState.poisonDamage = Math.max(defenderState.poisonDamage, 6);
+        } else if (roll === 1) {
+          defenderState.burnTurnCounter = Math.max(defenderState.burnTurnCounter, 2);
+          defenderState.burnDamage = Math.max(defenderState.burnDamage, 6);
+        } else if (roll === 2) {
+          defenderState.weakenTurnCounter = Math.max(defenderState.weakenTurnCounter, 2);
+          defenderState.weakenEffectValue = Math.max(defenderState.weakenEffectValue, 8);
+        } else if (roll === 3) {
+          defenderState.stunTurnCounter = Math.max(defenderState.stunTurnCounter, 1);
+        } else {
+          defenderState.jamTurnCounter = Math.max(defenderState.jamTurnCounter, 1);
+        }
+
+        damage = 0;
+        break;
+      }
+
+      case 'EXECUTE': {
+        const defenderHp = attacker === 'player' ? this.enemyHp : this.playerHp;
+        const hpLoss = Math.max(0, defenderHp - 25);
+        if (attacker === 'player') {
+          this.enemyHp = Math.min(this.enemyHp, 25);
+          if (hpLoss > 0) this.enemyDamageText.setText(`-${hpLoss}`);
+        } else {
+          this.playerHp = Math.min(this.playerHp, 25);
+          if (hpLoss > 0) this.playerDamageText.setText(`-${hpLoss}`);
+        }
+
+        const shieldLoss = Math.max(0, defenderState.shield - 25);
+        defenderState.shield = Math.min(defenderState.shield, 25);
+        if (shieldLoss > 0) this.showShieldLossIndicator(isPlayer ? 'enemy' : 'player', shieldLoss);
+
+        damage = 0;
+        break;
+      }
       
 
       // case 'FORCE_DRAW': case 'IMMUNITY': case 'RANDOM_STATUS': case 'EXECUTE':  damage = card.baseDamage; break; // reserved / shared effect bucket
@@ -2021,14 +2121,14 @@ export class DuelScene extends Phaser.Scene {
     if (isPlayer) { 
       this.enemyHp = Math.max(0, this.enemyHp - remainingDamage); // apply damage to the enemy
       this.enemyDamageText.setText(`-${remainingDamage}`); // show enemy damage popup
-      this.showBattleMessage(this.tf('duel_player_used', { element: element.toUpperCase() }), '#00ff88'); // show attack feedback for the player
+      this.showBattleMessage(this.tf('duel_player_used', element.toUpperCase()), '#00ff88'); // show attack feedback for the player
       this.updateEnemyPose(); // update enemy sprite based on HP
     }
 
     else { 
       this.playerHp = Math.max(0, this.playerHp - remainingDamage); // apply damage to the player
       this.playerDamageText.setText(`-${remainingDamage}`); // show player damage popup
-      this.showBattleMessage(this.tf('duel_enemy_used', { element: element.toUpperCase() }), '#ff6666'); // show attack feedback for the enemy
+      this.showBattleMessage(this.tf('duel_enemy_used', element.toUpperCase()), '#ff6666'); // show attack feedback for the enemy
       this.updatePlayerPose(); // update player sprite based on HP
     }
 
@@ -2083,14 +2183,14 @@ export class DuelScene extends Phaser.Scene {
 
     if (side === 'player') {
       const before = this.playerHp;
-      this.playerHp = Math.min(MAX_HP, this.playerHp + amount);
+      this.playerHp = Math.min(this.playerMaxHp, this.playerHp + amount);
       const healed = this.playerHp - before;
       this.showHealIndicator('player', healed);
     }
 
     else {
       const before = this.enemyHp;
-      this.enemyHp = Math.min(MAX_HP, this.enemyHp + amount);
+      this.enemyHp = Math.min(this.enemyMaxHp, this.enemyHp + amount);
       const healed = this.enemyHp - before;
       this.showHealIndicator('enemy', healed);
     }
@@ -2172,7 +2272,7 @@ export class DuelScene extends Phaser.Scene {
 
   private animatePlayerAttack() {
     const attackImage = Math.random() < 0.5 ? `${this.playerSkinKey}-attack-1` : `${this.playerSkinKey}-attack-2`;
-    this.playerCharacter.setTexture(attackImage).setScale(PLAYER_ATTACK_SCALE).setY(335);
+    this.playerCharacter.setTexture(attackImage).setScale(PLAYER_ATTACK_SCALE).setY(this.playerPoseY);
   }
 
   private animateEnemyAttack() {
@@ -2190,19 +2290,21 @@ export class DuelScene extends Phaser.Scene {
 
   private updatePlayerPose() {
     const s = this.playerSkinKey;
-    if (this.playerHp <= 0) {
-      this.playerCharacter.setTexture(`${s}-defeated`).setScale(PLAYER_HURT_SCALE).setY(335);
+    const hpRatio = this.playerHp / Math.max(1, this.playerMaxHp);
+
+    if (hpRatio <= 0) {
+      this.playerCharacter.setTexture(`${s}-defeated`).setScale(PLAYER_HURT_SCALE).setY(this.playerPoseY);
       return;
     }
-    if (this.playerHp <= 25) {
-      this.playerCharacter.setTexture(`${s}-damage-2`).setScale(PLAYER_HURT_SCALE).setY(335);
+    if (hpRatio <= 0.25) {
+      this.playerCharacter.setTexture(`${s}-damage-2`).setScale(PLAYER_HURT_SCALE).setY(this.playerPoseY);
       return;
     }
-    if (this.playerHp <= 50) {
-      this.playerCharacter.setTexture(`${s}-damage-1`).setScale(PLAYER_HURT_SCALE).setY(335);
+    if (hpRatio <= 0.5) {
+      this.playerCharacter.setTexture(`${s}-damage-1`).setScale(PLAYER_HURT_SCALE).setY(this.playerPoseY);
       return;
     }
-    this.playerCharacter.setTexture(`${s}-idle`).setScale(PLAYER_IDLE_SCALE).setY(335);
+    this.playerCharacter.setTexture(`${s}-idle`).setScale(PLAYER_IDLE_SCALE).setY(this.playerPoseY);
   }
 
   private updateEnemyPose() {

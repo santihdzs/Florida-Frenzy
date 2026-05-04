@@ -7,10 +7,7 @@ import clanUrl from '../assets/sprites/Klan.webp';
 import music from '../assets/music/Lowland_Hymn.mp3';
 import { getPlayer } from '../utils/auth.js';
 
-import christianSheet from '../assets/characters/christian/Christian_SpriteSheet.webp';
-import gavinSheet     from '../assets/characters/gavin/Gavin_SpriteSheet.webp';
-import gustavSheet    from '../assets/characters/gustav/Gustav_SpriteSheet.webp';
-import eddySheet      from '../assets/characters/eddy/Eddy_SpriteSheet.webp';
+import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } from '../utils/characterVisuals.js';
 
 const TILE = 48;
 const WORLD_W = 1200;
@@ -34,10 +31,10 @@ const CHAR_SHEET_URLS: Partial<Record<string, string>> = {
 
 // Character sprite sheet dimensions and frame cuts
 const CHAR_SHEETS = {
-    christian: { xCuts: [0, 293, 587, 880],   yCuts: [0, 300, 600, 900,  1200] },
-    gavin:     { xCuts: [0, 292, 584, 876],    yCuts: [0, 304, 608, 912,  1216] },
-    gustav:    { xCuts: [0, 292, 584, 875],    yCuts: [0, 304, 608, 912,  1216] },
-    eddy:      { xCuts: [0, 293, 587, 880],    yCuts: [0, 300, 599, 899,  1198] },
+    christian: CHARACTER_VISUALS.christian.run,
+    gavin:     CHARACTER_VISUALS.gavin.run,
+    gustav:    CHARACTER_VISUALS.gustav.run,
+    eddy:      CHARACTER_VISUALS.eddy.run,
 } as const;
 type CharSheetKey = keyof typeof CHAR_SHEETS; // character keys type used for type safety when referencing character sprite sheets
 
