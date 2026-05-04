@@ -541,6 +541,18 @@ export class RunScene extends Phaser.Scene {
     this.done           = false;
     this.runEnded       = false;
     this.lastPlayerDir  = 'down';
+
+    // null out stale HUD references so refreshHud()'s guard works on scene restart
+    this.hpBar        = null as any;
+    this.hpLabel      = null as any;
+    this.staminaBar   = null as any;
+    this.coinText     = null as any;
+    this.ammoText     = null as any;
+    this.levelText    = null as any;
+    this.levelIndicator = null as any;
+    this.reloadingText  = null as any;
+    this.hudContainer   = null as any;
+    this.avatarMask     = null as any;
     const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
     this.playerSkin = resolveCharacterSkinKey(equipped);
     this.maxHp          = MAX_HP;
@@ -677,9 +689,6 @@ export class RunScene extends Phaser.Scene {
     this.grid = this.generateGrid();
     this.buildWorld(this.grid);
     this.spawnEnemies(this.grid);
-    // awaited, the drop pool must be loaded before spawnCoins() calls trySpawnLegendaryDrop()
-    await this.loadLegendaryDropPool();
-    this.spawnCoins(this.grid);
 
      // place the player sprite at the vertical center of start area
     this.px = TILE * 2;
@@ -716,13 +725,9 @@ export class RunScene extends Phaser.Scene {
       strokeThickness: 2,
     }).setOrigin(0.5, 1).setDepth(15).setVisible(false);
 
-    // Now safe to await async operations
+    // await async operations now that HUD exists — update() is safe to tick
     await this.loadLegendaryDropPool();
     this.spawnCoins(this.grid);
-    
-    if (this.step === RUNS_PER_CYCLE - 1) {
-      void this.spawnDuelBossAtGoal();
-    }
 
     // ESC key opens pause overlay without stopping scene music, AI did this, we figured it was a nice feat. to have and not worth too much of our time
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
@@ -1113,7 +1118,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
-  // slice spritesheet frames for all three bosses
+  // slice spritesheet frames for all four bosses
   private createBossRunFrames() {
     this.sliceBossSheetFrames(
       RUN_BOSS_SHEETS.Skawl.textureKey,
@@ -1134,6 +1139,13 @@ export class RunScene extends Phaser.Scene {
       RUN_BOSS_SHEETS.Boldear.framePrefix,
       RUN_BOSS_SHEETS.Boldear.xCuts,
       RUN_BOSS_SHEETS.Boldear.yCuts,
+    );
+
+    this.sliceBossSheetFrames(
+      RUN_BOSS_SHEETS.Pythra.textureKey,
+      RUN_BOSS_SHEETS.Pythra.framePrefix,
+      RUN_BOSS_SHEETS.Pythra.xCuts,
+      RUN_BOSS_SHEETS.Pythra.yCuts,
     );
   }
 
