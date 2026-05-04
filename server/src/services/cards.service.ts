@@ -1,3 +1,12 @@
+/* 
+* Manuel Montero, Yael Ordaz & Santiago Hernandez
+
+* This file defines the service functions related to cards, 
+* specifically for listing cards with optional filters.
+* 
+* AI was used to assist in the design of the API routes and their interactions with the database
+*/
+
 import type { FastifyInstance } from 'fastify';
 import { CardRarity, CardCategory, CardElement } from '@prisma/client';
 

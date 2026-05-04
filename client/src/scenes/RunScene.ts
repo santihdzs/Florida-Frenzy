@@ -87,7 +87,7 @@ const COIN_SIZE      = 12;
 const COIN_COUNT_MIN = 8;
 const COIN_COUNT_MAX = 15;
 const COIN_COLLECT_R = 24;
-const LEGENDARY_DROP_SPAWN_CHANCE = 0.05;
+const LEGENDARY_DROP_SPAWN_CHANCE = 0.15;
 
 const PROJ_SIZE  = 8;
 const PROJ_SPEED = 420;
@@ -439,6 +439,16 @@ export class RunScene extends Phaser.Scene {
     this.step           = data.step ?? 0;
     this.runId          = data.runId ?? 0;
 
+    // Reset duel-boss state on every run init to avoid stale boss triggers across levels
+    this.selectedBoss = undefined;
+    this.waitingForBossTouch = false;
+    this.duelBossDirection = 1;
+    this.duelBossBaseY = 0;
+    if (this.duelBossSprite) {
+      this.duelBossSprite.destroy();
+      this.duelBossSprite = undefined;
+    }
+
     // Select a new map only at the start of a level (step 0); restore it for subsequent steps
     if (this.step === 0) {
       this.activeMap = selectMap(data.currentMap);
@@ -484,12 +494,13 @@ export class RunScene extends Phaser.Scene {
     this.enemyProjectiles = [];
     this.availableLegendaryDrops = LEGENDARY_DROPS.map(drop => drop.name); // reset available legendary drops at the start of each run since they are consumed when picked up
 
-    // Create a server-side run record at the start of each new run.
     // We store the promise so endRun() can chain off it — avoids the race condition
-    // where the player dies before the async response arrives and runId is still 0.
+    // where the player dies before the async response arrives and runId is still 0
     if (this.level === 1 && this.step === 0) {
       this.runCreationPromise = createRun().then(id => { this.runId = id ?? 0; });
-    } else {
+    } 
+    
+    else {
       this.runCreationPromise = Promise.resolve();
     }
   }
@@ -541,6 +552,12 @@ export class RunScene extends Phaser.Scene {
   async create() {
     this.cameras.main.fadeIn(300, 0, 0, 0);
     if (this.input.keyboard) this.input.keyboard.enabled = true;
+
+    // FAILSAFE: if step wasn't set by init() (shouldn't happen, but Phaser reuses scenes)
+    // ensure we default to 0 at the start of each new run
+    if (typeof this.step === 'undefined' || this.step === null) {
+      this.step = 0;
+    }
 
     // Reset all flags — these persist across scene restarts since Phaser reuses the instance
     this.done = false;
@@ -595,7 +612,7 @@ export class RunScene extends Phaser.Scene {
     // Now safe to await async operations
     await this.loadLegendaryDropPool();
     this.spawnCoins(this.grid);
-
+    
     if (this.step === RUNS_PER_CYCLE - 1) {
       void this.spawnDuelBossAtGoal();
     }
@@ -776,7 +793,7 @@ export class RunScene extends Phaser.Scene {
     if (this.done) return;
     if ((this as any).__transitioning) return; // guard: don't update during scene transition
     if (this.isShowingQuitDialog) return;
-    if (this.duelBossSprite && this.waitingForBossTouch) {
+    if (this.step === RUNS_PER_CYCLE - 1 && this.duelBossSprite && this.waitingForBossTouch) {
       this.duelBossSprite.y += this.duelBossDirection * 0.5; // bob up and down to indicate interactivity
       if (this.duelBossSprite.y > this.duelBossBaseY + 20) this.duelBossDirection = -1;
       if (this.duelBossSprite.y < this.duelBossBaseY - 20) this.duelBossDirection = 1;
@@ -1051,7 +1068,6 @@ export class RunScene extends Phaser.Scene {
   private async spawnDuelBossAtGoal() {
     try {
       this.selectedBoss = await fetchRandomDuelBoss();
-      console.log('Boss fetched for RunScene:', this.selectedBoss);
 
       this.waitingForBossTouch = true;
 
@@ -1061,8 +1077,6 @@ export class RunScene extends Phaser.Scene {
       this.duelBossBaseY = bossY;
       const bossKey = this.getRunBossSpriteKey();
       const bossAnim = this.getRunBossAnimationKey();
-
-      console.log('bossKey:', bossKey, 'bossAnim:', bossAnim);
 
       if (!bossAnim) {
         this.duelBossSprite = this.add.sprite(bossX, bossY, KEY_SPR_ENEMY)
@@ -1097,6 +1111,8 @@ export class RunScene extends Phaser.Scene {
 
   // ── Boss Duel Transition ──
   private startBossDuel() {
+    // Duel boss is only valid on the last run step.
+    if (this.step !== RUNS_PER_CYCLE - 1) return;
     if (!this.selectedBoss || this.done) return; // guard against multiple triggers
 
     this.done = true;
@@ -1434,7 +1450,7 @@ export class RunScene extends Phaser.Scene {
   // ── Movement & collision ──
 
   private handleMovement(time: number, delta: number) {
-    // Guard: playerImg may not be ready yet during async create(), or destroyed during transition
+    // playerImg may not be ready yet during async create(), or destroyed during transition
     if (!this.playerImg || !this.playerImg.anims || !this.cursors) return;
 
     const dt = delta / 1000;
@@ -1801,7 +1817,7 @@ export class RunScene extends Phaser.Scene {
 
         if (c.kind === 'legendary' && c.legendaryName) {
           void unlockLegendaryRunCard(c.legendaryName).catch(() => {
-            // silent by design: collectible unlocks are meant to be discovered indirectly in the deck browser
+            // collectible unlocks are meant to be discovered indirectly in the deck browser
           });
           continue;
         }
@@ -1814,7 +1830,7 @@ export class RunScene extends Phaser.Scene {
   // ── Camera ──
 
   private updateCamera(delta: number) {
-    // Guard: camera may be destroyed during scene transition
+    // camera may be destroyed during scene transition
     if (!this.cameras.main) return;
 
     const cam  = this.cameras.main;
@@ -1928,7 +1944,7 @@ export class RunScene extends Phaser.Scene {
     this.totalCoins += this.coinsCollected;
     this.coinsCollected = 0;
     // Chain off runCreationPromise so we never call completeRun before the run ID
-    // is assigned from the server (guards the race condition on very fast deaths in step 0).
+    // is assigned from the server (guards the race condition on very fast deaths in step 0)
     const coins = this.totalCoins;
     const xp    = this.totalXp;
     const level = this.level;

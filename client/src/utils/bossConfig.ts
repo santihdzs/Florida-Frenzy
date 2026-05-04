@@ -41,8 +41,8 @@ export const BOSS_VISUALS: Record<string, BossVisualConfig> = {
     hurtScale: 0.35,
     defeatedScale: 0.35,
     flipX: false,
-    x: 1000,
-    y: 300,
+    x: 1025,
+    y: 365,
     depth: 0,
   },
 
@@ -61,8 +61,8 @@ export const BOSS_VISUALS: Record<string, BossVisualConfig> = {
     hurtScale: 0.35,
     defeatedScale: 0.35,
     flipX: false,
-    x: 1000,
-    y: 315,
+    x: 1025,
+    y: 365,
     depth: 0,
   },
 
