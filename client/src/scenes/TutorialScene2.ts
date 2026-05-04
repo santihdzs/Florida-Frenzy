@@ -9,7 +9,6 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
     private tutorialStep = 0;
     private tutorialContainer!: Phaser.GameObjects.Container;
 
-
     constructor() {
         super({ key: 'TutorialScene2' });
     }
@@ -25,6 +24,7 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
         this.startTutorial();
     }
 
+    // Creates semi-transparent HUD with Klan portrait and tutorial text.
     private createClanTutorialHud() {
         const { width, height } = this.cameras.main;
         
@@ -44,11 +44,12 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
 
         this.tutorialText = this.add.text(115, 20, '', textStyle);
 
-        // position for the container of instructions
+        // Positions HUD at bottom center
         this.tutorialContainer = this.add.container(width / 2 - 225, height - 250, [bg, this.clanPortrait, this.tutorialText]);
         this.tutorialContainer.setDepth(10000); 
     }
 
+    // Starts tutorial with step 0 and click listener.
     private startTutorial() {
         this.updateTutorialContent(this.tf('tut2_step_0'), '#ffffff');
         
@@ -60,6 +61,7 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
         });
     }
 
+    // Advances tutorial step (0 -> 1 -> 2 -> finish).
     private nextStep() {
         this.tutorialStep++;
 
@@ -79,21 +81,24 @@ export class TutorialScene2 extends DuelScene { // extends of the DuelScene beca
         }
     }
 
+    // Updates tutorial text and colors, and adds a pulse animation to the portrait for feedback.
     private updateTutorialContent(text: string, color: string) {
         this.tutorialText.setText(text);
         this.tutorialText.setColor(color);
         
         this.tweens.add({
             targets: this.clanPortrait,
-            scale: (95/this.clanPortrait.width), // Pulso basado en escala real
+            scale: 95 / this.clanPortrait.width, // Pulse based on original scale
             duration: 100,
             yoyo: true
         });
     }
 
+    // show completion, fade HUD, mark tutorial done.
     private finishTutorial() {
         this.updateTutorialContent(this.tf('tut2_finish'), '#00ff88');
         
+        // Delay to let player read final message before fading out
         this.time.delayedCall(2000, () => {
             this.tweens.add({
                 targets: this.tutorialContainer,
