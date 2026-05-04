@@ -616,10 +616,10 @@ export class DuelScene extends Phaser.Scene {
     this.playerHp = this.playerMaxHp; // reset player HP to max
     this.enemyMaxHp = this.selectedBoss?.enemyBaseHp ?? MAX_HP; // set enemy max HP, using boss base HP if a boss is selected for this duel
     this.enemyHp = this.enemyMaxHp; // reset enemy HP to max
-    this.playerElementalEnergy = 40; // reset player elemental energy (all set at 10 for testing purposes)
-    this.playerInstinctEnergy = 40; // reset player instinct energy
-    this.enemyElementalEnergy = 40; // reset enemy elemental energy
-    this.enemyInstinctEnergy = 40; // reset enemy instinct energy
+    this.playerElementalEnergy = 10; // reset player elemental energy (all set at 10 for testing purposes)
+    this.playerInstinctEnergy = 10; // reset player instinct energy
+    this.enemyElementalEnergy = 10; // reset enemy elemental energy
+    this.enemyInstinctEnergy = 10; // reset enemy instinct energy
     this.levelsWon = 0; // reset victory count
     this.playerDeck = []; // clear player deck
     this.enemyDeck = []; // clear enemy deck
