@@ -57,7 +57,10 @@ import { updateHpBar, updateEnergyBar, updateShieldBar } from '../utils/duelUi';
 import { CombatState, createEmptyCombatState } from '../utils/combatState'; // combat status container and reset helper
 import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } from '../utils/characterVisuals.js';
 
-import type { RunData } from './RunScene'; // run-progress data passed into this scene
+// Local init-data shape for DuelScene. Carries the fields the duel needs
+// (level, step, totalCoins, totalXp, runId, currentMap) plus selectedBoss
+// for boss configuration. DuelScene is reachable as a standalone scene from
+// the sidebar nav, so this stays decoupled from any cross-scene init shape.
 import { completeRun, getPlayer, beatPythra } from '../utils/auth.js'; // API call to save run result
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 import { transitionTo } from '../utils/sceneTransition.js';
@@ -134,6 +137,16 @@ import pythraDefeated from '../assets/characters/pythra/Pythra_defeated.webp'; /
 
 import music from '../assets/music/Cane_Field_Siege.mp3'; // background music for the duel, imported directly for Vite compatibility
 import { DuelBossData } from '../utils/bossTypes.js';
+
+interface DuelInitData {
+  selectedBoss?: DuelBossData;
+  level?: number;
+  step?: number;
+  totalCoins?: number;
+  totalXp?: number;
+  runId?: number;
+  currentMap?: string;
+}
 
 export class DuelScene extends Phaser.Scene {
   private allDbCards: Card[] = []; // full card list fetched from the server, used for deck generation 
@@ -251,7 +264,7 @@ export class DuelScene extends Phaser.Scene {
 
   private playerSkinKey: CharacterSkinKey = 'christian';
 
-  init(data: Partial<RunData>) {
+  init(data: Partial<DuelInitData>) {
     this.level = data.level ?? 1; // restore level if passed in, otherwise start at level 1
     this.totalCoins = data.totalCoins ?? 0; // restore accumulated coins
     this.totalXp = data.totalXp ?? 0; // restore accumulated XP
@@ -578,7 +591,7 @@ export class DuelScene extends Phaser.Scene {
   private async advanceToNextCycle() {
     if ((this as any).__transitioning) return;
 
-    const runData: RunData = {
+    const runData: DuelInitData = {
       level: this.level + 1,
       step: 0,
       totalCoins: this.totalCoins,
@@ -2825,7 +2838,7 @@ export class DuelScene extends Phaser.Scene {
     const centerX = this.cameras.main.width / 2; // center point for the victory overlay
     const centerY = this.cameras.main.height / 2; // vertical center for the victory overlay
 
-    // Commit flat duel win rewards to RunData
+    // Commit flat duel win rewards to DuelInitData state
     this.totalCoins += 100;
     this.totalXp    += 250;
     this.refreshHud(); // show updated totals immediately

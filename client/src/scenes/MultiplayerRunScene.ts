@@ -169,18 +169,38 @@ interface EnemySprite {
   shootTimer: number;
 }
 
+// Per-player shop-upgraded stats, emitted by the server in the run:start
+// payload after a DB lookup. Local client applies its own entry to its
+// upgrade levels; remote entries are used only for the maxHp denominator
+// on remote HP overlays (bullet damage / fire rate are server-authoritative
+// for hit registration, which is client-reported — see prompt 4, task #4).
+export interface PlayerStats {
+  maxHp: number;
+  bulletDamage: number;
+  fireRate: number;
+  reloadTime: number;
+  hasNoReload: boolean;
+  magSize: number;
+  staminaPool: number;
+  staminaRegen: number;
+  equippedCharacter: string;
+}
+
 export interface MultiplayerRunInitData {
   grid: number[][];
   enemies: ServerEnemy[];
   players: ServerPlayer[];
   level: number;
   mapKey: string;
+  playerStats?: Record<number, PlayerStats>;
 }
 
 
 export class MultiplayerRunScene extends Phaser.Scene {
 
-  // Init data (received from server at run:start / run:level_complete)
+  // Init data (received from server at run:start; subsequent levels arrive
+  // via the run:level_start socket event and are applied in-place — see
+  // applyLevelStart — without restarting the scene).
   private grid: number[][] = [];
   private serverEnemies: ServerEnemy[] = [];
   private serverPlayers: ServerPlayer[] = [];
@@ -205,10 +225,12 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private isShowingQuitDialog = false;
 
   // Stamina
-  private stamina          = STAMINA_MAX;
-  private maxStamina       = STAMINA_MAX;
-  private sprinting        = false;
-  private lastSprintTime   = -STAMINA_REGEN_DELAY;
+  private stamina            = STAMINA_MAX;
+  private maxStamina         = STAMINA_MAX;
+  private sprinting          = false;
+  private lastSprintTime     = -STAMINA_REGEN_DELAY;
+  private staminaPoolLevel   = 1; // overwritten from playerStats / getPlayer() in init()
+  private staminaRegenLevel  = 1;
 
   // Ammo
   private bulletDamage     = 10;
@@ -226,6 +248,10 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private holeRects:    Rect[] = [];
   private puddleRects:  Rect[] = [];
   private endZone: Rect = { x: 0, y: 0, w: 0, h: 0 };
+  // Tracks every per-level GameObject buildWorld() spawns (floor tileSprite,
+  // zone graphics, barrier/hole/puddle images) so a level transition can tear
+  // them down before rebuilding from the new grid.
+  private levelObjects: Phaser.GameObjects.GameObject[] = [];
 
   // Sprites
   private playerSprites = new Map<number, PlayerSprite>();
@@ -256,6 +282,15 @@ export class MultiplayerRunScene extends Phaser.Scene {
   private scrollX   = 0;
   private leftStart = false;
 
+  // Per-player DB-sourced stats received from the server at run:start. Kept
+  // for the duration of the run; never re-fetched on level transition.
+  private playerStats: Record<number, PlayerStats> = {};
+  // SCALING PARITY: matches single-player RunScene.ts:1760 —
+  //   CAMERA_SCROLL_BASE * Math.min(2.2, 1 + 0.05 * (level - 1)).
+  // Recomputed on init() and on every run:level_start so the speed steps up
+  // with the room's currentLevel instead of being re-derived per frame.
+  private cameraScrollSpeed = CAMERA_SCROLL_BASE;
+
   constructor() { super({ key: 'MultiplayerRunScene' }); }
 
   init(data: Partial<MultiplayerRunInitData>) {
@@ -263,9 +298,17 @@ export class MultiplayerRunScene extends Phaser.Scene {
     this.serverEnemies = (data.enemies ?? []) as ServerEnemy[];
     this.serverPlayers = (data.players ?? []) as ServerPlayer[];
     this.level         = data.level   ?? 1;
+    this.cameraScrollSpeed = this.computeCameraScrollSpeed(this.level);
     this.mapKey        = data.mapKey  ?? Object.keys(MAP_CONFIGS)[0]!;
     this.myPlayerId    = Number(getPlayer()?.id ?? 0);
-    const equipped = (getPlayer()?.equippedCharacter as string | undefined) ?? 'christian';
+    this.playerStats   = data.playerStats ?? {};
+
+    // Equipped character: prefer server-authoritative value, fall back to the
+    // local cached player record (covers solo testing where playerStats is empty).
+    const myStats  = this.playerStats[this.myPlayerId];
+    const equipped = myStats?.equippedCharacter
+      ?? (getPlayer()?.equippedCharacter as string | undefined)
+      ?? 'christian';
     this.playerSkin = resolveCharacterSkinKey(equipped);
     this.playerAvatarKey = `${this.playerSkin}-avatar`;
 
@@ -286,20 +329,39 @@ export class MultiplayerRunScene extends Phaser.Scene {
     this.playerSprites.clear();
     this.enemySprites.clear();
 
-    this.maxHp             = (getPlayer()?.maxHp as number | undefined) ?? 100;
-    this.localHp           = this.maxHp;
-    this.maxStamina        = STAMINA_MAX;
-    this.stamina           = this.maxStamina;
-    this.sprinting         = false;
-    this.lastSprintTime    = -STAMINA_REGEN_DELAY;
-    this.bulletDamage      = (getPlayer()?.bulletDamage as number | undefined) ?? 10;
-    this.fireRateLevel     = (getPlayer()?.fireRate as number | undefined) ?? 1;
-    this.reloadTimeLevel   = (getPlayer()?.reloadTime as number | undefined) ?? 1;
-    this.hasNoReloadUpgrade = (getPlayer()?.hasNoReload as boolean | undefined) ?? false;
-    this.maxAmmo           = (getPlayer()?.magSize as number | undefined) ?? 10;
-    this.ammo              = this.maxAmmo;
-    this.reloading         = false;
-    this.lastShootTime     = 0;
+    // Apply this client's shop upgrades. Server-supplied stats (DB-sourced)
+    // take precedence over the localStorage cache for authoritative correctness.
+    // Mirrors the single-player RunScene.loadPlayerCharacterData() shape.
+    if (myStats) {
+      this.maxHp              = myStats.maxHp;
+      this.bulletDamage       = myStats.bulletDamage;
+      this.fireRateLevel      = myStats.fireRate;
+      this.reloadTimeLevel    = myStats.reloadTime;
+      this.hasNoReloadUpgrade = myStats.hasNoReload;
+      this.maxAmmo            = myStats.magSize;
+      this.staminaPoolLevel   = myStats.staminaPool;
+      this.staminaRegenLevel  = myStats.staminaRegen;
+    } else {
+      const p = getPlayer();
+      this.maxHp              = (p?.maxHp as number | undefined) ?? 100;
+      this.bulletDamage       = (p?.bulletDamage as number | undefined) ?? 10;
+      this.fireRateLevel      = (p?.fireRate as number | undefined) ?? 1;
+      this.reloadTimeLevel    = (p?.reloadTime as number | undefined) ?? 1;
+      this.hasNoReloadUpgrade = (p?.hasNoReload as boolean | undefined) ?? false;
+      this.maxAmmo            = (p?.magSize as number | undefined) ?? 10;
+      this.staminaPoolLevel   = (p?.staminaPool as number | undefined) ?? 1;
+      this.staminaRegenLevel  = (p?.staminaRegen as number | undefined) ?? 1;
+    }
+    this.localHp = this.maxHp;
+    this.ammo    = this.maxAmmo;
+    // SCALING PARITY (RunScene.ts init): each stamina-pool tier adds 15% over
+    // the base maxStamina.
+    this.maxStamina      = STAMINA_MAX + (STAMINA_MAX * 0.15 * (this.staminaPoolLevel - 1));
+    this.stamina         = this.maxStamina;
+    this.sprinting       = false;
+    this.lastSprintTime  = -STAMINA_REGEN_DELAY;
+    this.reloading       = false;
+    this.lastShootTime   = 0;
 
     const me = this.serverPlayers.find(p => p.playerId === this.myPlayerId);
     if (me) { this.localX = me.x; this.localY = me.y; }
@@ -316,13 +378,17 @@ export class MultiplayerRunScene extends Phaser.Scene {
     if (!this.textures.exists(this.playerAvatarKey))
       this.load.image(this.playerAvatarKey, avatarUrl);
 
-    const mapCfg = MAP_CONFIGS[this.mapKey] ?? Object.values(MAP_CONFIGS)[0]!;
-    if (!this.textures.exists(mapCfg.key))
-      this.load.spritesheet(mapCfg.key, mapCfg.url, {
-        frameWidth: mapCfg.tileWidth, frameHeight: mapCfg.tileHeight,
-      });
-    if (!this.textures.exists(mapCfg.bgKey))
-      this.load.image(mapCfg.bgKey, mapCfg.bgUrl);
+    // Preload every map's tiles + background once. The server rotates mapKey
+    // per level, and applyLevelStart() switches textures in-place — we'd see
+    // missing-texture warnings if any non-initial map weren't already cached.
+    for (const cfg of Object.values(MAP_CONFIGS)) {
+      if (!this.textures.exists(cfg.key))
+        this.load.spritesheet(cfg.key, cfg.url, {
+          frameWidth: cfg.tileWidth, frameHeight: cfg.tileHeight,
+        });
+      if (!this.textures.exists(cfg.bgKey))
+        this.load.image(cfg.bgKey, cfg.bgUrl);
+    }
   }
 
   create() {
@@ -515,15 +581,17 @@ export class MultiplayerRunScene extends Phaser.Scene {
     reg(`${mapKey}-hole`,    mapFrames.hole);
     reg(`${mapKey}-puddle`,  mapFrames.puddle);
 
-    this.add.tileSprite(0, 0, WORLD_W, WORLD_H, mapKey, `${mapKey}-grass`)
+    const floor = this.add.tileSprite(0, 0, WORLD_W, WORLD_H, mapKey, `${mapKey}-grass`)
       .setOrigin(0, 0).setDepth(0)
       .setTileScale(TILE / mapFrames.grass.w, TILE / mapFrames.grass.h);
+    this.levelObjects.push(floor);
 
     const gfx = this.add.graphics().setDepth(1);
     gfx.fillStyle(0x336677, 0.3);
     gfx.fillRect(0, 0, START_COLS * TILE, WORLD_H);
     gfx.fillStyle(0x33cc33, 0.2);
     gfx.fillRect(END_COL * TILE, 0, TILE, WORLD_H);
+    this.levelObjects.push(gfx);
 
     this.endZone = { x: END_COL * TILE, y: 0, w: (COLS - END_COL) * TILE, h: WORLD_H };
 
@@ -534,14 +602,16 @@ export class MultiplayerRunScene extends Phaser.Scene {
         const py   = row * TILE;
 
         if (cell === BARRIER) {
-          this.add.image(px, py, mapKey, `${mapKey}-barrier`)
+          const img = this.add.image(px, py, mapKey, `${mapKey}-barrier`)
             .setOrigin(0, 0).setDisplaySize(TILE, TILE).setDepth(2);
+          this.levelObjects.push(img);
           this.barrierRects.push({ x: px, y: py, w: TILE, h: TILE });
 
         } else if (cell === HOLE) {
           const nb = this.tileNeighbors(row, col, HOLE);
-          this.add.image(px, py, mapKey, `${mapKey}-hole`)
+          const img = this.add.image(px, py, mapKey, `${mapKey}-hole`)
             .setOrigin(0, 0).setDisplaySize(TILE, TILE).setDepth(2);
+          this.levelObjects.push(img);
           this.holeRects.push({
             x: nb.w ? px       : px + 8,
             y: nb.n ? py       : py + 8,
@@ -550,8 +620,9 @@ export class MultiplayerRunScene extends Phaser.Scene {
           });
 
         } else if (cell === PUDDLE) {
-          this.add.image(px, py, mapKey, `${mapKey}-puddle`)
+          const img = this.add.image(px, py, mapKey, `${mapKey}-puddle`)
             .setOrigin(0, 0).setDisplaySize(TILE, TILE).setDepth(2);
+          this.levelObjects.push(img);
           this.puddleRects.push({ x: px, y: py, w: TILE, h: TILE });
         }
       }
@@ -760,7 +831,8 @@ export class MultiplayerRunScene extends Phaser.Scene {
     socket.off('run:enemy_died');
     socket.off('run:player_died');
     socket.off('run:ended');
-    socket.off('run:level_complete');
+    socket.off('run:level_start');
+    socket.off('run:level_complete'); // legacy name; harmless if never registered
 
     socket.on('run:tick', (data: {
       enemies: { id: number; x: number; y: number; hp: number; alive: boolean }[];
@@ -814,38 +886,125 @@ export class MultiplayerRunScene extends Phaser.Scene {
       this.showEndScreen(msg, () => { transitionTo(this, 'MultiplayerLobbyScene'); });
     });
 
-    socket.on('run:level_complete', (data: {
+    socket.on('run:level_start', (data: {
       level: number;
+      seed: number;
       grid: number[][];
       enemies: ServerEnemy[];
+      startPositions: Record<number, { x: number; y: number }>;
       players: ServerPlayer[];
+      mapKey?: string;
     }) => {
-      if (this.done) return;
-      this.done = true;
-
-      const cx = this.cameras.main.width / 2;
-      const cy = this.cameras.main.height / 2;
-      this.add.text(cx, cy - 20, `LEVEL ${data.level - 1} COMPLETE!`, {
-        fontFamily: 'Impact, Arial black, sans-serif',
-        fontSize: '52px', color: '#feec00',
-        stroke: '#000000', strokeThickness: 5,
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
-      this.add.text(cx, cy + 46, 'Get ready...', {
-        fontFamily: 'Impact, Arial black, sans-serif',
-        fontSize: '26px', color: '#c2baba',
-        stroke: '#000000', strokeThickness: 3,
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
-
-      this.time.delayedCall(2000, () => {
-        this.scene.restart({
-          grid:    data.grid,
-          enemies: data.enemies,
-          players: data.players,
-          level:   data.level,
-          mapKey:  this.mapKey,
-        });
-      });
+      this.applyLevelStart(data);
     });
+  }
+
+  // In-place reset triggered by run:level_start. The scene is NOT restarted —
+  // we tear down per-level objects and rebuild from the new payload, keeping
+  // HUD, input, socket listeners, and player HP intact across levels.
+  private applyLevelStart(data: {
+    level: number;
+    seed: number;
+    grid: number[][];
+    enemies: ServerEnemy[];
+    startPositions: Record<number, { x: number; y: number }>;
+    players: ServerPlayer[];
+    mapKey?: string;
+  }) {
+    // Clear any lingering level-complete overlay / quit dialog state.
+    this.isShowingQuitDialog = false;
+    this.done       = false;
+    this.endReached = false;
+
+    // Update incoming server snapshots.
+    this.level         = data.level;
+    this.cameraScrollSpeed = this.computeCameraScrollSpeed(this.level);
+    this.grid          = data.grid;
+    this.serverEnemies = data.enemies;
+    this.serverPlayers = data.players;
+    // Swap the active map BEFORE buildWorld(). The server rotates mapKey
+    // per level so the new layout's tile + background textures must be in
+    // place by the time buildWorld() runs. All maps are preloaded in
+    // preload(), so the texture cache always has the new map ready.
+    if (data.mapKey && MAP_CONFIGS[data.mapKey]) {
+      this.mapKey = data.mapKey;
+    }
+
+    // (a) Destroy projectiles before they're orphaned.
+    for (const p of this.projectiles)      p.img.destroy();
+    for (const p of this.enemyProjectiles) p.img.destroy();
+    this.projectiles      = [];
+    this.enemyProjectiles = [];
+
+    // (a) Destroy enemy sprites + HP bars from the previous level.
+    for (const sprite of this.enemySprites.values()) {
+      sprite.img.destroy();
+      sprite.hpBar.destroy();
+    }
+    this.enemySprites.clear();
+
+    // Tear down per-level world objects, then clear collision rect arrays so
+    // buildWorld() rebuilds them from the new grid.
+    for (const obj of this.levelObjects) obj.destroy();
+    this.levelObjects = [];
+    this.barrierRects = [];
+    this.holeRects    = [];
+    this.puddleRects  = [];
+
+    // (d) Rebuild the tile world from the new grid (already assigned above).
+    this.buildWorld();
+
+    // (e) Respawn enemy sprites from the fresh enemies array.
+    this.createEnemySprites();
+
+    // (b) Reset local player position from the server's spawn slot for me.
+    const mySpawn = data.startPositions[this.myPlayerId];
+    if (mySpawn) {
+      this.localX = mySpawn.x;
+      this.localY = mySpawn.y;
+    }
+    // Per-player shop upgrades persist across level transitions: maxHp,
+    // bulletDamage, fireRateLevel, reloadTimeLevel, hasNoReloadUpgrade,
+    // maxAmmo, staminaPoolLevel, staminaRegenLevel, and maxStamina are all
+    // assigned once in init() from the run:start playerStats payload and are
+    // intentionally not touched here. Only position and ammo reset per level:
+    //   • localHp stays — carries over from the previous level (HP is the
+    //     player's progress through the run)
+    //   • ammo refills to maxAmmo (fresh magazine for the new level)
+    //   • position is reset above via startPositions
+    this.ammo          = this.maxAmmo;
+    this.reloading     = false;
+    this.lastShootTime = 0;
+    if (this.reloadingText) this.reloadingText.setVisible(false);
+
+    // (c) Reset remote player sprite positions from their spawn slots.
+    this.playerSprites.forEach((sprite, pid) => {
+      const slot = data.startPositions[pid];
+      if (!slot) return;
+      sprite.renderX = slot.x;
+      sprite.renderY = slot.y;
+      sprite.img.setPosition(slot.x, slot.y);
+      sprite.nameLabel.setPosition(slot.x + PLAYER_SIZE / 2, slot.y - 12);
+      // Revive any sprite that was tinted/alpha-dimmed by an earlier death.
+      sprite.img.clearTint();
+      sprite.img.setAlpha(1);
+    });
+
+    // (f) Reset camera scroll and the leftStart latch so the new level scrolls
+    // from the start zone again.
+    const cam = this.cameras.main;
+    this.scrollX   = 0;
+    this.leftStart = false;
+    cam.scrollX    = 0;
+    cam.scrollY    = Phaser.Math.Clamp(
+      this.localY + PLAYER_SIZE / 2 - cam.height / 2,
+      0, Math.max(0, WORLD_H - cam.height),
+    );
+
+    // (h) Resume gameplay: unpause the scene if it was paused and re-enable
+    // keyboard input. Local HUD refresh happens on the next update tick.
+    if (this.scene.isPaused()) this.scene.resume();
+    if (this.input.keyboard) this.input.keyboard.enabled = true;
   }
 
   // ── Update loop ───────────────────────────────────────────────────────────
@@ -883,8 +1042,13 @@ export class MultiplayerRunScene extends Phaser.Scene {
     if (this.sprinting) {
       this.stamina = Math.max(0, this.stamina - STAMINA_DRAIN * dt);
       this.lastSprintTime = time;
-    } else if (time - this.lastSprintTime >= STAMINA_REGEN_DELAY) {
-      this.stamina = Math.min(this.maxStamina, this.stamina + STAMINA_REGEN * dt);
+    } else if (time - this.lastSprintTime >= STAMINA_REGEN_DELAY / this.staminaRegenLevel) {
+      // SCALING PARITY (RunScene handleMovement): regen rate scales with the
+      // staminaRegen upgrade tier; the regen delay shrinks with the same tier.
+      this.stamina = Math.min(
+        this.maxStamina,
+        this.stamina + STAMINA_REGEN * this.staminaRegenLevel * dt,
+      );
     }
 
     const speed = this.sprinting ? PLAYER_SPRINT : PLAYER_SPEED;
@@ -1171,11 +1335,17 @@ export class MultiplayerRunScene extends Phaser.Scene {
 
   // ── Camera ────────────────────────────────────────────────────────────────
 
+  // SCALING PARITY (RunScene.ts:1760): camera scroll speed steps with level.
+  // CAMERA_SCROLL_BASE * min(2.2, 1 + 0.05 * (level - 1)).
+  private computeCameraScrollSpeed(level: number): number {
+    return CAMERA_SCROLL_BASE * Math.min(2.2, 1 + 0.05 * (level - 1));
+  }
+
   private scrollCamera(dt: number) {
     const cam  = this.cameras.main;
     const maxX = Math.max(0, WORLD_W - cam.width);
     const maxY = Math.max(0, WORLD_H - cam.height);
-    const spd  = CAMERA_SCROLL_BASE * Math.min(2.2, 1 + 0.05 * (this.level - 1));
+    const spd  = this.cameraScrollSpeed;
 
     if (!this.leftStart) {
       // Follow the local player until they cross into the level
@@ -1256,6 +1426,7 @@ export class MultiplayerRunScene extends Phaser.Scene {
     socket.off('run:enemy_died');
     socket.off('run:player_died');
     socket.off('run:ended');
-    socket.off('run:level_complete');
+    socket.off('run:level_start');
+    socket.off('run:level_complete'); // legacy name; harmless if never registered
   }
 }

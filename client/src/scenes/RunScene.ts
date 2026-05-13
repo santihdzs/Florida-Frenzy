@@ -5,9 +5,9 @@
 * 
 * This is the main script for the RunScene, which handles the core gameplay 
 * loop of the endless runner mode in Florida Frenzy. 
-* It manages player movement, enemy spawning and behavior, coin collection, 
-* level progression, and the duel boss encounter. 
-* The scene also communicates with the server to create run records 
+* It manages player movement, enemy spawning and behavior, coin collection,
+* and level progression.
+* The scene also communicates with the server to create run records
 * and update player stats.
 * 
 * - AI was used to help us with some parts (labeled), and to create some of the art
@@ -16,23 +16,15 @@
 
 
 // import map config helpers, auth utilities, character API, deck bootstrap, loading overlay,
-// transition scene, boss utilities, character visuals
+// transition scene, character visuals
 import Phaser from 'phaser';
-import { MAP_CONFIGS, selectMap, type MapConfig, type TileRect } from '../utils/mapConfig.js';
+import { selectMap, type MapConfig, type TileRect } from '../utils/mapConfig.js';
 import { completeRun, createRun, getPlayer, unlockLegendaryRunCard } from '../utils/auth.js';
 import { fetchCharacterByKey, type CharacterGameData } from '../api/characterApi.js';
 import { fetchDeckBootstrap } from '../api/deckApi.js';
-import type { DuelBossData } from '../utils/bossTypes.js';
-import { fetchRandomDuelBoss } from '../api/enemyApi.js';
 import { showLoadingScreen } from '../utils/loadingScreen.js';
 import { transitionTo } from '../utils/sceneTransition.js';
 import { CHARACTER_VISUALS, resolveCharacterSkinKey, type CharacterSkinKey } from '../utils/characterVisuals.js';
-
-// boss run (third part of each level) spritesheets
-import skawlSheet from '../assets/characters/skawl/Skawl_SpriteSheet.webp';
-import rabyzSheet from '../assets/characters/rabyz/Rabyz_SpriteSheet-v2.webp';
-import boldearSheet from '../assets/characters/boldear/Boldear_SpriteSheet.webp';
-import pythraSheet from '../assets/characters/pythra/Pythra_SpriteSheet.webp';
 
 // enemy spritesheets
 import rackoSheet from '../assets/characters/top-down_enemies/shooter/Racko_SpriteSheet.webp';
@@ -113,8 +105,6 @@ const HEAL_PER_SEC = 12; // hp healed /s when in puddles
 
 const CAMERA_SCROLL_BASE = 100; // cam scroll speed (base)
 
-// # of runscene stages before boss fights per level
-const RUNS_PER_CYCLE = 3;
 const END_COL = COLS - 1; // column index for last tile, to mark end zone
 const START_COLS = 4; // safe columns at left stage (start zone), no enemies spaewn here
 
@@ -282,34 +272,6 @@ const CHAR_SHEETS = {
 } as const;
 type CharSheetKey = keyof typeof CHAR_SHEETS;
 
-// pixel cuts for boss run sprites, similar to cuts above, AI helped calculate cut positions
-const RUN_BOSS_SHEETS = {
-  Skawl: {
-    textureKey: 'boss-skawl-run-sheet',
-    framePrefix: 'boss-skawl-run',
-    xCuts: [0, 299, 597, 896],
-    yCuts: [0, 299, 598, 896, 1195],
-  },
-  Rabyz: {
-    textureKey: 'boss-rabyz-run-sheet',
-    framePrefix: 'boss-rabyz-run',
-    xCuts: [0, 354, 707, 1061],
-    yCuts: [0, 371, 742, 1112, 1483],
-  },
-  Boldear: {
-    textureKey: 'boss-boldear-run-sheet',
-    framePrefix: 'boss-boldear-run',
-    xCuts: [0, 293, 587, 880],
-    yCuts: [0, 300, 599, 899, 1198],
-  },
-  Pythra: {
-    textureKey: 'boss-pythra-run-sheet',
-    framePrefix: 'boss-pythra-run',
-    xCuts: [0, 293, 587, 880],
-    yCuts: [0, 300, 599, 899, 1198],
-  },
-} as const;
-
 // struct for enemies
 
 interface Enemy {
@@ -405,7 +367,6 @@ export interface RunData {
   totalCoins: number;
   totalXp: number;
   runId: number;
-  selectedBoss?: DuelBossData;
   currentMap?: string;
 }
 
@@ -478,13 +439,6 @@ export class RunScene extends Phaser.Scene {
   private projectiles:      Projectile[]      = [];
   private enemyProjectiles: EnemyProjectile[] = [];
 
-  // duel boss state
-  private selectedBoss?: DuelBossData;
-  private duelBossSprite?: Phaser.GameObjects.Sprite;
-  private duelBossDirection = 1;
-  private duelBossBaseY = 0;
-  private waitingForBossTouch = false;
-
   // HUD objects
   private hudContainer!: Phaser.GameObjects.Container;
   private hpBar!:      Phaser.GameObjects.Graphics;
@@ -518,24 +472,9 @@ export class RunScene extends Phaser.Scene {
     this.step           = data.step ?? 0;
     this.runId          = data.runId ?? 0;
 
-    // Reset duel-boss state on every run init to avoid stale boss triggers across levels
-    this.selectedBoss = undefined;
-    this.waitingForBossTouch = false;
-    this.duelBossDirection = 1;
-    this.duelBossBaseY = 0;
-    if (this.duelBossSprite) {
-      this.duelBossSprite.destroy();
-      this.duelBossSprite = undefined;
-    }
-
-    // Select a new map only at the start of a level (step 0); restore it for subsequent steps
-    if (this.step === 0) {
-      this.activeMap = selectMap(data.currentMap);
-    } else {
-      this.activeMap =
-        Object.values(MAP_CONFIGS).find(m => m.key === data.currentMap) ??
-        MAP_CONFIGS['everglades'];
-    }
+    // Select a new map on every stage. selectMap() already rejects the previously
+    // used key, so passing data.currentMap guarantees no back-to-back repeats.
+    this.activeMap = selectMap(data.currentMap);
     this.totalCoins     = data.totalCoins ?? 0;
     this.totalXp        = data.totalXp ?? 0;
     this.done           = false;
@@ -610,21 +549,11 @@ export class RunScene extends Phaser.Scene {
       this.load.spritesheet(this.activeMap.key, this.activeMap.url, {
         frameWidth: this.activeMap.tileWidth, frameHeight: this.activeMap.tileHeight,
       });
-    
+
     // player avatar and HUD portrait
     const avatarUrl = CHARACTER_VISUALS[this.playerSkin].avatarUrl;
     if (!this.textures.exists(`${this.playerSkin}-avatar`))
       this.load.image(`${this.playerSkin}-avatar`, avatarUrl);
-
-    // boss sprites
-    if (!this.textures.exists('boss-skawl-run-sheet'))
-      this.load.image('boss-skawl-run-sheet', skawlSheet);
-    if (!this.textures.exists('boss-rabyz-run-sheet'))
-      this.load.image('boss-rabyz-run-sheet', rabyzSheet);
-    if (!this.textures.exists('boss-boldear-run-sheet'))
-      this.load.image('boss-boldear-run-sheet', boldearSheet);
-    if (!this.textures.exists('boss-pythra-run-sheet'))
-      this.load.image('boss-pythra-run-sheet', pythraSheet);
 
     // player character sprites
     const skinUrl = CHARACTER_VISUALS[this.playerSkin].sheetUrl;
@@ -683,8 +612,6 @@ export class RunScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x1a1a2e);
     this.generateTextures();
     this.createPlayerAnimations();
-    this.createBossRunFrames(); // dynamically slice boss run spritesheets into frames for animation
-    this.createBossRunAnimations(); // create phaser animations for boss running using the frames we just sliced
 
     this.grid = this.generateGrid();
     this.buildWorld(this.grid);
@@ -699,11 +626,7 @@ export class RunScene extends Phaser.Scene {
     this.playerImg.play(`${this.playerSkin}-walk-down`);
 
     // Create HUD BEFORE awaiting, so update() has valid references
-    // ONLY spawn the duel boss on the last stage of a cycle (last step, 2 for now)
-    if (this.step === RUNS_PER_CYCLE - 1) {
-      void this.spawnDuelBossAtGoal();
-    }
-    
+
     // level indicator, scrollFactor(0) pins it regardless of camera position
     const cw = this.cameras.main.width;
     this.levelIndicator = this.add.text(cw / 2, 30, `Level ${this.level}`, {
@@ -733,7 +656,7 @@ export class RunScene extends Phaser.Scene {
     const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC); // key for opening the pause menu
     escKey?.on('down', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
-      this.scene.pause(); // pause the duel scene
+      this.scene.pause(); // pause RunScene so PauseScene renders on top
       this.scene.launch('PauseScene', { returnScene: 'RunScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
     });
 
@@ -750,7 +673,7 @@ export class RunScene extends Phaser.Scene {
     pauseContainer.on('pointerdown', () => {
       if (this.scene.isActive('PauseScene')) return; // prevent opening multiple pause menus
       this.scene.launch('PauseScene', { returnScene: 'RunScene', runId: this.runId, totalCoins: this.totalCoins + this.coinsCollected, totalXp: this.totalXp, level: this.level }); // open the pause menu and tell it to return here when resuming
-      this.scene.pause(); // pause the duel scene
+      this.scene.pause(); // pause RunScene so PauseScene renders on top
     });
 
     // sidebar guard show quit confirmation instead of just switching, we did most of the logic, AI made the overlay look alright
@@ -914,23 +837,6 @@ export class RunScene extends Phaser.Scene {
     if (this.done) return;
     if ((this as any).__transitioning) return; // guard: don't update during scene transition
     if (this.isShowingQuitDialog) return;
-    if (this.step === RUNS_PER_CYCLE - 1 && this.duelBossSprite && this.waitingForBossTouch) {
-      this.duelBossSprite.y += this.duelBossDirection * 0.5; // bob up and down to indicate interactivity
-      if (this.duelBossSprite.y > this.duelBossBaseY + 20) this.duelBossDirection = -1;
-      if (this.duelBossSprite.y < this.duelBossBaseY - 20) this.duelBossDirection = 1;
-      
-      const bossWidth = this.duelBossSprite.displayWidth;
-      const bossHeight = this.duelBossSprite.displayHeight;
-
-      const overlap = rectsOverlap(
-        this.px, this.py, PLAYER_SIZE, PLAYER_SIZE,
-        this.duelBossSprite.x, this.duelBossSprite.y, bossWidth, bossHeight
-      ); // AABB check
-
-      if (overlap) {
-        this.startBossDuel();
-      } // if the player touches the boss, transition to the duel scene and pass selected boss data along with current run stats
-    }
 
     this.timer += delta;
     this.handleMovement(time, delta);
@@ -1091,208 +997,6 @@ export class RunScene extends Phaser.Scene {
   private createEnemyAnimations(skinKey: CharSheetKey) {
     this.sliceCharSheetFrames(skinKey);
     this.createWalkAnimations(skinKey);
-  }
-
-  // same as sliceCharSheetFrames, Manuel did this part with AI assistance 
-  private sliceBossSheetFrames(
-    textureKey: string,
-    framePrefix: string,
-    xCuts: readonly number[],
-    yCuts: readonly number[],
-  ) {
-    const texture = this.textures.get(textureKey); // get the loaded texture for the boss sprite sheet
-    const directions = ['down', 'left', 'right', 'up']; // the sprite sheets are organized in 4 rows for each movement direction, and 3 columns for the animation frames, so we loop through and create individual frames for each one using the provided cut coordinates
-
-    for (let row = 0; row < 4; row++) { // loop through the 4 rows (directions)
-      for (let col = 0; col < 3; col++) {
-        const x = xCuts[col];
-        const y = yCuts[row];
-        const w = xCuts[col + 1] - xCuts[col];
-        const h = yCuts[row + 1] - yCuts[row];
-
-        const frameName = `${framePrefix}-${directions[row]}-${col}`; // construct a unique frame name for this direction and animation index, e.g. "boss-skawl-run-down-0"
-        if (!texture.has(frameName)) { // only add the frame if it doesn't already exist to avoid duplicates when replaying runs
-          texture.add(frameName, 0, x, y, w, h);
-        }
-      }
-    }
-  }
-
-  // slice spritesheet frames for all four bosses
-  private createBossRunFrames() {
-    this.sliceBossSheetFrames(
-      RUN_BOSS_SHEETS.Skawl.textureKey,
-      RUN_BOSS_SHEETS.Skawl.framePrefix,
-      RUN_BOSS_SHEETS.Skawl.xCuts,
-      RUN_BOSS_SHEETS.Skawl.yCuts,
-    );
-
-    this.sliceBossSheetFrames(
-      RUN_BOSS_SHEETS.Rabyz.textureKey,
-      RUN_BOSS_SHEETS.Rabyz.framePrefix,
-      RUN_BOSS_SHEETS.Rabyz.xCuts,
-      RUN_BOSS_SHEETS.Rabyz.yCuts,
-    );
-
-    this.sliceBossSheetFrames(
-      RUN_BOSS_SHEETS.Boldear.textureKey,
-      RUN_BOSS_SHEETS.Boldear.framePrefix,
-      RUN_BOSS_SHEETS.Boldear.xCuts,
-      RUN_BOSS_SHEETS.Boldear.yCuts,
-    );
-
-    this.sliceBossSheetFrames(
-      RUN_BOSS_SHEETS.Pythra.textureKey,
-      RUN_BOSS_SHEETS.Pythra.framePrefix,
-      RUN_BOSS_SHEETS.Pythra.xCuts,
-      RUN_BOSS_SHEETS.Pythra.yCuts,
-    );
-  }
-
-  // return spritesheet texture key for the selected boss
-  private getRunBossSpriteKey(): string {
-    switch (this.selectedBoss?.enemyName) {
-      case 'Skawl': return 'boss-skawl-run-sheet';
-      case 'Rabyz': return 'boss-rabyz-run-sheet';
-      case 'Boldear': return 'boss-boldear-run-sheet';
-      case 'Pythra': return 'boss-pythra-run-sheet';
-      default: return KEY_SPR_ENEMY; // fallback to generic enemy sprite if something goes wrong with fetching boss data
-    }
-  }
-
-  // return starting animation key for the selected boss
-  private getRunBossAnimationKey(): string {
-    switch (this.selectedBoss?.enemyName) {
-      case 'Skawl': return 'boss-skawl-run-down';
-      case 'Rabyz': return 'boss-rabyz-run-down';
-      case 'Boldear': return 'boss-boldear-run-down';
-      case 'Pythra': return 'boss-pythra-run-down';
-      default: return ''; // fallback to generic idle animation
-    }
-  }
-
-  // register walk down animations for all three bosses, skips if already registered
-  private createBossRunAnimations() {
-    if (!this.anims.exists('boss-skawl-run-down')) {
-      this.anims.create({
-        key: 'boss-skawl-run-down',
-        frames: [
-          { key: 'boss-skawl-run-sheet', frame: 'boss-skawl-run-down-0' },
-          { key: 'boss-skawl-run-sheet', frame: 'boss-skawl-run-down-1' },
-          { key: 'boss-skawl-run-sheet', frame: 'boss-skawl-run-down-2' },
-        ],
-        frameRate: 6,
-        repeat: -1,
-      });
-    }
-
-    if (!this.anims.exists('boss-rabyz-run-down')) {
-      this.anims.create({
-        key: 'boss-rabyz-run-down',
-        frames: [
-          { key: 'boss-rabyz-run-sheet', frame: 'boss-rabyz-run-down-0' },
-          { key: 'boss-rabyz-run-sheet', frame: 'boss-rabyz-run-down-1' },
-          { key: 'boss-rabyz-run-sheet', frame: 'boss-rabyz-run-down-2' },
-        ],
-        frameRate: 6,
-        repeat: -1,
-      });
-    }
-
-    if (!this.anims.exists('boss-boldear-run-down')) {
-      this.anims.create({
-        key: 'boss-boldear-run-down',
-        frames: [
-          { key: 'boss-boldear-run-sheet', frame: 'boss-boldear-run-down-0' },
-          { key: 'boss-boldear-run-sheet', frame: 'boss-boldear-run-down-1' },
-          { key: 'boss-boldear-run-sheet', frame: 'boss-boldear-run-down-2' },
-        ],
-        frameRate: 6,
-        repeat: -1,
-      });
-    }
-
-    if (!this.anims.exists('boss-pythra-run-down')) {
-      this.anims.create({
-        key: 'boss-pythra-run-down',
-        frames: [
-          { key: 'boss-pythra-run-sheet', frame: 'boss-pythra-run-down-0' },
-          { key: 'boss-pythra-run-sheet', frame: 'boss-pythra-run-down-1' },
-          { key: 'boss-pythra-run-sheet', frame: 'boss-pythra-run-down-2' },
-        ],
-        frameRate: 6,
-        repeat: -1,
-      });
-    }
-  }
-
-
-  // ── Boss Duel Start Point ──
-  // can't comment on this one Manuels part - Santi
-  private async spawnDuelBossAtGoal() {
-    try {
-      this.selectedBoss = await fetchRandomDuelBoss();
-
-      this.waitingForBossTouch = true;
-
-      const bossX = WORLD_W - TILE * 3;
-      const bossY = Math.floor(ROWS / 2) * TILE;
-
-      this.duelBossBaseY = bossY;
-      const bossKey = this.getRunBossSpriteKey();
-      const bossAnim = this.getRunBossAnimationKey();
-
-      if (!bossAnim) {
-        this.duelBossSprite = this.add.sprite(bossX, bossY, KEY_SPR_ENEMY)
-          .setOrigin(0, 0)
-          .setDepth(6);
-        return;
-      }
-
-      const framePrefix =
-        this.selectedBoss?.enemyName === 'Skawl' ? 'boss-skawl-run' :
-        this.selectedBoss?.enemyName === 'Rabyz' ? 'boss-rabyz-run' :
-        this.selectedBoss?.enemyName === 'Boldear' ? 'boss-boldear-run' :
-        this.selectedBoss?.enemyName === 'Pythra' ? 'boss-pythra-run' :
-        '';
-
-      this.duelBossSprite = this.add.sprite(
-        bossX,
-        bossY,
-        bossKey,
-        `${framePrefix}-down-1`
-      )
-        .setOrigin(0, 0)
-        .setDepth(6)
-        .setScale(0.18);
-
-      this.duelBossSprite.play(bossAnim);
-    } // try to fetch boss data and spawn the boss sprite at the end of the level; if anything goes wrong, log the error and skip spawning the boss so it doesn't block the player from finishing the run
-    
-    catch (error) {
-      console.error('spawnDuelBossAtGoal failed:', error);
-    }
-  }
-
-  // ── Boss Duel Transition ──
-  
-  // transition to DuelScene passing current run state, guard prevents double trigger
-  private startBossDuel() {
-    // Duel boss is only valid on the last run step.
-    if (this.step !== RUNS_PER_CYCLE - 1) return;
-    if (!this.selectedBoss || this.done) return; // guard against multiple triggers
-
-    this.done = true;
-
-    transitionTo(this, 'DuelScene', {
-      level: this.level,
-      step: this.step,
-      totalCoins: this.totalCoins + this.coinsCollected,
-      totalXp: this.totalXp,
-      runId: this.runId,
-      selectedBoss: this.selectedBoss,
-      currentMap: this.activeMap.key,
-    }); // transition to the DuelScene and pass along the current run stats and selected boss data
   }
 
   // randomized BFS flood fill to grow terrain clusters base BFS structure written by me (santi), based on similar implementations i've done for ICPC,
@@ -2072,9 +1776,8 @@ export class RunScene extends Phaser.Scene {
 
   // ── Win / Lose ──
 
-  // check if player reached the end zone, trigger level complete (skipped if boss is waiting)
+  // check if player reached the end zone, trigger level complete
   private checkEndZone() {
-    if (this.waitingForBossTouch) return;
     const ez = this.endZone;
     if (rectsOverlap(this.px, this.py, PLAYER_SIZE, PLAYER_SIZE, ez.x, ez.y, ez.w, ez.h)) {
       this.showLevelComplete();
@@ -2096,26 +1799,19 @@ export class RunScene extends Phaser.Scene {
 
   // ── Stage progression ──
 
-  // advance to next step or transition to DuelScene if cycle is complete
+  // advance to the next RunScene stage — both step and level increment by 1
+  // so every completed stage bumps difficulty by one tier
   private advanceStage() {
-    const nextStep = this.step + 1;
     const runData: RunData = {
-      level: this.level,
-      step: nextStep,
+      level: this.level + 1,
+      step: this.step + 1,
       totalCoins: this.totalCoins,
       totalXp: this.totalXp,
       runId: this.runId,
-      selectedBoss: this.selectedBoss,
       currentMap: this.activeMap.key,
     };
 
-    if (nextStep >= RUNS_PER_CYCLE) {
-      transitionTo(this, 'DuelScene', runData);
-    }
-
-    else {
-      transitionTo(this, 'RunScene', runData);
-    }
+    transitionTo(this, 'RunScene', runData);
   }
 
   // ── Overlays ──

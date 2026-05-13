@@ -27,6 +27,9 @@ const BASE: Phaser.Types.GameObjects.Text.TextStyle = {
   strokeThickness: 2,
 };
 
+// Keep in sync with MAX_ROOM_SIZE in server/src/socket/roomManager.ts.
+const MAX_ROOM_SIZE = 4;
+
 export class MultiplayerLobbyScene extends Phaser.Scene {
   private myPlayerId = 0;
   private lobbyState: LobbyState | null = null;
@@ -106,13 +109,15 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
       players: LobbyPlayer[];
       level: number;
       mapKey: string;
+      playerStats?: Record<number, unknown>;
     }) => {
       transitionTo(this, 'MultiplayerRunScene', {
-        grid:    data.grid,
-        enemies: data.enemies,
-        players: data.players,
-        level:   data.level,
-        mapKey:  data.mapKey,
+        grid:        data.grid,
+        enemies:     data.enemies,
+        players:     data.players,
+        level:       data.level,
+        mapKey:      data.mapKey,
+        playerStats: data.playerStats,
       });
     });
 
@@ -249,7 +254,7 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.uiGroup.push(playersTitle);
 
-    const ROW_H = Math.min(70, Math.floor((PANEL_H - 50) / 3));
+    const ROW_H = Math.min(70, Math.floor((PANEL_H - 50) / MAX_ROOM_SIZE));
     state.players.forEach((p, i) => {
       const y = PANEL_TOP + 55 + i * ROW_H;
       const isMe       = p.playerId === this.myPlayerId;
@@ -274,8 +279,8 @@ export class MultiplayerLobbyScene extends Phaser.Scene {
       }
     });
 
-    if (state.players.length < 3) {
-      for (let i = 0; i < 3 - state.players.length; i++) {
+    if (state.players.length < MAX_ROOM_SIZE) {
+      for (let i = 0; i < MAX_ROOM_SIZE - state.players.length; i++) {
         const y = PANEL_TOP + 55 + (state.players.length + i) * ROW_H;
         const emptyT = this.add.text(PX + PW / 2, y, '— waiting for player —', {
           ...BASE, fontSize: '16px', color: '#444444',
